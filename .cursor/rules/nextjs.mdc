@@ -1,0 +1,21 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Next.js rules
+
+## data fetching paradigm:
+
+- use server components for data fetching, include all types of content, dynamic or static
+- dynamic content: data queries from databases, personalized data, data related to params and search params
+- static content: texts, labels, which icons
+
+## interactivity
+
+- use client components only for interactions: event handlers, local state, browser APIs, browser state (mouse position, scroll position, screen size)
+- client components should never include dynamic or static content as described above
+
+## Forms
+
