@@ -1,7 +1,19 @@
 "use client";
 
-export function Title({ children }: { children: React.ReactNode }) {
-  return <h1 className="text-4xl font-bold tracking-tight">{children}</h1>;
+import { cn } from "@/lib/utils";
+
+export function Title({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <h1 className={cn("text-4xl font-bold tracking-tight", className)}>
+      {children}
+    </h1>
+  );
 }
 
 export function Subtitle({ children }: { children: React.ReactNode }) {

@@ -6,7 +6,10 @@ import type {
   FormFieldProps,
   FormLabelProps,
   FormProps,
+  FormSubmitProps,
+  FormMessageProps,
 } from "@radix-ui/react-form";
+import { Label } from "./label";
 
 /**
  * Form's root component. Please check out the anatomy of a form below.
@@ -16,12 +19,13 @@ import type {
  * // simple form
  * <Form>
  *  <FormField name="field_name">
- *    <FormLabel>
+ *    <FormLabel>Label</FormLabel>
  *    <FormControl asChild>
  *      <Input />
  *    </FormControl>
  *    <FormMessage />
  *  </FormField>
+ *  <FormSubmit>Submit</FormSubmit>
  * </Form>
  * ```
  */
@@ -29,7 +33,10 @@ export function Form({ className, children, ...props }: FormProps) {
   return (
     <FormPrimitive.Root
       {...props}
-      className={cn("flex flex-col gap-4 p-4", className)}
+      className={cn(
+        "grid grid-cols-1 gap-6 w-full max-w-md mx-auto",
+        className,
+      )}
     >
       {children}
     </FormPrimitive.Root>
@@ -38,7 +45,10 @@ export function Form({ className, children, ...props }: FormProps) {
 
 export function FormField({ className, children, ...props }: FormFieldProps) {
   return (
-    <FormPrimitive.Field {...props} className={cn(className)}>
+    <FormPrimitive.Field
+      {...props}
+      className={cn("grid grid-cols-subgrid gap-1.5", className)}
+    >
       {children}
     </FormPrimitive.Field>
   );
@@ -46,8 +56,43 @@ export function FormField({ className, children, ...props }: FormFieldProps) {
 
 export function FormLabel({ className, children, ...props }: FormLabelProps) {
   return (
-    <FormPrimitive.Label {...props} className={cn(className)}>
+    <Label {...props} className={cn("font-medium", className)}>
       {children}
-    </FormPrimitive.Label>
+    </Label>
   );
 }
+
+export function FormMessage({
+  className,
+  children,
+  ...props
+}: FormMessageProps) {
+  return (
+    <FormPrimitive.Message
+      {...props}
+      className={cn("text-sm font-medium text-destructive", className)}
+    >
+      {children}
+    </FormPrimitive.Message>
+  );
+}
+
+export function FormSubmit({ className, children, ...props }: FormSubmitProps) {
+  return (
+    <FormPrimitive.Submit
+      {...props}
+      className={cn(
+        "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors",
+        "h-10 px-4 py-2",
+        "bg-primary text-primary-foreground hover:bg-primary/90",
+        "disabled:pointer-events-none disabled:opacity-50",
+        "data-[invalid]:bg-muted data-[invalid]:text-muted-foreground data-[invalid]:hover:bg-muted",
+        className,
+      )}
+    >
+      {children}
+    </FormPrimitive.Submit>
+  );
+}
+
+export const FormControl = FormPrimitive.Control;

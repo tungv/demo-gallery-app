@@ -1,31 +1,32 @@
 import { Title } from "@/components/typography";
-import { Form, FormField, FormLabel } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
+  Form,
+  FormField,
+  FormLabel,
   FormControl,
-  Root,
-  Field,
-  Label,
-  Message,
-  Submit,
-} from "@radix-ui/react-form";
+  FormMessage,
+  FormSubmit,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 
 export default function UploadPage() {
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <Title>Upload</Title>
+    <div className="flex flex-col items-center justify-center h-screen p-4">
+      <Title className="mb-8">Upload</Title>
 
-      <Root>
-        <Field name="image_title">
-          <Label>Image Title</Label>
+      <Form>
+        <FormField name="image_title">
+          <FormLabel>Image Title</FormLabel>
           <FormControl asChild>
-            <Input required />
+            <Input required placeholder="Enter image title..." />
           </FormControl>
-          <Message match="valueMissing">Required</Message>
-        </Field>
+          <FormMessage match="valueMissing">
+            Please enter a title for your image
+          </FormMessage>
+        </FormField>
 
-        <Submit>Upload</Submit>
-      </Root>
+        <FormSubmit>Upload Image</FormSubmit>
+      </Form>
     </div>
   );
 }
