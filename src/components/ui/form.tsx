@@ -4,24 +4,114 @@ import { cn } from "@/lib/utils";
 import { createReducerContext } from "@/utils/reducer-context";
 import { Slot } from "@radix-ui/react-slot";
 import { createContext, useContext, useEffect, useId, useRef } from "react";
-import type { ComponentProps, RefObject } from "react";
+import type { ComponentProps, Dispatch, RefObject } from "react";
 
 interface FormContext {
   formRef: RefObject<HTMLFormElement | null> | null;
+  fields: Record<string, Partial<ValidityState>>;
 }
 
 const defaultContext: FormContext = {
   formRef: null,
+  fields: {},
 };
 
-type FormContextAction = {};
+type FormContextAction =
+  | {
+      type: "set_field_validity";
+      fieldName: string;
+      validity: Partial<ValidityState>;
+    }
+  | { type: "reset_field_validity"; fieldName: string }
+  | { type: "reset_all_validity" };
 
-const [FormContextProvider, useFormContext] = createReducerContext(
-  (state: FormContext, action: FormContextAction): FormContext => {
-    return state;
-  },
-  defaultContext,
-);
+function validityStateToPlainObject(validity: Partial<ValidityState>) {
+  const props = [
+    "valid",
+    "valueMissing",
+    "typeMismatch",
+    "patternMismatch",
+    "tooLong",
+    "tooShort",
+    "rangeOverflow",
+    "rangeUnderflow",
+    "stepMismatch",
+    "customError",
+  ];
+
+  const obj: Partial<Record<keyof ValidityState, boolean>> = {};
+
+  for (const prop of props) {
+    if (validity[prop as keyof ValidityState] === true) {
+      obj[prop as keyof ValidityState] = true;
+    }
+  }
+
+  return obj;
+}
+
+const [FormContextProvider, useFormContext, useFormDispatch] =
+  createReducerContext(
+    (state: FormContext, action: FormContextAction): FormContext => {
+      switch (action.type) {
+        case "set_field_validity":
+          return {
+            ...state,
+            fields: {
+              ...state.fields,
+              [action.fieldName]: validityStateToPlainObject(action.validity),
+            },
+          };
+        case "reset_field_validity": {
+          const { [action.fieldName]: _, ...remainingFields } = state.fields;
+          return {
+            ...state,
+            fields: remainingFields,
+          };
+        }
+        case "reset_all_validity":
+          return {
+            ...state,
+            fields: {},
+          };
+        default:
+          return state;
+      }
+    },
+    defaultContext,
+  );
+
+function useFormFieldValidationState(fieldName: string) {
+  const context = useFormContext();
+
+  return context.fields[fieldName] || { valid: true };
+}
+
+function useResetForm() {
+  const dispatch = useFormDispatch();
+
+  return () => {
+    dispatch({
+      type: "reset_all_validity",
+    });
+  };
+}
+
+function useUpdateValidity(fieldName: string) {
+  const dispatch = useFormDispatch();
+
+  return (validity: Partial<ValidityState>) => {
+    dispatch({ type: "set_field_validity", fieldName, validity });
+  };
+}
+
+function useResetValidity(fieldName: string) {
+  const dispatch = useFormDispatch();
+
+  return () => {
+    dispatch({ type: "reset_field_validity", fieldName });
+  };
+}
 
 /**
  * Form
@@ -50,20 +140,46 @@ interface FormProps extends ComponentProps<"form"> {
 
 export function Form({ children, className, asChild, ...props }: FormProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const resetForm = useResetForm();
 
   const formProps: ComponentProps<"form"> = {
     ...props,
     ref: formRef,
     className: cn("grid grid-cols-1 gap-4 p-4 max-w-md w-full", className),
+    onReset: (event) => {
+      console.log("onReset");
+      // Reset all form validity states
+      resetForm();
+    },
   };
 
   const inner = asChild ? (
-    <Slot {...formProps}>{children}</Slot>
+    <CustomFormImpl {...formProps}>{children}</CustomFormImpl>
   ) : (
-    <form {...formProps}>{children}</form>
+    <FormImpl {...formProps}>{children}</FormImpl>
   );
 
   return <FormContextProvider formRef={formRef}>{inner}</FormContextProvider>;
+}
+
+function CustomFormImpl({ children, ...props }: ComponentProps<"form">) {
+  const resetForm = useResetForm();
+
+  return (
+    <Slot {...props} onReset={resetForm}>
+      {children}
+    </Slot>
+  );
+}
+
+function FormImpl({ children, ...props }: ComponentProps<"form">) {
+  const resetForm = useResetForm();
+
+  return (
+    <form {...props} onReset={resetForm}>
+      {children}
+    </form>
+  );
 }
 
 interface FormFieldContext {
@@ -74,13 +190,6 @@ interface FormFieldContext {
 }
 
 type FormFieldAction =
-  | {
-      type: "change_validity";
-      payload: Partial<ValidityState>;
-    }
-  | {
-      type: "reset_validity";
-    }
   | {
       type: "add_message";
       payload: string;
@@ -100,20 +209,6 @@ const defaultFormFieldContext: FormFieldContext = {
 const [FormFieldProvider, useFormFieldState, useFormFieldDispatch] =
   createReducerContext(
     (state: FormFieldContext, action: FormFieldAction): FormFieldContext => {
-      if (action.type === "change_validity") {
-        return {
-          ...state,
-          validityState: action.payload,
-        };
-      }
-
-      if (action.type === "reset_validity") {
-        return {
-          ...state,
-          validityState: { valid: true },
-        };
-      }
-
       if (action.type === "add_message") {
         return {
           ...state,
@@ -133,37 +228,6 @@ const [FormFieldProvider, useFormFieldState, useFormFieldDispatch] =
     defaultFormFieldContext,
   );
 
-function useUpdateValidity() {
-  const context = useFormFieldState();
-
-  if (!context) {
-    throw new Error("useUpdateValidity must be used within a FormField");
-  }
-
-  const dispatch = useFormFieldDispatch();
-
-  return (input: HTMLInputElement) => {
-    dispatch({
-      type: "change_validity",
-      payload: input.validity,
-    });
-  };
-}
-
-function useResetValidity() {
-  const context = useFormFieldState();
-
-  if (!context) {
-    throw new Error("useResetValidity must be used within a FormField");
-  }
-
-  const dispatch = useFormFieldDispatch();
-
-  return () => {
-    dispatch({ type: "reset_validity" });
-  };
-}
-
 interface FormFieldProps extends ComponentProps<"div"> {
   name: string;
 }
@@ -179,35 +243,6 @@ export function FormField({ name, children, ...props }: FormFieldProps) {
 }
 
 function FormFieldImpl({ children, ...props }: ComponentProps<"div">) {
-  const formContext = useFormContext();
-  const resetValidity = useResetValidity();
-
-  if (!formContext) {
-    throw new Error("FormField must be used within a Form");
-  }
-
-  // biome-ignore lint/style/noNonNullAssertion: form ref must be present, formRef.current may be null however
-  const formRef = formContext.formRef!;
-
-  // add reset listener to form
-  useEffect(() => {
-    const form = formRef.current;
-
-    if (!form) {
-      return;
-    }
-
-    function handleReset() {
-      resetValidity();
-    }
-
-    form.addEventListener("reset", handleReset);
-
-    return () => {
-      form.removeEventListener("reset", handleReset);
-    };
-  }, [formRef, resetValidity]);
-
   return <div {...props}>{children}</div>;
 }
 
@@ -249,8 +284,8 @@ export function InputControl({
 }: FormControlProps) {
   const context = useFormFieldState();
   const inputRef = useRef<HTMLInputElement>(null);
-  const updateValidity = useUpdateValidity();
-  const resetValidity = useResetValidity();
+  const updateValidity = useUpdateValidity(context.name);
+  const resetValidity = useResetValidity(context.name);
 
   // learned from radix react form control, we bind the actual input.onchange instead of react onChange (which is actually oninput)
   useEffect(() => {
@@ -261,7 +296,9 @@ export function InputControl({
     }
 
     function onChange(event: Event) {
-      updateValidity(event.target as HTMLInputElement);
+      const input = event.target as HTMLInputElement;
+      console.log("input.onchange");
+      updateValidity(input.validity);
     }
 
     input.addEventListener("change", onChange);
@@ -297,11 +334,14 @@ export function InputControl({
 
     onInvalid(event) {
       event.preventDefault();
-      updateValidity(event.target as HTMLInputElement);
+      const input = event.target as HTMLInputElement;
+      console.log("input.oninvalid");
+      updateValidity(input.validity);
     },
 
     onChange(event) {
       // reset validity state
+      console.log("input.oninput");
       resetValidity();
     },
   };
@@ -325,7 +365,7 @@ export function FormMessage({
 }: FormMessageProps) {
   const isInvalid = match !== "valid";
   const context = useFormFieldState();
-  const validityState = context.validityState;
+  const validityState = useFormFieldValidationState(context.name);
   const hidden = !validityState[match];
 
   const id = useId();
