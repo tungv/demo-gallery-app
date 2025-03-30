@@ -1,98 +1,391 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import * as FormPrimitive from "@radix-ui/react-form";
-import type {
-  FormFieldProps,
-  FormLabelProps,
-  FormProps,
-  FormSubmitProps,
-  FormMessageProps,
-} from "@radix-ui/react-form";
-import { Label } from "./label";
+import { createReducerContext } from "@/utils/reducer-context";
+import { Slot } from "@radix-ui/react-slot";
+import { createContext, useContext, useEffect, useId, useRef } from "react";
+import type { ComponentProps, RefObject } from "react";
+
+interface FormContext {
+  formRef: RefObject<HTMLFormElement | null> | null;
+}
+
+const defaultContext: FormContext = {
+  formRef: null,
+};
+
+type FormContextAction = {};
+
+const [FormContextProvider, useFormContext] = createReducerContext(
+  (state: FormContext, action: FormContextAction): FormContext => {
+    return state;
+  },
+  defaultContext,
+);
 
 /**
- * Form's root component. Please check out the anatomy of a form below.
+ * Form
  *
- * @example
+ * Anatomy:
+ *
  * ```tsx
- * // simple form
  * <Form>
  *  <FormField name="field_name">
- *    <FormLabel>Label</FormLabel>
- *    <FormControl asChild>
+ *    <FormLabel />
+ *    <FormControl>
  *      <Input />
  *    </FormControl>
  *    <FormMessage />
  *  </FormField>
- *  <FormSubmit>Submit</FormSubmit>
+ *  <FormSubmit />
  * </Form>
  * ```
+ *
+ *
  */
-export function Form({ className, children, ...props }: FormProps) {
+
+interface FormProps extends ComponentProps<"form"> {
+  asChild?: boolean;
+}
+
+export function Form({ children, className, asChild, ...props }: FormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const formProps: ComponentProps<"form"> = {
+    ...props,
+    ref: formRef,
+    className: cn("grid grid-cols-1 gap-4 p-4 max-w-md w-full", className),
+  };
+
+  const inner = asChild ? (
+    <Slot {...formProps}>{children}</Slot>
+  ) : (
+    <form {...formProps}>{children}</form>
+  );
+
+  return <FormContextProvider formRef={formRef}>{inner}</FormContextProvider>;
+}
+
+interface FormFieldContext {
+  name: string;
+  id: string;
+  validityState: Partial<ValidityState>;
+  messageIds: string[];
+}
+
+type FormFieldAction =
+  | {
+      type: "change_validity";
+      payload: Partial<ValidityState>;
+    }
+  | {
+      type: "reset_validity";
+    }
+  | {
+      type: "add_message";
+      payload: string;
+    }
+  | {
+      type: "remove_message";
+      payload: string;
+    };
+
+const defaultFormFieldContext: FormFieldContext = {
+  name: "",
+  id: "",
+  validityState: { valid: true },
+  messageIds: [],
+};
+
+const [FormFieldProvider, useFormFieldState, useFormFieldDispatch] =
+  createReducerContext(
+    (state: FormFieldContext, action: FormFieldAction): FormFieldContext => {
+      if (action.type === "change_validity") {
+        return {
+          ...state,
+          validityState: action.payload,
+        };
+      }
+
+      if (action.type === "reset_validity") {
+        return {
+          ...state,
+          validityState: { valid: true },
+        };
+      }
+
+      if (action.type === "add_message") {
+        return {
+          ...state,
+          messageIds: [...state.messageIds, action.payload],
+        };
+      }
+
+      if (action.type === "remove_message") {
+        return {
+          ...state,
+          messageIds: state.messageIds.filter((id) => id !== action.payload),
+        };
+      }
+
+      return state;
+    },
+    defaultFormFieldContext,
+  );
+
+function useUpdateValidity() {
+  const context = useFormFieldState();
+
+  if (!context) {
+    throw new Error("useUpdateValidity must be used within a FormField");
+  }
+
+  const dispatch = useFormFieldDispatch();
+
+  return (input: HTMLInputElement) => {
+    dispatch({
+      type: "change_validity",
+      payload: input.validity,
+    });
+  };
+}
+
+function useResetValidity() {
+  const context = useFormFieldState();
+
+  if (!context) {
+    throw new Error("useResetValidity must be used within a FormField");
+  }
+
+  const dispatch = useFormFieldDispatch();
+
+  return () => {
+    dispatch({ type: "reset_validity" });
+  };
+}
+
+interface FormFieldProps extends ComponentProps<"div"> {
+  name: string;
+}
+
+export function FormField({ name, children, ...props }: FormFieldProps) {
+  const id = useId();
+
   return (
-    <FormPrimitive.Root
-      {...props}
-      className={cn(
-        "grid grid-cols-1 gap-6 w-full max-w-md mx-auto",
-        className,
-      )}
-    >
-      {children}
-    </FormPrimitive.Root>
+    <FormFieldProvider name={name} id={id}>
+      <FormFieldImpl {...props}>{children}</FormFieldImpl>
+    </FormFieldProvider>
   );
 }
 
-export function FormField({ className, children, ...props }: FormFieldProps) {
+function FormFieldImpl({ children, ...props }: ComponentProps<"div">) {
+  const formContext = useFormContext();
+  const resetValidity = useResetValidity();
+
+  if (!formContext) {
+    throw new Error("FormField must be used within a Form");
+  }
+
+  // biome-ignore lint/style/noNonNullAssertion: form ref must be present, formRef.current may be null however
+  const formRef = formContext.formRef!;
+
+  // add reset listener to form
+  useEffect(() => {
+    const form = formRef.current;
+
+    if (!form) {
+      return;
+    }
+
+    function handleReset() {
+      resetValidity();
+    }
+
+    form.addEventListener("reset", handleReset);
+
+    return () => {
+      form.removeEventListener("reset", handleReset);
+    };
+  }, [formRef, resetValidity]);
+
+  return <div {...props}>{children}</div>;
+}
+
+interface FormLabelProps extends ComponentProps<"label"> {}
+
+export function FormLabel({ children, className, ...props }: FormLabelProps) {
+  const context = useFormFieldState();
+
+  if (!context) {
+    throw new Error("FormLabel must be used within a FormField");
+  }
+
+  const controlId = `control-${context.id}`;
+
   return (
-    <FormPrimitive.Field
+    <label
       {...props}
-      className={cn("grid grid-cols-subgrid gap-1.5", className)}
+      htmlFor={controlId}
+      className={cn("text-sm font-bold tracking-tight", className)}
     >
       {children}
-    </FormPrimitive.Field>
+    </label>
   );
 }
 
-export function FormLabel({ className, children, ...props }: FormLabelProps) {
-  return (
-    <Label {...props} className={cn("font-medium", className)}>
-      {children}
-    </Label>
-  );
+interface FormControlProps extends ComponentProps<"input"> {
+  asChild?: boolean;
+}
+
+interface FormControlDataAttributes {
+  "data-invalid"?: boolean;
+  "data-valid"?: boolean;
+}
+
+export function InputControl({
+  children,
+  asChild,
+  ...props
+}: FormControlProps) {
+  const context = useFormFieldState();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const updateValidity = useUpdateValidity();
+  const resetValidity = useResetValidity();
+
+  // learned from radix react form control, we bind the actual input.onchange instead of react onChange (which is actually oninput)
+  useEffect(() => {
+    const input = inputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    function onChange(event: Event) {
+      updateValidity(event.target as HTMLInputElement);
+    }
+
+    input.addEventListener("change", onChange);
+
+    return () => {
+      input.removeEventListener("change", onChange);
+    };
+  }, [updateValidity]);
+
+  if (!context) {
+    throw new Error("FormControl must be used within a FormField");
+  }
+
+  const controlId = `control-${context.id}`;
+
+  const inputProps: ComponentProps<"input"> & FormControlDataAttributes = {
+    ...props,
+    id: controlId,
+    ref: inputRef,
+
+    title: "",
+
+    "aria-describedby": context.messageIds.join(" "),
+    "aria-invalid": !context.validityState.valid,
+    "aria-required": props.required,
+    "aria-busy": props.disabled,
+    "aria-readonly": props.readOnly,
+
+    // data attributes
+    "data-invalid": !context.validityState.valid,
+    "data-valid": context.validityState.valid,
+
+    onInvalid(event) {
+      event.preventDefault();
+      updateValidity(event.target as HTMLInputElement);
+    },
+
+    onChange(event) {
+      // reset validity state
+      resetValidity();
+    },
+  };
+
+  if (asChild) {
+    return <Slot {...inputProps}>{children}</Slot>;
+  }
+
+  return <input {...inputProps} />;
+}
+
+interface FormMessageProps extends ComponentProps<"span"> {
+  match: keyof ValidityState;
 }
 
 export function FormMessage({
-  className,
   children,
+  match,
+  className,
   ...props
 }: FormMessageProps) {
-  return (
-    <FormPrimitive.Message
-      {...props}
-      className={cn("text-sm font-medium text-destructive", className)}
-    >
-      {children}
-    </FormPrimitive.Message>
-  );
-}
+  const isInvalid = match !== "valid";
+  const context = useFormFieldState();
+  const validityState = context.validityState;
+  const hidden = !validityState[match];
 
-export function FormSubmit({ className, children, ...props }: FormSubmitProps) {
+  const id = useId();
+
+  // if this component is present, add the message id to the context
+  const dispatch = useFormFieldDispatch();
+
+  useEffect(() => {
+    if (hidden) {
+      return;
+    }
+    dispatch({
+      type: "add_message",
+      payload: id,
+    });
+
+    return () => {
+      dispatch({
+        type: "remove_message",
+        payload: id,
+      });
+    };
+  }, [dispatch, id, hidden]);
+
+  if (hidden) {
+    return null;
+  }
+
   return (
-    <FormPrimitive.Submit
+    <span
       {...props}
+      aria-live="polite"
+      aria-atomic="true"
+      id={id}
       className={cn(
-        "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors",
-        "h-10 px-4 py-2",
-        "bg-primary text-primary-foreground hover:bg-primary/90",
-        "disabled:pointer-events-none disabled:opacity-50",
-        "data-[invalid]:bg-muted data-[invalid]:text-muted-foreground data-[invalid]:hover:bg-muted",
+        "text-sm",
+        {
+          "text-destructive": isInvalid,
+          "text-primary/80": !isInvalid,
+        },
         className,
       )}
     >
       {children}
-    </FormPrimitive.Submit>
+    </span>
   );
 }
 
-export const FormControl = FormPrimitive.Control;
+interface FormSubmitProps extends Omit<ComponentProps<"button">, "type"> {
+  asChild?: boolean;
+}
+
+export function FormSubmit({ children, asChild, ...props }: FormSubmitProps) {
+  const buttonProps = {
+    ...props,
+    type: "submit" as const,
+  };
+
+  if (asChild) {
+    return <Slot {...buttonProps}>{children}</Slot>;
+  }
+
+  return <button {...buttonProps}>{children}</button>;
+}
