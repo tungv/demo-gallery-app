@@ -280,6 +280,7 @@ export function InputControl({
   const inputProps: ComponentProps<"input"> & FormControlDataAttributes = {
     ...props,
     id: controlId,
+    name: context.name,
     ref: inputRef,
 
     title: "",
