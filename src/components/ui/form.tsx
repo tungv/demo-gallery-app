@@ -481,9 +481,9 @@ export function InputControl({
       event.preventDefault();
 
       // update state
-      const { currentTarget } = event;
-      if (isFormControl(currentTarget)) {
-        updateValidity(currentTarget.validity);
+      const target = event.target as HTMLElement;
+      if (isFormControl(target)) {
+        updateValidity(target.validity);
       }
     },
     onChange() {
@@ -603,6 +603,13 @@ function isInvalid(control: HTMLElement) {
   );
 }
 
+function isVisible(control: HTMLElement) {
+  return (
+    control.offsetParent !== null &&
+    control.getAttribute("aria-hidden") !== "true"
+  );
+}
+
 function getFirstInvalidControl(
   form: HTMLFormElement,
 ): HTMLElement | undefined {
@@ -615,6 +622,7 @@ function getFirstInvalidControl(
   const firstInvalidControl = Array.from(elements)
     .filter(isHTMLElement)
     .filter(isInvalid)
+    .filter(isVisible)
     .at(0);
 
   return firstInvalidControl;
