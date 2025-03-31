@@ -105,9 +105,12 @@ function Combobox({
       getNextState: (action: ComboboxAction) => ComboboxState,
     ) =>
       (action: ComboboxAction) => {
-        if (action.type === "select" || action.type === "deselect") {
+        if (
+          typeof onValueChange === "function" &&
+          (action.type === "select" || action.type === "deselect")
+        ) {
           const state = getNextState(action);
-          onValueChange?.(state.selected);
+          onValueChange(state.selected);
         }
         dispatch(action);
       },
