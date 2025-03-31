@@ -4,7 +4,9 @@ import {
   type PropsWithChildren,
   type Reducer,
   createContext,
+  memo,
   useContext,
+  useMemo,
   useReducer,
 } from "react";
 
@@ -17,17 +19,29 @@ export function createReducerContext<Action, State>(
 
   function Provider({
     children,
+    middleware,
     ...values
-  }: PropsWithChildren<Partial<State>>) {
+  }: PropsWithChildren<Partial<State>> & {
+    middleware?: (
+      dispatch: Dispatch<Action>,
+      getNextState: (action: Action) => State,
+    ) => Dispatch<Action>;
+  }) {
     const [state, dispatch] = useReducer(
       reducer,
       initialState,
       (defaultState) => ({ ...defaultState, ...values }),
     );
 
+    const wrapped = useMemo(() => {
+      return middleware
+        ? middleware(dispatch, (action) => reducer(state, action))
+        : dispatch;
+    }, [middleware, state, reducer]);
+
     return (
       <stateCtx.Provider value={state}>
-        <dispatchCtx.Provider value={dispatch}>{children}</dispatchCtx.Provider>
+        <dispatchCtx.Provider value={wrapped}>{children}</dispatchCtx.Provider>
       </stateCtx.Provider>
     );
   }
@@ -40,5 +54,5 @@ export function createReducerContext<Action, State>(
     return useContext(stateCtx);
   }
 
-  return [Provider, useStateContext, useDispatch] as const;
+  return [memo(Provider), useStateContext, useDispatch] as const;
 }
