@@ -14,6 +14,7 @@ import { createContext, useCallback, useContext } from "react";
 import { Slot } from "@radix-ui/react-slot";
 
 interface ComboboxState {
+  name?: string;
   selected: string[];
   open: boolean;
   multiple: boolean;
@@ -119,37 +120,20 @@ function Combobox({
 
   return (
     <ComboboxProvider
+      name={name}
       selected={selected}
       multiple={multiple ?? false}
       middleware={middleware}
     >
-      <ComboboxImpl name={name} onValueChange={onValueChange}>
-        {children}
-      </ComboboxImpl>
+      <ComboboxImpl>{children}</ComboboxImpl>
+      {name && <HiddenInputs />}
     </ComboboxProvider>
   );
 }
 
-function ComboboxImpl({
-  name,
-  onValueChange,
-  children,
-}: {
-  name?: string;
-  onValueChange?: (value: string | string[]) => void;
-  children: React.ReactNode;
-}) {
+function ComboboxImpl({ children }: { children: React.ReactNode }) {
   const dispatch = useComboboxDispatch();
   const state = useComboboxState();
-
-  // if name is provided, we need to create a set of hidden inputs to store the values
-  const inputs = name ? (
-    <>
-      {state.selected.map((value) => (
-        <input key={value} type="hidden" name={name} value={value} />
-      ))}
-    </>
-  ) : null;
 
   return (
     <Popover
@@ -157,8 +141,18 @@ function ComboboxImpl({
       onOpenChange={(open) => dispatch({ type: "set_open", open })}
     >
       {children}
-      {inputs}
     </Popover>
+  );
+}
+
+function HiddenInputs() {
+  const { selected, name } = useComboboxState();
+  return (
+    <>
+      {selected.map((value) => (
+        <input key={value} type="hidden" name={name} value={value} />
+      ))}
+    </>
   );
 }
 
