@@ -311,6 +311,47 @@ function ComboboxEmpty({
   );
 }
 
+export function ComboboxValues({
+  placeholder,
+  locale,
+}: {
+  placeholder: string;
+  locale?: string;
+}) {
+  const state = useComboboxState();
+  if (state.selected.length === 0) {
+    return placeholder;
+  }
+
+  const listFormat = new Intl.ListFormat(locale, {
+    style: "long",
+    type: "conjunction",
+  });
+
+  const parts = listFormat.formatToParts(state.selected);
+
+  return (
+    <span className="truncate">
+      {parts.map((part, index) => {
+        if (part.type === "element") {
+          return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: just a span without state
+            <span className="font-semibold" key={index}>
+              {part.value}
+            </span>
+          );
+        }
+        return (
+          // biome-ignore lint/suspicious/noArrayIndexKey: just a span without state
+          <span className="text-muted-foreground" key={index}>
+            {part.value}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 export function useSelectedValues() {
   const state = useComboboxState();
   return state.selected;
