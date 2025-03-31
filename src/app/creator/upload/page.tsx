@@ -16,6 +16,7 @@ import {
   InteractiveForm,
   PrintResult,
 } from "@/components/behaviors/interactive-form";
+import CategoryCombobox from "./CategoryCombobox";
 
 export default function UploadPage() {
   return (
@@ -36,10 +37,6 @@ export default function UploadPage() {
               return { errors: ["missing_title"] };
             }
 
-            if (title === "test") {
-              return { errors: ["invalid_title"] };
-            }
-
             if (!description) {
               return { errors: ["missing_description"] };
             }
@@ -48,11 +45,14 @@ export default function UploadPage() {
               return { errors: ["missing_visibility"] };
             }
 
+            const tags = formData.getAll("image_tags");
+
             return {
               result: {
                 title,
                 description,
                 visibility,
+                tags,
               },
             };
           }}
@@ -100,11 +100,19 @@ export default function UploadPage() {
               <FormMessage match="valid">&nbsp;</FormMessage>
             </div>
           </FormField>
+
+          <FormField name="image_tags">
+            <FormLabel>Image Tags</FormLabel>
+            <InputControl asChild>
+              <CategoryCombobox />
+            </InputControl>
+          </FormField>
+
           <FormField name="visibility">
             <FormLabel>Visibility</FormLabel>
 
             <InputControl asChild>
-              <RadioGroup required>
+              <RadioGroup required defaultValue="public">
                 <FormControlItem className="flex items-center gap-2">
                   <InputControl asChild>
                     <RadioGroupItem value="public" />
@@ -131,6 +139,8 @@ export default function UploadPage() {
             <FormSubmit>Upload Image</FormSubmit>
             <button type="reset">Reset</button>
           </footer>
+
+          <PrintResult />
         </InteractiveForm>
       </Form>
     </div>
