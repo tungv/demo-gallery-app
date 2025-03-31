@@ -12,10 +12,12 @@ interface FormContext {
     string,
     { validity: Partial<ValidityState>; userInteracted: boolean }
   >;
+  resetCounter: number;
 }
 
 const defaultContext: FormContext = {
   fields: {},
+  resetCounter: 0,
 };
 
 type FormContextAction =
@@ -85,6 +87,7 @@ const [FormContextProvider, useFormContext, useFormDispatch] =
           return {
             ...state,
             fields: {},
+            resetCounter: state.resetCounter + 1,
           };
         case "set_all_fields_interacted": {
           const updatedFields = { ...state.fields };
@@ -501,7 +504,11 @@ export function InputControl({
   };
 
   if (asChild) {
-    return <Slot {...inputProps}>{children}</Slot>;
+    return (
+      <Slot key={formContext.resetCounter} {...inputProps}>
+        {children}
+      </Slot>
+    );
   }
 
   return <input {...inputProps} />;
