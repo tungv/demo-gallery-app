@@ -92,3 +92,35 @@ export function PrintResult() {
 
   return <pre>{JSON.stringify(result, null, 2)}</pre>;
 }
+
+export function FormErrorMessage({
+  children,
+  match,
+  ...props
+}: ComponentProps<"span"> & { match?: string }) {
+  const errors = useContext(errorsContext);
+
+  // if no match is provided, we will render the error message if there are any errors
+  if (!match) {
+    if (errors.length > 0) {
+      return (
+        <span className="text-destructive text-sm" {...props}>
+          {children}
+        </span>
+      );
+    }
+
+    // otherwise, we will render an empty span
+    return null;
+  }
+
+  if (!errors.includes(match)) {
+    return null;
+  }
+
+  return (
+    <span className="text-destructive text-sm" {...props}>
+      {children}
+    </span>
+  );
+}
