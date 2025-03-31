@@ -11,12 +11,10 @@ interface FormContext {
     string,
     { validity: Partial<ValidityState>; userInteracted: boolean }
   >;
-  isPristine: boolean;
 }
 
 const defaultContext: FormContext = {
   fields: {},
-  isPristine: true,
 };
 
 type FormContextAction =
@@ -27,8 +25,6 @@ type FormContextAction =
     }
   | { type: "reset_field_validity"; fieldName: string }
   | { type: "reset_all_validity" }
-  | { type: "set_dirty" }
-  | { type: "set_pristine" }
   | { type: "set_all_fields_interacted" };
 
 function validityStateToPlainObject(validity: Partial<ValidityState>) {
@@ -88,17 +84,6 @@ const [FormContextProvider, useFormContext, useFormDispatch] =
           return {
             ...state,
             fields: {},
-            isPristine: true,
-          };
-        case "set_dirty":
-          return {
-            ...state,
-            isPristine: false,
-          };
-        case "set_pristine":
-          return {
-            ...state,
-            isPristine: true,
           };
         case "set_all_fields_interacted": {
           const updatedFields = { ...state.fields };
@@ -130,13 +115,6 @@ function useFormFieldValidationState(fieldName: string) {
   return field?.validity || { valid: true };
 }
 
-function useFormFieldInteracted(fieldName: string) {
-  const context = useFormContext();
-  const field = context.fields[fieldName];
-
-  return field?.userInteracted || false;
-}
-
 function useResetForm() {
   const dispatch = useFormDispatch();
 
@@ -164,16 +142,6 @@ function useResetValidity(fieldName: string) {
 
   return () => {
     dispatch({ type: "reset_field_validity", fieldName });
-  };
-}
-
-function useSetFormDirty() {
-  const dispatch = useFormDispatch();
-
-  return () => {
-    dispatch({
-      type: "set_dirty",
-    });
   };
 }
 
@@ -225,17 +193,9 @@ function useFormAttributes() {
     (field) => field.userInteracted,
   );
 
-  console.log({ fields: Object.values(formContext.fields) });
-
   // Create data attributes that will only be added when true
   const dataAttributes: Partial<FormDataAttributes> = {};
   const ariaAttributes: Record<string, boolean | string | undefined> = {};
-
-  if (formContext.isPristine) {
-    dataAttributes["data-pristine"] = "";
-  } else {
-    dataAttributes["data-dirty"] = "";
-  }
 
   if (isInvalid) {
     dataAttributes["data-invalid"] = "";
@@ -272,8 +232,9 @@ export function Form({ children, className, asChild, ...props }: FormProps) {
       resetForm();
     },
     onChange: (event) => {
+      const input = event.target as HTMLInputElement;
+      console.log("onChange", input.name, input.value);
       // Mark form as dirty on any change
-      dispatch({ type: "set_dirty" });
       if (props.onChange) {
         props.onChange(event);
       }
@@ -286,18 +247,6 @@ export function Form({ children, className, asChild, ...props }: FormProps) {
       if (props.onSubmit) {
         props.onSubmit(event);
       }
-    },
-
-    onInvalid: (event) => {
-      const form = event.currentTarget as HTMLFormElement;
-
-      const invalidControl = getFirstInvalidControl(form);
-      if (invalidControl) {
-        invalidControl.focus();
-      }
-
-      // prevent default browser UI for form validation
-      event.preventDefault();
     },
 
     onInvalid: (event) => {
