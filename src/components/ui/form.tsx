@@ -235,14 +235,6 @@ export function Form({ children, className, asChild, ...props }: FormProps) {
       // Reset all form validity states
       resetForm();
     },
-    onChange: (event) => {
-      const input = event.target as HTMLInputElement;
-      console.log("onChange", input.name, input.value);
-      // Mark form as dirty on any change
-      if (props.onChange) {
-        props.onChange(event);
-      }
-    },
     onSubmit: (event) => {
       // Mark all fields as interacted when form is submitted
       dispatch({ type: "set_all_fields_interacted" });
