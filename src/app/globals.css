@@ -119,4 +119,8 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .pile {
+    @apply grid grid-cols-1 grid-rows-1 *:col-start-1 *:row-start-1;
+  }
 }

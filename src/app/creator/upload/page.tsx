@@ -31,6 +31,19 @@ export default function UploadPage() {
           </div>
         </FormField>
 
+        <FormField name="image_file">
+          <FormLabel>Image File</FormLabel>
+          <InputControl asChild>
+            <Input type="file" required />
+          </InputControl>
+          <div className="pile">
+            <FormMessage match="valueMissing">
+              Please upload an image
+            </FormMessage>
+            <FormMessage match="valid">&nbsp;</FormMessage>
+          </div>
+        </FormField>
+
         <FormSubmit>Upload Image</FormSubmit>
         <button type="reset">Reset</button>
       </Form>
