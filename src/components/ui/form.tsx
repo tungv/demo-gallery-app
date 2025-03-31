@@ -287,6 +287,30 @@ export function Form({ children, className, asChild, ...props }: FormProps) {
         props.onSubmit(event);
       }
     },
+
+    onInvalid: (event) => {
+      const form = event.currentTarget as HTMLFormElement;
+
+      const invalidControl = getFirstInvalidControl(form);
+      if (invalidControl) {
+        invalidControl.focus();
+      }
+
+      // prevent default browser UI for form validation
+      event.preventDefault();
+    },
+
+    onInvalid: (event) => {
+      const form = event.currentTarget as HTMLFormElement;
+
+      const invalidControl = getFirstInvalidControl(form);
+      if (invalidControl) {
+        invalidControl.focus();
+      }
+
+      // prevent default browser UI for form validation
+      event.preventDefault();
+    },
   };
 
   const inner = asChild ? (
@@ -595,4 +619,39 @@ export function FormSubmit({ children, asChild, ...props }: FormSubmitProps) {
   }
 
   return <button {...buttonProps}>{children}</button>;
+}
+
+function isHTMLElement(element: unknown): element is HTMLElement {
+  return element instanceof HTMLElement;
+}
+
+function isFormControl(
+  element: HTMLElement,
+): element is HTMLElement & { validity: ValidityState } {
+  return "validity" in element;
+}
+
+function isInvalid(control: HTMLElement) {
+  return (
+    isFormControl(control) &&
+    (control.validity.valid === false ||
+      control.getAttribute("aria-invalid") === "true")
+  );
+}
+
+function getFirstInvalidControl(
+  form: HTMLFormElement,
+): HTMLElement | undefined {
+  const elements = form.elements;
+
+  if (!elements || elements.length === 0) {
+    return undefined;
+  }
+
+  const firstInvalidControl = Array.from(elements)
+    .filter(isHTMLElement)
+    .filter(isInvalid)
+    .at(0);
+
+  return firstInvalidControl;
 }
