@@ -52,8 +52,6 @@ export function InteractiveForm<ResultType, ErrorType extends string>({
     initialState,
   );
 
-  console.log(localState);
-
   // if the nextElement exists, render it
   if ("nextElement" in localState) {
     return localState.nextElement;
