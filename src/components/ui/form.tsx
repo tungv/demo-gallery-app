@@ -480,8 +480,10 @@ export function InputControl({
       event.preventDefault();
 
       // update state
-      const input = event.target as HTMLInputElement;
-      updateValidity(input.validity);
+      const { currentTarget } = event;
+      if (isFormControl(currentTarget)) {
+        updateValidity(currentTarget.validity);
+      }
     },
     onChange() {
       // reset validity state
@@ -489,9 +491,11 @@ export function InputControl({
       resetValidity();
     },
     onBlur(event) {
+      const { currentTarget } = event;
       // after the user has interacted with the input, we update the validity state to show validation errors (if any)
-      const input = event.target as HTMLInputElement;
-      updateValidity(input.validity);
+      if (isFormControl(currentTarget)) {
+        updateValidity(currentTarget.validity);
+      }
     },
   };
 
@@ -613,4 +617,26 @@ function getFirstInvalidControl(
     .at(0);
 
   return firstInvalidControl;
+}
+
+export function FormControlItem({
+  children,
+  defaultItem,
+  className,
+  ...props
+}: ComponentProps<"div"> & { defaultItem?: boolean }) {
+  const fieldContext = useFormFieldState();
+  const fieldName = fieldContext.name;
+  const fieldId = fieldContext.id;
+
+  const itemId = useId();
+  const controlItemId = defaultItem ? `${fieldId}` : `${fieldId}-${itemId}`;
+
+  return (
+    <FormFieldProvider name={fieldName} id={controlItemId}>
+      <div {...props} className={cn(className)}>
+        {children}
+      </div>
+    </FormFieldProvider>
+  );
 }
