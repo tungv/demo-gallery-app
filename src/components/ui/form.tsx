@@ -404,12 +404,22 @@ interface FormFieldProps extends ComponentProps<"div"> {
   name: string;
 }
 
-export function FormField({ name, children, ...props }: FormFieldProps) {
+export function FormField({
+  name,
+  children,
+  className,
+  ...props
+}: FormFieldProps) {
   const id = useId();
+
+  const formFieldProps: ComponentProps<"div"> = {
+    ...props,
+    className: cn("grid grid-cols-1 gap-2", className),
+  };
 
   return (
     <FormFieldProvider name={name} id={id}>
-      <FormFieldImpl {...props}>{children}</FormFieldImpl>
+      <FormFieldImpl {...formFieldProps}>{children}</FormFieldImpl>
     </FormFieldProvider>
   );
 }
