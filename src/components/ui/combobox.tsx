@@ -185,11 +185,7 @@ function ComboboxContent({
 }: React.ComponentPropsWithoutRef<typeof PopoverContent>) {
   return (
     <PopoverContent className="w-[200px] p-0" {...props}>
-      <Command
-        {...props}
-        className={cn("max-h-[300px] overflow-y-auto p-1", className)}
-        defaultValue=""
-      >
+      <Command className={cn("max-h-[300px] overflow-y-auto p-1", className)}>
         {children}
       </Command>
     </PopoverContent>
