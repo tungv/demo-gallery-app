@@ -17,6 +17,7 @@ import {
   PrintResult,
 } from "@/components/behaviors/interactive-form";
 import CategoryCombobox from "./CategoryCombobox";
+import ValidationMessages from "./ValidationMessages";
 
 export default function UploadPage() {
   return (
@@ -28,7 +29,7 @@ export default function UploadPage() {
           className="data-[user-invalid]:border-red-500 border"
           action={async (formData) => {
             "use server";
-            console.log("action");
+
             const title = formData.get("image_title");
             const description = formData.get("image_description");
             const visibility = formData.get("visibility");
@@ -61,13 +62,12 @@ export default function UploadPage() {
             <FormLabel>Image Title</FormLabel>
             <InputControl asChild>
               <Input
-                defaultValue="test"
                 required
                 placeholder="Enter image title..."
                 minLength={3}
               />
             </InputControl>
-            <div className="pile">
+            <ValidationMessages>
               <FormMessage match="valueMissing">
                 Please enter a title for your image
               </FormMessage>
@@ -77,28 +77,25 @@ export default function UploadPage() {
               <FormErrorMessage match="invalid_title">
                 Title cannot be "test"
               </FormErrorMessage>
-              <FormMessage match="valid">&nbsp;</FormMessage>
-            </div>
+            </ValidationMessages>
           </FormField>
           <FormField name="image_description">
             <FormLabel>Image Description</FormLabel>
             <InputControl asChild>
               <Textarea
-                defaultValue="test"
                 required
                 placeholder="Enter image description..."
                 minLength={3}
               />
             </InputControl>
-            <div className="pile">
+            <ValidationMessages>
               <FormMessage match="valueMissing">
                 Please enter a description for your image
               </FormMessage>
               <FormMessage match="tooShort">
                 Description must be at least 3 characters long
               </FormMessage>
-              <FormMessage match="valid">&nbsp;</FormMessage>
-            </div>
+            </ValidationMessages>
           </FormField>
 
           <FormField name="image_tags">
@@ -128,19 +125,16 @@ export default function UploadPage() {
               </RadioGroup>
             </InputControl>
 
-            <div className="pile">
+            <ValidationMessages>
               <FormMessage match="valueMissing">
                 Please select a visibility for your image
               </FormMessage>
-              <FormMessage match="valid">&nbsp;</FormMessage>
-            </div>
+            </ValidationMessages>
           </FormField>
           <footer className="flex flex-row-reverse justify-between gap-2">
             <FormSubmit>Upload Image</FormSubmit>
             <button type="reset">Reset</button>
           </footer>
-
-          <PrintResult />
         </InteractiveForm>
       </Form>
     </div>
