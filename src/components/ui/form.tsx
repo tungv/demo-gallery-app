@@ -5,6 +5,7 @@ import { createReducerContext } from "@/utils/reducer-context";
 import { Slot } from "@radix-ui/react-slot";
 import { useEffect, useId, useRef } from "react";
 import type { ComponentProps } from "react";
+import { Label } from "./label";
 
 interface FormContext {
   fields: Record<
@@ -389,13 +390,13 @@ export function FormLabel({ children, className, ...props }: FormLabelProps) {
   const controlId = `control-${context.id}`;
 
   return (
-    <label
+    <Label
       {...props}
       htmlFor={controlId}
       className={cn("text-sm font-bold tracking-tight", className)}
     >
       {children}
-    </label>
+    </Label>
   );
 }
 
