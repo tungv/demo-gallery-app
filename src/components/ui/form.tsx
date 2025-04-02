@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { createReducerContext } from "@/utils/reducer-context";
 import { Slot } from "@radix-ui/react-slot";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId } from "react";
 import type { ComponentProps } from "react";
 import { Label } from "./label";
 
@@ -221,14 +221,12 @@ function useFormAttributes() {
 }
 
 export function Form({ children, className, asChild, ...props }: FormProps) {
-  const formRef = useRef<HTMLFormElement>(null);
   const resetForm = useResetForm();
   const dispatch = useFormDispatch();
 
   // Use proper type casting for the form props
   const formProps: ComponentProps<"form"> = {
     ...props,
-    ref: formRef,
     className: cn("grid grid-cols-1 gap-4 p-4 max-w-md w-full", className),
     onReset: (event) => {
       console.log("onReset");
