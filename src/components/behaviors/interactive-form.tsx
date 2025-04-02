@@ -11,12 +11,18 @@ export interface InteractiveFormResult<ResultType, ErrorType extends string> {
   nextElement?: ReactNode;
 }
 
+type LocalState<ResultType, ErrorType extends string> = InteractiveFormResult<
+  ResultType,
+  ErrorType
+> & { counter: number };
+
 const NO_RESULT = Symbol("NO_RESULT");
 
 // biome-ignore lint/suspicious/noExplicitAny: we don't care about the types here
-const initialState: InteractiveFormResult<any, any> = {
+const initialState: LocalState<any, any> = {
   errors: [],
   result: NO_RESULT,
+  counter: 0,
 };
 
 const errorsContext = createContext<string[]>([]);
@@ -35,13 +41,21 @@ export function InteractiveForm<ResultType, ErrorType extends string>({
   ) => Promise<InteractiveFormResult<ResultType, ErrorType>>;
 } & Omit<ComponentProps<"form">, "action">) {
   const [localState, formAction] = useActionState(
-    async (
-      _state: InteractiveFormResult<ResultType, ErrorType>,
-      formData: FormData,
-    ) => {
+    async (state: LocalState<ResultType, ErrorType>, formData: FormData) => {
       const result = await action(formData);
 
-      return result;
+      if (result.errors) {
+        return {
+          ...state,
+          errors: result.errors,
+        };
+      }
+
+      return {
+        ...state,
+        ...result,
+        counter: state.counter + 1,
+      };
     },
     initialState,
   );
@@ -63,7 +77,9 @@ export function InteractiveForm<ResultType, ErrorType extends string>({
   return (
     <errorsContext.Provider value={localState.errors ?? []}>
       <resultContext.Provider value={localState.result ?? NO_RESULT}>
-        <form {...formProps}>{children}</form>
+        <form key={localState.counter} {...formProps}>
+          {children}
+        </form>
       </resultContext.Provider>
     </errorsContext.Provider>
   );
