@@ -37,7 +37,7 @@ const categories = [
 
 export default function CategoryCombobox({ name }: { name?: string }) {
   return (
-    <Combobox name={name} multiple>
+    <Combobox name={name} multiple required>
       <ComboboxTrigger asChild>
         <Button type="button" className="justify-start">
           <ComboboxValues placeholder={"Select Categories…"} />

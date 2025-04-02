@@ -103,6 +103,12 @@ export default function UploadPage() {
             <InputControl asChild>
               <CategoryCombobox />
             </InputControl>
+
+            <ValidationMessages>
+              <FormMessage match="valueMissing">
+                Please select at least one tag
+              </FormMessage>
+            </ValidationMessages>
           </FormField>
 
           <FormField name="visibility">
