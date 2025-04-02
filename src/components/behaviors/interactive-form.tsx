@@ -4,22 +4,17 @@ import { redirect } from "next/navigation";
 import { createContext, useActionState, useContext } from "react";
 import type { ComponentProps, ReactNode } from "react";
 
-interface InteractiveFormResult<ResultType, ErrorType extends string> {
+export interface InteractiveFormResult<ResultType, ErrorType extends string> {
   redirect?: string;
   errors?: ErrorType[];
   result?: ResultType;
   nextElement?: ReactNode;
 }
 
-type LocalState<ResultType, ErrorType extends string> = Omit<
-  InteractiveFormResult<ResultType, ErrorType>,
-  "redirect"
->;
-
 const NO_RESULT = Symbol("NO_RESULT");
 
 // biome-ignore lint/suspicious/noExplicitAny: we don't care about the types here
-const initialState: LocalState<any, any> = {
+const initialState: InteractiveFormResult<any, any> = {
   errors: [],
   result: NO_RESULT,
 };
@@ -40,20 +35,23 @@ export function InteractiveForm<ResultType, ErrorType extends string>({
   ) => Promise<InteractiveFormResult<ResultType, ErrorType>>;
 } & Omit<ComponentProps<"form">, "action">) {
   const [localState, formAction] = useActionState(
-    async (_state: LocalState<ResultType, ErrorType>, formData: FormData) => {
+    async (
+      _state: InteractiveFormResult<ResultType, ErrorType>,
+      formData: FormData,
+    ) => {
       const result = await action(formData);
-
-      if (result.redirect) {
-        redirect(result.redirect);
-      }
 
       return result;
     },
     initialState,
   );
 
+  if ("redirect" in localState && typeof localState.redirect === "string") {
+    redirect(localState.redirect);
+  }
+
   // if the nextElement exists, render it
-  if ("nextElement" in localState) {
+  if ("nextElement" in localState && localState.nextElement) {
     return localState.nextElement;
   }
 
