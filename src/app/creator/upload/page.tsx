@@ -14,10 +14,15 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   FormErrorMessage,
   InteractiveForm,
+  LoadingMessage,
   PrintResult,
+  SubmitButton,
+  SubmitMessage,
 } from "@/components/behaviors/interactive-form";
 import CategoryCombobox from "./CategoryCombobox";
 import ValidationMessages from "./ValidationMessages";
+import { Button } from "@/components/ui/button";
+import { UploadIcon } from "lucide-react";
 
 export default function UploadPage() {
   return (
@@ -75,11 +80,15 @@ export default function UploadPage() {
           <ImageVisibilityField />
 
           <footer className="flex flex-row-reverse justify-between gap-2">
-            <FormSubmit>Upload Image</FormSubmit>
+            <SubmitButton asChild>
+              <Button>
+                <UploadIcon className="size-4" />
+                <SubmitMessage>Upload Image</SubmitMessage>
+                <LoadingMessage>Uploading...</LoadingMessage>
+              </Button>
+            </SubmitButton>
             <button type="reset">Reset</button>
           </footer>
-
-          <PrintResult />
         </InteractiveForm>
       </Form>
     </div>
