@@ -11,7 +11,13 @@ import {
   CommandList,
 } from "./command";
 import { createContext, useCallback, useContext, useRef } from "react";
-import type { ComponentPropsWithoutRef, FormEventHandler } from "react";
+import type {
+  ChangeEvent,
+  ComponentPropsWithoutRef,
+  FocusEvent,
+  FormEventHandler,
+  SyntheticEvent,
+} from "react";
 import { Slot } from "@radix-ui/react-slot";
 import useEffectEvent from "./use-effect-event";
 interface ComboboxState {
@@ -79,6 +85,32 @@ function toArray(value: string | readonly string[] | number | undefined) {
   return Array.isArray(value) ? value : [value];
 }
 
+function createSyntheticEvent(
+  target: Element,
+  nativeEvent: Event,
+  isDefaultPrevented: () => boolean,
+  isPropagationStopped: () => boolean,
+  persist: () => void,
+): SyntheticEvent {
+  return {
+    nativeEvent: nativeEvent,
+    currentTarget: target,
+    target: target,
+    bubbles: nativeEvent.bubbles,
+    cancelable: nativeEvent.cancelable,
+    defaultPrevented: nativeEvent.defaultPrevented,
+    eventPhase: nativeEvent.eventPhase,
+    isTrusted: nativeEvent.isTrusted,
+    preventDefault: nativeEvent.preventDefault,
+    isDefaultPrevented: isDefaultPrevented,
+    stopPropagation: nativeEvent.stopPropagation,
+    isPropagationStopped: isPropagationStopped,
+    persist: persist,
+    timeStamp: nativeEvent.timeStamp,
+    type: nativeEvent.type,
+  };
+}
+
 function Combobox({
   name,
   multiple,
@@ -96,44 +128,51 @@ function Combobox({
     throw new Error("Cannot accept both value and defaultValue");
   }
 
+  const selectRef = useRef<HTMLSelectElement>(null);
+
   const selected = value
     ? toArray(value)
     : defaultValue
       ? toArray(defaultValue)
       : [];
 
-  const onChangeEvent = useEffectEvent((value: string | string[]) => {
-    if (typeof onChange === "function") {
+  const onChangeEvent = useEffectEvent(() => {
+    if (typeof onChange === "function" && selectRef.current) {
       // create a new synthetic change event and dispatch it
       const changeEvent = new Event("change", {
         bubbles: true,
         cancelable: true,
       });
-      const syntheticChangeEvent = {
-        ...changeEvent,
-        target: selectRef.current,
-        currentTarget: selectRef.current,
-      };
-      onChange(syntheticChangeEvent as any);
+
+      const syntheticChangeEvent = createSyntheticEvent(
+        selectRef.current,
+        changeEvent,
+        () => false,
+        () => false,
+        () => {},
+      ) as ChangeEvent<HTMLSelectElement>;
+
+      onChange(syntheticChangeEvent);
     }
   });
 
   const onBlurEvent = useEffectEvent(() => {
-    if (typeof onBlur === "function") {
-      const select = selectRef.current;
+    if (typeof onBlur === "function" && selectRef.current) {
       // create a new synthetic focus event and dispatch it
       const focusEvent = new FocusEvent("focus", {
         bubbles: true,
         cancelable: true,
       });
 
-      const syntheticBlurEvent = {
-        ...focusEvent,
-        target: select,
-        currentTarget: select,
-      };
+      const syntheticBlurEvent = createSyntheticEvent(
+        selectRef.current,
+        focusEvent,
+        () => false,
+        () => false,
+        () => {},
+      ) as FocusEvent<HTMLSelectElement>;
 
-      onBlur(syntheticBlurEvent as any);
+      onBlur(syntheticBlurEvent);
     }
   });
 
@@ -149,23 +188,22 @@ function Combobox({
       getNextState: (action: ComboboxAction) => ComboboxState,
     ) =>
       (action: ComboboxAction) => {
+        dispatch(action);
         if (action.type === "select" || action.type === "deselect") {
           const state = getNextState(action);
           onValueChangeEvent(state.selected);
         }
 
         if (action.type === "select" || action.type === "deselect") {
-          onChangeEvent(action.value);
+          onChangeEvent();
         }
 
         if (action.type === "set_open" && !action.open) {
           onBlurEvent();
         }
-        dispatch(action);
       },
-    [],
+    [onValueChangeEvent, onChangeEvent, onBlurEvent],
   );
-  const selectRef = useRef<HTMLSelectElement>(null);
 
   return (
     <ComboboxProvider
