@@ -2,14 +2,11 @@
 
 import { Slot } from "@radix-ui/react-slot";
 import { redirect } from "next/navigation";
-import {
-  createContext,
-  startTransition,
-  useContext,
-  useTransition,
-} from "react";
+import { createContext, useContext, useTransition } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { createReducerContext } from "@/utils/reducer-context";
+import { cn } from "@/lib/utils";
+import { Hidden, Visible } from "../ui/reserve-layout";
 
 export interface InteractiveFormResult<ResultType, ErrorType extends string> {
   redirect?: string;
@@ -250,12 +247,15 @@ export function SubmitButton({
   children,
   asChild,
   ...buttonProps
-}: Omit<ComponentProps<"button">, "type"> & { asChild?: boolean }) {
+}: Omit<ComponentProps<"button">, "type"> & {
+  asChild?: boolean;
+}) {
   const isPending = useFormPending();
   const props = {
     ...buttonProps,
     type: "submit",
-    disabled: isPending || buttonProps.disabled,
+    inert: isPending,
+    className: cn({ "animate-pulse": isPending }, buttonProps.className),
   } as ComponentProps<"button">;
 
   if (asChild) {
@@ -269,18 +269,17 @@ export function SubmitMessage({ children }: ComponentProps<"span">) {
   const isPending = useFormPending();
 
   if (isPending) {
-    return null;
+    return <Hidden>{children}</Hidden>;
   }
 
-  return children;
+  return <Visible>{children}</Visible>;
 }
 
 export function LoadingMessage({ children }: ComponentProps<"span">) {
   const isPending = useFormPending();
-
   if (!isPending) {
-    return null;
+    return <Hidden>{children}</Hidden>;
   }
 
-  return children;
+  return <Visible>{children}</Visible>;
 }
