@@ -33,8 +33,7 @@ type LocalState<ResultType> = {
 
 const NO_RESULT = Symbol("NO_RESULT");
 
-// biome-ignore lint/suspicious/noExplicitAny: we don't care about the types here
-const initialState: LocalState<any> = {
+const initialState: LocalState<unknown> = {
   errors: {},
   result: NO_RESULT,
   counter: 0,
