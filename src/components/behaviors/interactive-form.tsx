@@ -8,6 +8,15 @@ import { createReducerContext } from "@/utils/reducer-context";
 import { cn } from "@/lib/utils";
 import { Hidden, Visible } from "../ui/reserve-layout";
 
+interface TypedFormData<FieldNames extends string = string> extends FormData {
+  get(name: FieldNames): string | null;
+  getAll(name: FieldNames): string[];
+  has(name: FieldNames): boolean;
+  append(name: FieldNames, value: string | Blob, fileName?: string): void;
+  set(name: FieldNames, value: string | Blob, fileName?: string): void;
+  delete(name: FieldNames): void;
+}
+
 export interface InteractiveFormResult<FieldNames extends string = string> {
   redirect?: string;
   /*
@@ -93,7 +102,9 @@ export function InteractiveForm<FieldNames extends string = string>({
 }: {
   asChild?: boolean;
   children: ReactNode;
-  action: (formData: FormData) => Promise<InteractiveFormResult<FieldNames>>;
+  action: (
+    formData: TypedFormData<FieldNames>,
+  ) => Promise<InteractiveFormResult<FieldNames>>;
 } & Omit<ComponentProps<"form">, "action">) {
   return (
     <FormStateProvider>
@@ -109,7 +120,9 @@ function InteractiveFormImpl<FieldNames extends string = string>({
   action,
   ...props
 }: Omit<ComponentProps<"form">, "action"> & {
-  action: (formData: FormData) => Promise<InteractiveFormResult<FieldNames>>;
+  action: (
+    formData: TypedFormData<FieldNames>,
+  ) => Promise<InteractiveFormResult<FieldNames>>;
 }) {
   const [isPending, startTransition] = useTransition();
   const dispatch = useFormDispatch();
@@ -127,7 +140,9 @@ function InteractiveFormImpl<FieldNames extends string = string>({
         onSubmit={async (e) => {
           e.preventDefault();
 
-          const formData = new FormData(e.currentTarget);
+          const formData = new FormData(
+            e.currentTarget,
+          ) as TypedFormData<FieldNames>;
           startTransition(async () => {
             const result = await action(formData);
 
