@@ -34,16 +34,26 @@ export default function UploadPage() {
             const description = formData.get("image_description");
             const visibility = formData.get("visibility");
 
+            const errors: Record<string, string[]> = {};
+
             if (!title) {
-              return { errors: ["missing_title"] };
+              errors.image_title = ["valueMissing"];
+            }
+
+            if (title === "test") {
+              errors.image_title = ["invalid_value"];
             }
 
             if (!description) {
-              return { errors: ["missing_description"] };
+              errors.image_description = ["valueMissing"];
             }
 
             if (!visibility) {
-              return { errors: ["missing_visibility"] };
+              errors.visibility = ["valueMissing"];
+            }
+
+            if (Object.keys(errors).length > 0) {
+              return { errors };
             }
 
             const tags = formData.getAll("image_tags");
@@ -58,91 +68,114 @@ export default function UploadPage() {
             };
           }}
         >
-          <FormField name="image_title">
-            <FormLabel>Image Title</FormLabel>
-            <InputControl asChild>
-              <Input
-                required
-                placeholder="Enter image title..."
-                minLength={3}
-              />
-            </InputControl>
-            <ValidationMessages>
-              <FormMessage match="valueMissing">
-                Please enter a title for your image
-              </FormMessage>
-              <FormMessage match="tooShort">
-                Title must be at least 3 characters long
-              </FormMessage>
-              <FormErrorMessage match="invalid_title">
-                Title cannot be "test"
-              </FormErrorMessage>
-            </ValidationMessages>
-          </FormField>
-          <FormField name="image_description">
-            <FormLabel>Image Description</FormLabel>
-            <InputControl asChild>
-              <Textarea
-                required
-                placeholder="Enter image description..."
-                minLength={3}
-              />
-            </InputControl>
-            <ValidationMessages>
-              <FormMessage match="valueMissing">
-                Please enter a description for your image
-              </FormMessage>
-              <FormMessage match="tooShort">
-                Description must be at least 3 characters long
-              </FormMessage>
-            </ValidationMessages>
-          </FormField>
+          <ImageNameField />
 
-          <FormField name="image_tags">
-            <FormLabel>Image Tags</FormLabel>
-            <InputControl asChild>
-              <CategoryCombobox />
-            </InputControl>
+          <ImageDescriptionField />
+          <ImageTagsField />
+          <ImageVisibilityField />
 
-            <ValidationMessages>
-              <FormMessage match="valueMissing">
-                Please select at least one tag
-              </FormMessage>
-            </ValidationMessages>
-          </FormField>
-
-          <FormField name="visibility">
-            <FormLabel>Visibility</FormLabel>
-
-            <InputControl asChild>
-              <RadioGroup required defaultValue="public">
-                <FormControlItem className="flex items-center gap-2">
-                  <InputControl asChild>
-                    <RadioGroupItem value="public" />
-                  </InputControl>
-                  <FormLabel>Public</FormLabel>
-                </FormControlItem>
-                <FormControlItem className="flex items-center gap-2">
-                  <InputControl asChild>
-                    <RadioGroupItem value="private" />
-                  </InputControl>
-                  <FormLabel>Private</FormLabel>
-                </FormControlItem>
-              </RadioGroup>
-            </InputControl>
-
-            <ValidationMessages>
-              <FormMessage match="valueMissing">
-                Please select a visibility for your image
-              </FormMessage>
-            </ValidationMessages>
-          </FormField>
           <footer className="flex flex-row-reverse justify-between gap-2">
             <FormSubmit>Upload Image</FormSubmit>
             <button type="reset">Reset</button>
           </footer>
+
+          <PrintResult />
         </InteractiveForm>
       </Form>
     </div>
+  );
+}
+
+function ImageNameField() {
+  return (
+    <FormField name="image_title">
+      <FormLabel>Image Title</FormLabel>
+      <InputControl asChild>
+        <Input required placeholder="Enter image title..." minLength={3} />
+      </InputControl>
+      <ValidationMessages>
+        <FormMessage match="valueMissing">
+          Please enter a title for your image
+        </FormMessage>
+        <FormMessage match="tooShort">
+          Title must be at least 3 characters long
+        </FormMessage>
+        <FormErrorMessage name="image_title" match="invalid_value">
+          Title cannot be "test"
+        </FormErrorMessage>
+      </ValidationMessages>
+    </FormField>
+  );
+}
+
+function ImageDescriptionField() {
+  return (
+    <FormField name="image_description">
+      <FormLabel>Image Description</FormLabel>
+      <InputControl asChild>
+        <Textarea
+          required
+          placeholder="Enter image description..."
+          minLength={3}
+        />
+      </InputControl>
+      <ValidationMessages>
+        <FormMessage match="valueMissing">
+          Please enter a description for your image
+        </FormMessage>
+        <FormMessage match="tooShort">
+          Description must be at least 3 characters long
+        </FormMessage>
+      </ValidationMessages>
+    </FormField>
+  );
+}
+
+function ImageTagsField() {
+  return (
+    <FormField name="image_tags">
+      <FormLabel>Image Tags</FormLabel>
+      <InputControl asChild>
+        <CategoryCombobox />
+      </InputControl>
+
+      <ValidationMessages>
+        <FormMessage match="valueMissing">
+          Please select at least one tag
+        </FormMessage>
+      </ValidationMessages>
+    </FormField>
+  );
+}
+
+function ImageVisibilityField() {
+  return (
+    <FormField name="visibility">
+      <FormLabel>Visibility</FormLabel>
+
+      <InputControl asChild>
+        <RadioGroup required>
+          <FormControlItem className="flex items-center gap-2">
+            <InputControl asChild>
+              <RadioGroupItem value="public" />
+            </InputControl>
+            <FormLabel>Public</FormLabel>
+          </FormControlItem>
+
+          <FormControlItem className="flex items-center gap-2">
+            <InputControl asChild>
+              <RadioGroupItem value="private" />
+            </InputControl>
+            <FormLabel>Private</FormLabel>
+          </FormControlItem>
+        </RadioGroup>
+      </InputControl>
+
+      <ValidationMessages>
+        <FormMessage match="valueMissing">
+          Please select a visibility for your image
+        </FormMessage>
+      </ValidationMessages>
+    </FormField>
   );
 }

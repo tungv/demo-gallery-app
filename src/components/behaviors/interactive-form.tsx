@@ -1,12 +1,25 @@
 "use client";
 
 import { redirect } from "next/navigation";
-import { createContext, useActionState, useContext } from "react";
+import {
+  createContext,
+  startTransition,
+  useActionState,
+  useContext,
+  useState,
+} from "react";
 import type { ComponentProps, ReactNode } from "react";
 
 export interface InteractiveFormResult<ResultType, ErrorType extends string> {
   redirect?: string;
-  errors?: ErrorType[];
+  /*
+    errors is a record of field names and their errors
+    this is useful for displaying errors for specific fields
+    and for clearing errors when the form is reset
+  */
+  errors?: {
+    [fieldName: string]: string[];
+  };
   result?: ResultType;
   nextElement?: ReactNode;
 }
@@ -20,12 +33,12 @@ const NO_RESULT = Symbol("NO_RESULT");
 
 // biome-ignore lint/suspicious/noExplicitAny: we don't care about the types here
 const initialState: LocalState<any, any> = {
-  errors: [],
+  errors: {},
   result: NO_RESULT,
   counter: 0,
 };
 
-const errorsContext = createContext<string[]>([]);
+const errorsContext = createContext<Record<string, string[]>>({});
 const resultContext = createContext<unknown>(NO_RESULT);
 
 export function InteractiveForm<ResultType, ErrorType extends string>({
@@ -40,17 +53,24 @@ export function InteractiveForm<ResultType, ErrorType extends string>({
     formData: FormData,
   ) => Promise<InteractiveFormResult<ResultType, ErrorType>>;
 } & Omit<ComponentProps<"form">, "action">) {
+  // Add local state for field errors that we can update immediately
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
   const [localState, formAction] = useActionState(
     async (state: LocalState<ResultType, ErrorType>, formData: FormData) => {
       const result = await action(formData);
 
       if (result.errors) {
+        // Update our local field errors when we get server errors
+        setFieldErrors(result.errors);
         return {
           ...state,
           errors: result.errors,
         };
       }
 
+      // Clear field errors on successful submission
+      setFieldErrors({});
       return {
         ...state,
         ...result,
@@ -71,13 +91,41 @@ export function InteractiveForm<ResultType, ErrorType extends string>({
 
   const formProps = {
     ...props,
-    action: formAction,
   };
 
   return (
-    <errorsContext.Provider value={localState.errors ?? []}>
+    <errorsContext.Provider value={fieldErrors}>
       <resultContext.Provider value={localState.result ?? NO_RESULT}>
-        <form key={localState.counter} {...formProps}>
+        <form
+          key={localState.counter}
+          {...formProps}
+          onSubmit={(e) => {
+            e.preventDefault();
+
+            props.onSubmit?.(e);
+            const formData = new FormData(e.currentTarget);
+            startTransition(() => {
+              formAction(formData);
+            });
+          }}
+          onReset={(e) => {
+            // Clear all field errors on reset
+            setFieldErrors({});
+            props.onReset?.(e);
+          }}
+          onChange={(e) => {
+            if (e.target instanceof HTMLElement) {
+              const fieldName = e.target.getAttribute("name");
+              if (fieldName && fieldErrors[fieldName]) {
+                // Clear error for the changed field by creating a new error state object
+                setFieldErrors((current) => {
+                  const { [fieldName]: _, ...rest } = current;
+                  return rest;
+                });
+              }
+            }
+          }}
+        >
           {children}
         </form>
       </resultContext.Provider>
@@ -108,31 +156,61 @@ export function PrintResult() {
 export function FormErrorMessage({
   children,
   match,
+  name,
   ...props
-}: ComponentProps<"span"> & { match?: string }) {
-  const errors = useContext(errorsContext);
-
-  // if no match is provided, we will render the error message if there are any errors
-  if (!match) {
-    if (errors.length > 0) {
-      return (
-        <span className="text-destructive text-sm" {...props}>
-          {children}
-        </span>
-      );
-    }
-
-    // otherwise, we will render an empty span
-    return null;
-  }
-
-  if (!errors.includes(match)) {
-    return null;
+}: ComponentProps<"span"> & { match?: string; name?: string }) {
+  if (!name) {
+    return <GlobalError {...props}>{children}</GlobalError>;
   }
 
   return (
-    <span className="text-destructive text-sm" {...props}>
+    <FieldError {...props} name={name} match={match}>
       {children}
-    </span>
+    </FieldError>
   );
+}
+
+function GlobalError({ children, ...props }: ComponentProps<"span">) {
+  const errors = useContext(errorsContext);
+
+  if (Object.keys(errors).length > 0) {
+    return (
+      <span className="text-destructive text-sm" {...props}>
+        {children}
+      </span>
+    );
+  }
+
+  return null;
+}
+
+function FieldError({
+  children,
+  name,
+  match,
+  ...props
+}: ComponentProps<"span"> & { name: string; match?: string }) {
+  const errors = useContext(errorsContext);
+
+  if (!errors[name]) {
+    return null;
+  }
+
+  if (!match) {
+    return (
+      <span className="text-destructive text-sm" {...props}>
+        {children}
+      </span>
+    );
+  }
+
+  if (errors[name].includes(match)) {
+    return (
+      <span className="text-destructive text-sm" {...props}>
+        {children}
+      </span>
+    );
+  }
+
+  return null;
 }
