@@ -6,6 +6,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { useEffect, useId } from "react";
 import type { ComponentProps } from "react";
 import { Label } from "./label";
+import { Hidden, Visible } from "./reserve-layout";
 
 interface FormContext {
   fields: Record<
@@ -536,11 +537,7 @@ export function FormMessage({
     };
   }, [dispatch, id, hidden]);
 
-  if (hidden) {
-    return null;
-  }
-
-  return (
+  const content = (
     <span
       {...props}
       aria-live="polite"
@@ -558,6 +555,12 @@ export function FormMessage({
       {children}
     </span>
   );
+
+  if (hidden) {
+    return <Hidden>{content}</Hidden>;
+  }
+
+  return <Visible>{content}</Visible>;
 }
 
 interface FormSubmitProps extends Omit<ComponentProps<"button">, "type"> {
