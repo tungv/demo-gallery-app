@@ -29,7 +29,7 @@ export default function UploadPage() {
 
       <Form asChild>
         <InteractiveForm
-          className="data-[user-invalid]:border-red-500 border"
+          className="data-[user-invalid]:border-red-500 border rounded-md shadow-sm"
           action={async (formData) => {
             "use server";
 
@@ -87,7 +87,9 @@ export default function UploadPage() {
                 </ReserveLayout>
               </SubmitButton>
             </Button>
-            <button type="reset">Reset</button>
+            <Button type="reset" variant="outline">
+              Reset
+            </Button>
           </footer>
         </InteractiveForm>
       </Form>
