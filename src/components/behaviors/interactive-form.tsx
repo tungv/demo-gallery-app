@@ -1,14 +1,15 @@
 "use client";
 
+import { Slot } from "@radix-ui/react-slot";
 import { redirect } from "next/navigation";
 import {
   createContext,
   startTransition,
-  useActionState,
   useContext,
-  useState,
+  useTransition,
 } from "react";
 import type { ComponentProps, ReactNode } from "react";
+import { createReducerContext } from "@/utils/reducer-context";
 
 export interface InteractiveFormResult<ResultType, ErrorType extends string> {
   redirect?: string;
@@ -24,10 +25,14 @@ export interface InteractiveFormResult<ResultType, ErrorType extends string> {
   nextElement?: ReactNode;
 }
 
-type LocalState<ResultType, ErrorType extends string> = InteractiveFormResult<
-  ResultType,
-  ErrorType
-> & { counter: number };
+type LocalState<ResultType, ErrorType extends string> = {
+  errors?: {
+    [fieldName: string]: string[];
+  };
+  result?: ResultType;
+  nextElement?: ReactNode;
+  counter: number;
+};
 
 const NO_RESULT = Symbol("NO_RESULT");
 
@@ -38,8 +43,53 @@ const initialState: LocalState<any, any> = {
   counter: 0,
 };
 
-const errorsContext = createContext<Record<string, string[]>>({});
-const resultContext = createContext<unknown>(NO_RESULT);
+type FormAction<ResultType, ErrorType extends string> =
+  | {
+      type: "set_form_result";
+      result: InteractiveFormResult<ResultType, ErrorType>;
+    }
+  | { type: "clear_field_error"; fieldName: string }
+  | { type: "reset_form" };
+
+const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
+  FormAction<unknown, string>,
+  LocalState<unknown, string>
+>((state, action) => {
+  switch (action.type) {
+    case "set_form_result":
+      if (action.result.errors) {
+        return {
+          ...state,
+          errors: action.result.errors,
+        };
+      }
+      return {
+        ...state,
+        errors: {},
+        ...action.result,
+        counter: state.counter + 1,
+      };
+    case "clear_field_error": {
+      if (!state.errors?.[action.fieldName]) {
+        return state;
+      }
+      const { [action.fieldName]: _, ...rest } = state.errors;
+      return {
+        ...state,
+        errors: rest,
+      };
+    }
+    case "reset_form":
+      return {
+        ...initialState,
+        counter: state.counter + 1,
+      };
+    default:
+      return state;
+  }
+}, initialState);
+
+const PendingContext = createContext(false);
 
 export function InteractiveForm<ResultType, ErrorType extends string>({
   asChild,
@@ -53,102 +103,81 @@ export function InteractiveForm<ResultType, ErrorType extends string>({
     formData: FormData,
   ) => Promise<InteractiveFormResult<ResultType, ErrorType>>;
 } & Omit<ComponentProps<"form">, "action">) {
-  // Add local state for field errors that we can update immediately
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-
-  const [localState, formAction] = useActionState(
-    async (state: LocalState<ResultType, ErrorType>, formData: FormData) => {
-      const result = await action(formData);
-
-      if (result.errors) {
-        // Update our local field errors when we get server errors
-        setFieldErrors(result.errors);
-        return {
-          ...state,
-          errors: result.errors,
-        };
-      }
-
-      // Clear field errors on successful submission
-      setFieldErrors({});
-      return {
-        ...state,
-        ...result,
-        counter: state.counter + 1,
-      };
-    },
-    initialState,
-  );
-
-  if ("redirect" in localState && typeof localState.redirect === "string") {
-    redirect(localState.redirect);
-  }
-
-  // if the nextElement exists, render it
-  if ("nextElement" in localState && localState.nextElement) {
-    return localState.nextElement;
-  }
-
-  const formProps = {
-    ...props,
-  };
-
   return (
-    <errorsContext.Provider value={fieldErrors}>
-      <resultContext.Provider value={localState.result ?? NO_RESULT}>
-        <form
-          key={localState.counter}
-          {...formProps}
-          onSubmit={(e) => {
-            e.preventDefault();
+    <FormStateProvider>
+      <InteractiveFormImpl action={action} {...props}>
+        {children}
+      </InteractiveFormImpl>
+    </FormStateProvider>
+  );
+}
 
-            props.onSubmit?.(e);
-            const formData = new FormData(e.currentTarget);
-            startTransition(() => {
-              formAction(formData);
-            });
-          }}
-          onReset={(e) => {
-            // Clear all field errors on reset
-            setFieldErrors({});
-            props.onReset?.(e);
-          }}
-          onChange={(e) => {
-            if (e.target instanceof HTMLElement) {
-              const fieldName = e.target.getAttribute("name");
-              if (fieldName && fieldErrors[fieldName]) {
-                // Clear error for the changed field by creating a new error state object
-                setFieldErrors((current) => {
-                  const { [fieldName]: _, ...rest } = current;
-                  return rest;
-                });
-              }
+function InteractiveFormImpl({
+  children,
+  action,
+  ...props
+}: Omit<ComponentProps<"form">, "action"> & {
+  action: (
+    formData: FormData,
+  ) => Promise<InteractiveFormResult<unknown, string>>;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const dispatch = useFormDispatch();
+  const state = useFormState();
+
+  if ("redirect" in state && typeof state.redirect === "string") {
+    redirect(state.redirect);
+  }
+
+  if ("nextElement" in state && state.nextElement) {
+    return state.nextElement;
+  }
+  return (
+    <PendingContext.Provider value={isPending}>
+      <form
+        key={state.counter}
+        {...props}
+        onSubmit={async (e) => {
+          e.preventDefault();
+
+          const formData = new FormData(e.currentTarget);
+          startTransition(async () => {
+            const result = await action(formData);
+            console.log("result", result);
+            dispatch({ type: "set_form_result", result });
+          });
+          props.onSubmit?.(e);
+        }}
+        onReset={(e) => {
+          dispatch({ type: "reset_form" });
+          props.onReset?.(e);
+        }}
+        onChange={(e) => {
+          if (e.target instanceof HTMLElement) {
+            const fieldName = e.target.getAttribute("name");
+            if (fieldName && state.errors?.[fieldName]) {
+              dispatch({ type: "clear_field_error", fieldName });
             }
-          }}
-        >
-          {children}
-        </form>
-      </resultContext.Provider>
-    </errorsContext.Provider>
+          }
+        }}
+      >
+        {children}
+      </form>
+    </PendingContext.Provider>
   );
 }
 
 export function useFormResult<ResultType>() {
-  const result = useContext(resultContext) as ResultType | undefined;
+  const state = useFormState();
+  return state.result as ResultType | undefined;
+}
 
-  if (!result) {
-    throw new Error("useFormResult must be used within a FormResultProvider");
-  }
-
-  return result;
+export function useFormPending() {
+  return useContext(PendingContext);
 }
 
 export function PrintResult() {
-  const result = useFormResult();
-
-  if (result === NO_RESULT) {
-    return <pre>no result</pre>;
-  }
+  const result = useFormState();
 
   return <pre>{JSON.stringify(result, null, 2)}</pre>;
 }
@@ -171,7 +200,8 @@ export function FormErrorMessage({
 }
 
 function GlobalError({ children, ...props }: ComponentProps<"span">) {
-  const errors = useContext(errorsContext);
+  const state = useFormState();
+  const errors = state.errors || {};
 
   if (Object.keys(errors).length > 0) {
     return (
@@ -190,7 +220,8 @@ function FieldError({
   match,
   ...props
 }: ComponentProps<"span"> & { name: string; match?: string }) {
-  const errors = useContext(errorsContext);
+  const state = useFormState();
+  const errors = state.errors || {};
 
   if (!errors[name]) {
     return null;
@@ -213,4 +244,43 @@ function FieldError({
   }
 
   return null;
+}
+
+export function SubmitButton({
+  children,
+  asChild,
+  ...buttonProps
+}: Omit<ComponentProps<"button">, "type"> & { asChild?: boolean }) {
+  const isPending = useFormPending();
+  const props = {
+    ...buttonProps,
+    type: "submit",
+    disabled: isPending || buttonProps.disabled,
+  } as ComponentProps<"button">;
+
+  if (asChild) {
+    return <Slot {...props}>{children}</Slot>;
+  }
+
+  return <button {...props}>{children}</button>;
+}
+
+export function SubmitMessage({ children }: ComponentProps<"span">) {
+  const isPending = useFormPending();
+
+  if (isPending) {
+    return null;
+  }
+
+  return children;
+}
+
+export function LoadingMessage({ children }: ComponentProps<"span">) {
+  const isPending = useFormPending();
+
+  if (!isPending) {
+    return null;
+  }
+
+  return children;
 }
