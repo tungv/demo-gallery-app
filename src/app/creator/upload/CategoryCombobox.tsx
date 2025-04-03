@@ -39,7 +39,7 @@ export default function CategoryCombobox({ name }: { name?: string }) {
   return (
     <Combobox name={name} multiple required>
       <ComboboxTrigger asChild>
-        <Button type="button" className="justify-start">
+        <Button type="button" className="justify-start" variant="outline">
           <ComboboxValues placeholder={"Select Categories…"} />
         </Button>
       </ComboboxTrigger>
