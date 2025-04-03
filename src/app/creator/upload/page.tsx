@@ -29,6 +29,12 @@ export default function UploadPage() {
 
       <Form asChild>
         <InteractiveForm
+          fields={[
+            "image_title",
+            "image_description",
+            "visibility",
+            "image_tags",
+          ]}
           className="data-[user-invalid]:border-red-500 border rounded-md shadow-sm"
           action={async (formData) => {
             "use server";
@@ -36,30 +42,39 @@ export default function UploadPage() {
             const title = formData.get("image_title");
             const description = formData.get("image_description");
             const visibility = formData.get("visibility");
-
-            const errors: Record<string, string[]> = {};
+            const tags = formData.getAll("image_tags");
 
             if (!title) {
-              errors.image_title = ["valueMissing"];
+              return {
+                errors: {
+                  image_title: ["valueMissing"],
+                },
+              };
             }
 
             if (title === "test") {
-              errors.image_title = ["invalid_value"];
+              return {
+                errors: {
+                  image_title: ["invalid_value"],
+                },
+              };
             }
 
             if (!description) {
-              errors.image_description = ["valueMissing"];
+              return {
+                errors: {
+                  image_description: ["valueMissing"],
+                },
+              };
             }
 
             if (!visibility) {
-              errors.visibility = ["valueMissing"];
+              return {
+                errors: {
+                  visibility: ["valueMissing"],
+                },
+              };
             }
-
-            if (Object.keys(errors).length > 0) {
-              return { errors };
-            }
-
-            const tags = formData.getAll("image_tags");
 
             return {
               result: {
@@ -68,6 +83,7 @@ export default function UploadPage() {
                 visibility,
                 tags,
               },
+              redirect: "/creator/upload/success",
             };
           }}
         >

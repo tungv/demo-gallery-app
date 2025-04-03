@@ -94,18 +94,22 @@ const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
 
 const PendingContext = createContext(false);
 
-export function InteractiveForm<FieldNames extends string = string>({
-  asChild,
-  children,
-  action,
-  ...props
-}: {
+type InteractiveFormProps<FieldNames extends string> = {
   asChild?: boolean;
   children: ReactNode;
+  fields?: readonly FieldNames[];
   action: (
     formData: TypedFormData<FieldNames>,
   ) => Promise<InteractiveFormResult<FieldNames>>;
-} & Omit<ComponentProps<"form">, "action">) {
+} & Omit<ComponentProps<"form">, "action">;
+
+export function InteractiveForm<const FieldNames extends string>({
+  asChild,
+  children,
+  action,
+  fields: _fields, // We don't actually use this at runtime, just for type inference
+  ...props
+}: InteractiveFormProps<FieldNames>) {
   return (
     <FormStateProvider>
       <InteractiveFormImpl action={action} {...props}>
@@ -115,15 +119,11 @@ export function InteractiveForm<FieldNames extends string = string>({
   );
 }
 
-function InteractiveFormImpl<FieldNames extends string = string>({
+function InteractiveFormImpl<FieldNames extends string>({
   children,
   action,
   ...props
-}: Omit<ComponentProps<"form">, "action"> & {
-  action: (
-    formData: TypedFormData<FieldNames>,
-  ) => Promise<InteractiveFormResult<FieldNames>>;
-}) {
+}: Omit<InteractiveFormProps<FieldNames>, "fields">) {
   const [isPending, startTransition] = useTransition();
   const dispatch = useFormDispatch();
   const state = useFormState();
