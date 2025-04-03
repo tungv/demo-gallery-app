@@ -1,14 +1,14 @@
 "use client";
 
 import { Slot } from "@radix-ui/react-slot";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createContext, useContext, useTransition } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { createReducerContext } from "@/utils/reducer-context";
 import { cn } from "@/lib/utils";
 import { Hidden, Visible } from "../ui/reserve-layout";
 
-export interface InteractiveFormResult<ResultType, ErrorType extends string> {
+export interface InteractiveFormResult<ResultType> {
   redirect?: string;
   /*
     errors is a record of field names and their errors
@@ -22,7 +22,7 @@ export interface InteractiveFormResult<ResultType, ErrorType extends string> {
   nextElement?: ReactNode;
 }
 
-type LocalState<ResultType, ErrorType extends string> = {
+type LocalState<ResultType> = {
   errors?: {
     [fieldName: string]: string[];
   };
@@ -34,23 +34,23 @@ type LocalState<ResultType, ErrorType extends string> = {
 const NO_RESULT = Symbol("NO_RESULT");
 
 // biome-ignore lint/suspicious/noExplicitAny: we don't care about the types here
-const initialState: LocalState<any, any> = {
+const initialState: LocalState<any> = {
   errors: {},
   result: NO_RESULT,
   counter: 0,
 };
 
-type FormAction<ResultType, ErrorType extends string> =
+type FormAction<ResultType> =
   | {
       type: "set_form_result";
-      result: InteractiveFormResult<ResultType, ErrorType>;
+      result: InteractiveFormResult<ResultType>;
     }
   | { type: "clear_field_error"; fieldName: string }
   | { type: "reset_form" };
 
 const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
-  FormAction<unknown, string>,
-  LocalState<unknown, string>
+  FormAction<unknown>,
+  LocalState<unknown>
 >((state, action) => {
   switch (action.type) {
     case "set_form_result":
@@ -88,7 +88,7 @@ const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
 
 const PendingContext = createContext(false);
 
-export function InteractiveForm<ResultType, ErrorType extends string>({
+export function InteractiveForm<ResultType>({
   asChild,
   children,
   action,
@@ -96,9 +96,7 @@ export function InteractiveForm<ResultType, ErrorType extends string>({
 }: {
   asChild?: boolean;
   children: ReactNode;
-  action: (
-    formData: FormData,
-  ) => Promise<InteractiveFormResult<ResultType, ErrorType>>;
+  action: (formData: FormData) => Promise<InteractiveFormResult<ResultType>>;
 } & Omit<ComponentProps<"form">, "action">) {
   return (
     <FormStateProvider>
@@ -114,17 +112,12 @@ function InteractiveFormImpl({
   action,
   ...props
 }: Omit<ComponentProps<"form">, "action"> & {
-  action: (
-    formData: FormData,
-  ) => Promise<InteractiveFormResult<unknown, string>>;
+  action: (formData: FormData) => Promise<InteractiveFormResult<unknown>>;
 }) {
   const [isPending, startTransition] = useTransition();
   const dispatch = useFormDispatch();
   const state = useFormState();
-
-  if ("redirect" in state && typeof state.redirect === "string") {
-    redirect(state.redirect);
-  }
+  const router = useRouter();
 
   if ("nextElement" in state && state.nextElement) {
     return state.nextElement;
@@ -140,7 +133,12 @@ function InteractiveFormImpl({
           const formData = new FormData(e.currentTarget);
           startTransition(async () => {
             const result = await action(formData);
-            console.log("result", result);
+
+            if ("redirect" in result && typeof result.redirect === "string") {
+              router.push(result.redirect);
+              return;
+            }
+
             dispatch({ type: "set_form_result", result });
           });
           props.onSubmit?.(e);
