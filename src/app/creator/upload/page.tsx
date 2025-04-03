@@ -5,7 +5,6 @@ import {
   FormField,
   FormLabel,
   FormMessage,
-  FormSubmit,
   InputControl,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -15,14 +14,13 @@ import {
   FormErrorMessage,
   InteractiveForm,
   LoadingMessage,
-  PrintResult,
   SubmitButton,
   SubmitMessage,
 } from "@/components/behaviors/interactive-form";
 import CategoryCombobox from "./CategoryCombobox";
-import ValidationMessages from "./ValidationMessages";
 import { Button } from "@/components/ui/button";
 import { UploadIcon } from "lucide-react";
+import { ReserveLayout } from "@/components/ui/reserve-layout";
 
 export default function UploadPage() {
   return (
@@ -80,13 +78,15 @@ export default function UploadPage() {
           <ImageVisibilityField />
 
           <footer className="flex flex-row-reverse justify-between gap-2">
-            <SubmitButton asChild>
-              <Button>
+            <Button asChild>
+              <SubmitButton>
                 <UploadIcon className="size-4" />
-                <SubmitMessage>Upload Image</SubmitMessage>
-                <LoadingMessage>Uploading...</LoadingMessage>
-              </Button>
-            </SubmitButton>
+                <ReserveLayout>
+                  <SubmitMessage>Upload Image</SubmitMessage>
+                  <LoadingMessage>Uploading…</LoadingMessage>
+                </ReserveLayout>
+              </SubmitButton>
+            </Button>
             <button type="reset">Reset</button>
           </footer>
         </InteractiveForm>
@@ -102,7 +102,7 @@ function ImageNameField() {
       <InputControl asChild>
         <Input required placeholder="Enter image title..." minLength={3} />
       </InputControl>
-      <ValidationMessages>
+      <ReserveLayout placeItems="start">
         <FormMessage match="valueMissing">
           Please enter a title for your image
         </FormMessage>
@@ -112,7 +112,7 @@ function ImageNameField() {
         <FormErrorMessage name="image_title" match="invalid_value">
           Title cannot be "test"
         </FormErrorMessage>
-      </ValidationMessages>
+      </ReserveLayout>
     </FormField>
   );
 }
@@ -128,14 +128,14 @@ function ImageDescriptionField() {
           minLength={3}
         />
       </InputControl>
-      <ValidationMessages>
+      <ReserveLayout placeItems="start">
         <FormMessage match="valueMissing">
           Please enter a description for your image
         </FormMessage>
         <FormMessage match="tooShort">
           Description must be at least 3 characters long
         </FormMessage>
-      </ValidationMessages>
+      </ReserveLayout>
     </FormField>
   );
 }
@@ -148,11 +148,11 @@ function ImageTagsField() {
         <CategoryCombobox />
       </InputControl>
 
-      <ValidationMessages>
+      <ReserveLayout placeItems="start">
         <FormMessage match="valueMissing">
           Please select at least one tag
         </FormMessage>
-      </ValidationMessages>
+      </ReserveLayout>
     </FormField>
   );
 }
@@ -163,7 +163,7 @@ function ImageVisibilityField() {
       <FormLabel>Visibility</FormLabel>
 
       <InputControl asChild>
-        <RadioGroup required>
+        <RadioGroup required defaultValue="public">
           <FormControlItem className="flex items-center gap-2">
             <InputControl asChild>
               <RadioGroupItem value="public" />
@@ -180,11 +180,11 @@ function ImageVisibilityField() {
         </RadioGroup>
       </InputControl>
 
-      <ValidationMessages>
+      <ReserveLayout placeItems="start">
         <FormMessage match="valueMissing">
           Please select a visibility for your image
         </FormMessage>
-      </ValidationMessages>
+      </ReserveLayout>
     </FormField>
   );
 }
