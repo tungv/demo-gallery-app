@@ -221,18 +221,13 @@ function useFormAttributes() {
 }
 
 export function Form({ children, className, asChild, ...props }: FormProps) {
-  const resetForm = useResetForm();
   const dispatch = useFormDispatch();
 
   // Use proper type casting for the form props
   const formProps: ComponentProps<"form"> = {
     ...props,
     className: cn("grid grid-cols-1 gap-4 p-4 max-w-md w-full", className),
-    onReset: (event) => {
-      console.log("onReset");
-      // Reset all form validity states
-      resetForm();
-    },
+
     onSubmit: (event) => {
       // Mark all fields as interacted when form is submitted
       dispatch({ type: "set_all_fields_interacted" });
