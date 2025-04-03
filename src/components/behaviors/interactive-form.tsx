@@ -8,7 +8,7 @@ import { createReducerContext } from "@/utils/reducer-context";
 import { cn } from "@/lib/utils";
 import { Hidden, Visible } from "../ui/reserve-layout";
 
-export interface InteractiveFormResult {
+export interface InteractiveFormResult<FieldNames extends string = string> {
   redirect?: string;
   /*
     errors is a record of field names and their errors
@@ -16,16 +16,14 @@ export interface InteractiveFormResult {
     and for clearing errors when the form is reset
   */
   errors?: {
-    [fieldName: string]: string[];
+    [fieldName in FieldNames]?: string[];
   };
   result?: unknown;
   nextElement?: ReactNode;
 }
 
-type LocalState = {
-  errors?: {
-    [fieldName: string]: string[];
-  };
+type LocalState<FieldNames extends string = string> = {
+  errors?: Partial<Record<FieldNames, string[]>>;
   result?: unknown;
   nextElement?: ReactNode;
   counter: number;
@@ -33,23 +31,23 @@ type LocalState = {
 
 const NO_RESULT = Symbol("NO_RESULT");
 
-const initialState: LocalState = {
+const initialState: LocalState<string> = {
   errors: {},
   result: NO_RESULT,
   counter: 0,
 };
 
-type FormAction =
+type FormAction<FieldNames extends string = string> =
   | {
       type: "set_form_result";
-      result: InteractiveFormResult;
+      result: InteractiveFormResult<FieldNames>;
     }
-  | { type: "clear_field_error"; fieldName: string }
+  | { type: "clear_field_error"; fieldName: FieldNames }
   | { type: "reset_form" };
 
 const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
-  FormAction,
-  LocalState
+  FormAction<string>,
+  LocalState<string>
 >((state, action) => {
   switch (action.type) {
     case "set_form_result":
@@ -87,7 +85,7 @@ const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
 
 const PendingContext = createContext(false);
 
-export function InteractiveForm({
+export function InteractiveForm<FieldNames extends string = string>({
   asChild,
   children,
   action,
@@ -95,7 +93,7 @@ export function InteractiveForm({
 }: {
   asChild?: boolean;
   children: ReactNode;
-  action: (formData: FormData) => Promise<InteractiveFormResult>;
+  action: (formData: FormData) => Promise<InteractiveFormResult<FieldNames>>;
 } & Omit<ComponentProps<"form">, "action">) {
   return (
     <FormStateProvider>
@@ -106,12 +104,12 @@ export function InteractiveForm({
   );
 }
 
-function InteractiveFormImpl({
+function InteractiveFormImpl<FieldNames extends string = string>({
   children,
   action,
   ...props
 }: Omit<ComponentProps<"form">, "action"> & {
-  action: (formData: FormData) => Promise<InteractiveFormResult>;
+  action: (formData: FormData) => Promise<InteractiveFormResult<FieldNames>>;
 }) {
   const [isPending, startTransition] = useTransition();
   const dispatch = useFormDispatch();
