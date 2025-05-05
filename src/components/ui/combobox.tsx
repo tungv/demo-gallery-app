@@ -10,14 +10,22 @@ import {
   CommandItem,
   CommandList,
 } from "./command";
-import { createContext, useCallback, useContext } from "react";
+import { createContext, useCallback, useContext, useRef } from "react";
+import type {
+  ChangeEvent,
+  ComponentPropsWithoutRef,
+  FocusEvent,
+  FormEventHandler,
+  SyntheticEvent,
+} from "react";
 import { Slot } from "@radix-ui/react-slot";
-
+import useEffectEvent from "./use-effect-event";
 interface ComboboxState {
   name?: string;
   selected: string[];
   open: boolean;
   multiple: boolean;
+  required?: boolean;
 }
 
 type ComboboxAction =
@@ -29,6 +37,7 @@ const defaultComboboxState: ComboboxState = {
   selected: [],
   open: false,
   multiple: false,
+  required: false,
 };
 
 const [ComboboxProvider, useComboboxState, useComboboxDispatch] =
@@ -65,20 +74,41 @@ const [ComboboxProvider, useComboboxState, useComboboxDispatch] =
     defaultComboboxState,
   );
 
-interface ComboboxProps {
-  name?: string;
-  multiple?: boolean;
-  value?: string | string[];
+interface ComboboxProps extends ComponentPropsWithoutRef<"select"> {
   onValueChange?: (value: string | string[]) => void;
-  defaultValue?: string | string[];
-  children: React.ReactNode;
 }
 
-function toArray(value: string | string[] | undefined) {
+function toArray(value: string | readonly string[] | number | undefined) {
   if (value === undefined) {
     return [];
   }
   return Array.isArray(value) ? value : [value];
+}
+
+function createSyntheticEvent(
+  target: Element,
+  nativeEvent: Event,
+  isDefaultPrevented: () => boolean,
+  isPropagationStopped: () => boolean,
+  persist: () => void,
+): SyntheticEvent {
+  return {
+    nativeEvent: nativeEvent,
+    currentTarget: target,
+    target: target,
+    bubbles: nativeEvent.bubbles,
+    cancelable: nativeEvent.cancelable,
+    defaultPrevented: nativeEvent.defaultPrevented,
+    eventPhase: nativeEvent.eventPhase,
+    isTrusted: nativeEvent.isTrusted,
+    preventDefault: nativeEvent.preventDefault,
+    isDefaultPrevented: isDefaultPrevented,
+    stopPropagation: nativeEvent.stopPropagation,
+    isPropagationStopped: isPropagationStopped,
+    persist: persist,
+    timeStamp: nativeEvent.timeStamp,
+    type: nativeEvent.type,
+  };
 }
 
 function Combobox({
@@ -87,12 +117,18 @@ function Combobox({
   value,
   onValueChange,
   defaultValue,
+  required = false,
   children,
+  onBlur,
+  onChange,
+  onInvalid,
 }: ComboboxProps) {
   // cannot accept both value and defaultValue
   if (value !== undefined && defaultValue !== undefined) {
     throw new Error("Cannot accept both value and defaultValue");
   }
+
+  const selectRef = useRef<HTMLSelectElement>(null);
 
   const selected = value
     ? toArray(value)
@@ -100,22 +136,73 @@ function Combobox({
       ? toArray(defaultValue)
       : [];
 
+  const onChangeEvent = useEffectEvent(() => {
+    if (typeof onChange === "function" && selectRef.current) {
+      // create a new synthetic change event and dispatch it
+      const changeEvent = new Event("change", {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      const syntheticChangeEvent = createSyntheticEvent(
+        selectRef.current,
+        changeEvent,
+        () => false,
+        () => false,
+        () => {},
+      ) as ChangeEvent<HTMLSelectElement>;
+
+      onChange(syntheticChangeEvent);
+    }
+  });
+
+  const onBlurEvent = useEffectEvent(() => {
+    if (typeof onBlur === "function" && selectRef.current) {
+      // create a new synthetic focus event and dispatch it
+      const focusEvent = new FocusEvent("focus", {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      const syntheticBlurEvent = createSyntheticEvent(
+        selectRef.current,
+        focusEvent,
+        () => false,
+        () => false,
+        () => {},
+      ) as FocusEvent<HTMLSelectElement>;
+
+      onBlur(syntheticBlurEvent);
+    }
+  });
+
+  const onValueChangeEvent = useEffectEvent((value: string | string[]) => {
+    if (typeof onValueChange === "function") {
+      onValueChange(value);
+    }
+  });
+
   const middleware = useCallback(
     (
       dispatch: ReturnType<typeof useComboboxDispatch>,
       getNextState: (action: ComboboxAction) => ComboboxState,
     ) =>
       (action: ComboboxAction) => {
-        if (
-          typeof onValueChange === "function" &&
-          (action.type === "select" || action.type === "deselect")
-        ) {
-          const state = getNextState(action);
-          onValueChange(state.selected);
-        }
         dispatch(action);
+        if (action.type === "select" || action.type === "deselect") {
+          const state = getNextState(action);
+          onValueChangeEvent(state.selected);
+        }
+
+        if (action.type === "select" || action.type === "deselect") {
+          onChangeEvent();
+        }
+
+        if (action.type === "set_open" && !action.open) {
+          onBlurEvent();
+        }
       },
-    [onValueChange],
+    [onValueChangeEvent, onChangeEvent, onBlurEvent],
   );
 
   return (
@@ -123,10 +210,13 @@ function Combobox({
       name={name}
       selected={selected}
       multiple={multiple ?? false}
+      required={required}
       middleware={middleware}
     >
-      <ComboboxImpl>{children}</ComboboxImpl>
-      {name && <HiddenInputs />}
+      <ComboboxImpl>
+        {children}
+        <HiddenInputs selectRef={selectRef} onInvalid={onInvalid} />
+      </ComboboxImpl>
     </ComboboxProvider>
   );
 }
@@ -138,21 +228,43 @@ function ComboboxImpl({ children }: { children: React.ReactNode }) {
   return (
     <Popover
       open={state.open}
-      onOpenChange={(open) => dispatch({ type: "set_open", open })}
+      onOpenChange={(open) => {
+        dispatch({ type: "set_open", open });
+      }}
     >
       {children}
     </Popover>
   );
 }
 
-function HiddenInputs() {
-  const { selected, name } = useComboboxState();
+function HiddenInputs({
+  selectRef,
+  onInvalid,
+}: {
+  selectRef: React.RefObject<HTMLSelectElement | null>;
+  onInvalid?: FormEventHandler<HTMLSelectElement>;
+}) {
+  const { selected, name, required, multiple } = useComboboxState();
+
   return (
-    <>
+    <select
+      hidden
+      ref={selectRef}
+      name={name}
+      multiple={multiple}
+      value={selected}
+      onChange={() => {}}
+      onInvalid={onInvalid}
+      required={required}
+      tabIndex={-1}
+      aria-hidden="true"
+    >
       {selected.map((value) => (
-        <input key={value} type="hidden" name={name} value={value} />
+        <option key={value} value={value}>
+          {value}
+        </option>
       ))}
-    </>
+    </select>
   );
 }
 

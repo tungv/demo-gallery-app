@@ -3,9 +3,10 @@
 import { cn } from "@/lib/utils";
 import { createReducerContext } from "@/utils/reducer-context";
 import { Slot } from "@radix-ui/react-slot";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId } from "react";
 import type { ComponentProps } from "react";
 import { Label } from "./label";
+import { Hidden, Visible } from "./reserve-layout";
 
 interface FormContext {
   fields: Record<
@@ -221,20 +222,13 @@ function useFormAttributes() {
 }
 
 export function Form({ children, className, asChild, ...props }: FormProps) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const resetForm = useResetForm();
   const dispatch = useFormDispatch();
 
   // Use proper type casting for the form props
   const formProps: ComponentProps<"form"> = {
     ...props,
-    ref: formRef,
     className: cn("grid grid-cols-1 gap-4 p-4 max-w-md w-full", className),
-    onReset: (event) => {
-      console.log("onReset");
-      // Reset all form validity states
-      resetForm();
-    },
+
     onSubmit: (event) => {
       // Mark all fields as interacted when form is submitted
       dispatch({ type: "set_all_fields_interacted" });
@@ -543,11 +537,7 @@ export function FormMessage({
     };
   }, [dispatch, id, hidden]);
 
-  if (hidden) {
-    return null;
-  }
-
-  return (
+  const content = (
     <span
       {...props}
       aria-live="polite"
@@ -565,6 +555,12 @@ export function FormMessage({
       {children}
     </span>
   );
+
+  if (hidden) {
+    return <Hidden>{content}</Hidden>;
+  }
+
+  return <Visible>{content}</Visible>;
 }
 
 interface FormSubmitProps extends Omit<ComponentProps<"button">, "type"> {

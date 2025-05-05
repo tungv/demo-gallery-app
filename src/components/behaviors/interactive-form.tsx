@@ -1,92 +1,190 @@
 "use client";
 
-import { redirect } from "next/navigation";
-import { createContext, useActionState, useContext } from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { useRouter } from "next/navigation";
+import { createContext, useContext, useTransition } from "react";
 import type { ComponentProps, ReactNode } from "react";
+import { createReducerContext } from "@/utils/reducer-context";
+import { cn } from "@/lib/utils";
+import { Hidden, Visible } from "../ui/reserve-layout";
 
-interface InteractiveFormResult<ResultType, ErrorType extends string> {
+interface TypedFormData<FieldNames extends string = string> extends FormData {
+  get(name: FieldNames): string | null;
+  getAll(name: FieldNames): string[];
+  has(name: FieldNames): boolean;
+  append(name: FieldNames, value: string | Blob, fileName?: string): void;
+  set(name: FieldNames, value: string | Blob, fileName?: string): void;
+  delete(name: FieldNames): void;
+}
+
+export interface InteractiveFormResult<FieldNames extends string = string> {
   redirect?: string;
-  errors?: ErrorType[];
-  result?: ResultType;
+  /*
+    errors is a record of field names and their errors
+    this is useful for displaying errors for specific fields
+    and for clearing errors when the form is reset
+  */
+  errors?: {
+    [fieldName in FieldNames]?: string[];
+  };
+  result?: unknown;
   nextElement?: ReactNode;
 }
 
-type LocalState<ResultType, ErrorType extends string> = Omit<
-  InteractiveFormResult<ResultType, ErrorType>,
-  "redirect"
->;
+type LocalState<FieldNames extends string = string> = {
+  errors?: Partial<Record<FieldNames, string[]>>;
+  result?: unknown;
+  nextElement?: ReactNode;
+  counter: number;
+};
 
 const NO_RESULT = Symbol("NO_RESULT");
 
-// biome-ignore lint/suspicious/noExplicitAny: we don't care about the types here
-const initialState: LocalState<any, any> = {
-  errors: [],
+const initialState: LocalState<string> = {
+  errors: {},
   result: NO_RESULT,
+  counter: 0,
 };
 
-const errorsContext = createContext<string[]>([]);
-const resultContext = createContext<unknown>(NO_RESULT);
+type FormAction<FieldNames extends string = string> =
+  | {
+      type: "set_form_result";
+      result: InteractiveFormResult<FieldNames>;
+    }
+  | { type: "clear_field_error"; fieldName: FieldNames }
+  | { type: "reset_form" };
 
-export function InteractiveForm<ResultType, ErrorType extends string>({
+const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
+  FormAction<string>,
+  LocalState<string>
+>((state, action) => {
+  switch (action.type) {
+    case "set_form_result":
+      if (action.result.errors) {
+        return {
+          ...state,
+          errors: action.result.errors,
+        };
+      }
+      return {
+        ...state,
+        errors: {},
+        ...action.result,
+        counter: state.counter + 1,
+      };
+    case "clear_field_error": {
+      if (!state.errors?.[action.fieldName]) {
+        return state;
+      }
+      const { [action.fieldName]: _, ...rest } = state.errors;
+      return {
+        ...state,
+        errors: rest,
+      };
+    }
+    case "reset_form":
+      return {
+        ...initialState,
+        counter: state.counter + 1,
+      };
+    default:
+      return state;
+  }
+}, initialState);
+
+const PendingContext = createContext(false);
+
+type InteractiveFormProps<FieldNames extends string> = {
+  asChild?: boolean;
+  children: ReactNode;
+  fields?: readonly FieldNames[];
+  action: (
+    formData: TypedFormData<FieldNames>,
+  ) => Promise<InteractiveFormResult<FieldNames>>;
+} & Omit<ComponentProps<"form">, "action">;
+
+export function InteractiveForm<const FieldNames extends string>({
   asChild,
   children,
   action,
+  fields: _fields, // We don't actually use this at runtime, just for type inference
   ...props
-}: {
-  asChild?: boolean;
-  children: ReactNode;
-  action: (
-    formData: FormData,
-  ) => Promise<InteractiveFormResult<ResultType, ErrorType>>;
-} & Omit<ComponentProps<"form">, "action">) {
-  const [localState, formAction] = useActionState(
-    async (_state: LocalState<ResultType, ErrorType>, formData: FormData) => {
-      const result = await action(formData);
-
-      if (result.redirect) {
-        redirect(result.redirect);
-      }
-
-      return result;
-    },
-    initialState,
-  );
-
-  // if the nextElement exists, render it
-  if ("nextElement" in localState) {
-    return localState.nextElement;
-  }
-
-  const formProps = {
-    ...props,
-    action: formAction,
-  };
-
+}: InteractiveFormProps<FieldNames>) {
   return (
-    <errorsContext.Provider value={localState.errors ?? []}>
-      <resultContext.Provider value={localState.result ?? NO_RESULT}>
-        <form {...formProps}>{children}</form>
-      </resultContext.Provider>
-    </errorsContext.Provider>
+    <FormStateProvider>
+      <InteractiveFormImpl action={action} {...props}>
+        {children}
+      </InteractiveFormImpl>
+    </FormStateProvider>
   );
 }
 
-export function useFormResult<ResultType>() {
-  const result = useContext(resultContext) as ResultType | undefined;
+function InteractiveFormImpl<FieldNames extends string>({
+  children,
+  action,
+  ...props
+}: Omit<InteractiveFormProps<FieldNames>, "fields">) {
+  const [isPending, startTransition] = useTransition();
+  const dispatch = useFormDispatch();
+  const state = useFormState();
+  const router = useRouter();
 
-  if (!result) {
-    throw new Error("useFormResult must be used within a FormResultProvider");
+  if ("nextElement" in state && state.nextElement) {
+    return state.nextElement;
   }
+  return (
+    <PendingContext.Provider value={isPending}>
+      <form
+        key={state.counter}
+        {...props}
+        onSubmit={async (e) => {
+          e.preventDefault();
 
-  return result;
+          const formData = new FormData(
+            e.currentTarget,
+          ) as TypedFormData<FieldNames>;
+          startTransition(async () => {
+            const result = await action(formData);
+
+            if ("redirect" in result && typeof result.redirect === "string") {
+              router.push(result.redirect);
+              return;
+            }
+
+            dispatch({ type: "set_form_result", result });
+          });
+          props.onSubmit?.(e);
+        }}
+        onReset={(e) => {
+          dispatch({ type: "reset_form" });
+          props.onReset?.(e);
+        }}
+        onChange={(e) => {
+          if (e.target instanceof HTMLElement) {
+            const fieldName = e.target.getAttribute("name");
+            if (fieldName && state.errors?.[fieldName]) {
+              dispatch({ type: "clear_field_error", fieldName });
+            }
+          }
+        }}
+      >
+        {children}
+      </form>
+    </PendingContext.Provider>
+  );
+}
+
+export function useFormResult() {
+  const state = useFormState();
+  return state.result as unknown;
+}
+
+export function useFormPending() {
+  return useContext(PendingContext);
 }
 
 export function PrintResult() {
-  const result = useFormResult();
-
-  if (result === NO_RESULT) {
-    return <pre>no result</pre>;
-  }
+  const result = useFormState();
 
   return <pre>{JSON.stringify(result, null, 2)}</pre>;
 }
@@ -94,31 +192,104 @@ export function PrintResult() {
 export function FormErrorMessage({
   children,
   match,
+  name,
   ...props
-}: ComponentProps<"span"> & { match?: string }) {
-  const errors = useContext(errorsContext);
-
-  // if no match is provided, we will render the error message if there are any errors
-  if (!match) {
-    if (errors.length > 0) {
-      return (
-        <span className="text-destructive text-sm" {...props}>
-          {children}
-        </span>
-      );
-    }
-
-    // otherwise, we will render an empty span
-    return null;
-  }
-
-  if (!errors.includes(match)) {
-    return null;
+}: ComponentProps<"span"> & { match?: string; name?: string }) {
+  if (!name) {
+    return <GlobalError {...props}>{children}</GlobalError>;
   }
 
   return (
-    <span className="text-destructive text-sm" {...props}>
+    <FieldError {...props} name={name} match={match}>
       {children}
-    </span>
+    </FieldError>
   );
+}
+
+function GlobalError({ children, ...props }: ComponentProps<"span">) {
+  const state = useFormState();
+  const errors = state.errors || {};
+
+  if (Object.keys(errors).length > 0) {
+    return (
+      <span className="text-destructive text-sm" {...props}>
+        {children}
+      </span>
+    );
+  }
+
+  return null;
+}
+
+function FieldError({
+  children,
+  name,
+  match,
+  ...props
+}: ComponentProps<"span"> & { name: string; match?: string }) {
+  const state = useFormState();
+  const errors = state.errors || {};
+
+  if (!errors[name]) {
+    return null;
+  }
+
+  if (!match) {
+    return (
+      <span className="text-destructive text-sm" {...props}>
+        {children}
+      </span>
+    );
+  }
+
+  if (errors[name].includes(match)) {
+    return (
+      <span className="text-destructive text-sm" {...props}>
+        {children}
+      </span>
+    );
+  }
+
+  return null;
+}
+
+export function SubmitButton({
+  children,
+  asChild,
+  ...buttonProps
+}: Omit<ComponentProps<"button">, "type"> & {
+  asChild?: boolean;
+}) {
+  const isPending = useFormPending();
+  const props = {
+    ...buttonProps,
+    type: "submit",
+    inert: isPending,
+    className: cn({ "animate-pulse": isPending }, buttonProps.className),
+  } as ComponentProps<"button">;
+
+  if (asChild) {
+    return <Slot {...props}>{children}</Slot>;
+  }
+
+  return <button {...props}>{children}</button>;
+}
+
+export function SubmitMessage({ children }: ComponentProps<"span">) {
+  const isPending = useFormPending();
+
+  if (isPending) {
+    return <Hidden>{children}</Hidden>;
+  }
+
+  return <Visible>{children}</Visible>;
+}
+
+export function LoadingMessage({ children }: ComponentProps<"span">) {
+  const isPending = useFormPending();
+  if (!isPending) {
+    return <Hidden>{children}</Hidden>;
+  }
+
+  return <Visible>{children}</Visible>;
 }
