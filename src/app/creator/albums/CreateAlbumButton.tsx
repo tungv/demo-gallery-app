@@ -1,3 +1,10 @@
+import {
+  FormErrorMessage,
+  InteractiveForm,
+  LoadingMessage,
+  SubmitButton,
+  SubmitMessage,
+} from "@/components/behaviors/interactive-form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,8 +15,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormField, FormLabel, InputControl } from "@/components/ui/form";
+import {
+  Form,
+  FormField,
+  FormLabel,
+  FormMessage,
+  InputControl,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { ReserveLayout } from "@/components/ui/reserve-layout";
 import { PlusIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 
@@ -24,36 +38,70 @@ export default function CreateAlbumButton() {
       </DialogTrigger>
 
       <DialogContent>
-        <Form
-          action={async (formData) => {
-            "use server";
+        <Form asChild className="contents">
+          <InteractiveForm
+            action={async (formData) => {
+              "use server";
 
-            const title = formData.get("title") as string;
+              const title = formData.get("title") as string;
 
-            if (!title) {
-              throw new Error("Title is required");
-            }
+              if (!title) {
+                return {
+                  errors: {
+                    title: ["Title is required"],
+                  },
+                };
+              }
 
-            redirect("/creator/albums");
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>Create Album</DialogTitle>
-            <DialogDescription>
-              Create a new album to store your images.
-            </DialogDescription>
-          </DialogHeader>
+              if (title === "test") {
+                return {
+                  errors: {
+                    title: ["Title cannot be 'test'"],
+                  },
+                };
+              }
 
-          <FormField name="title">
-            <FormLabel>Title</FormLabel>
-            <InputControl asChild>
-              <Input required placeholder="Enter album title..." />
-            </InputControl>
-          </FormField>
+              return {
+                result: {
+                  title,
+                },
+              };
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Create Album</DialogTitle>
+              <DialogDescription>
+                Create a new album to store your images.
+              </DialogDescription>
+            </DialogHeader>
 
-          <DialogFooter>
-            <Button>Create</Button>
-          </DialogFooter>
+            <FormField name="title">
+              <FormLabel>Title</FormLabel>
+              <InputControl asChild>
+                <Input required placeholder="Enter album title..." />
+              </InputControl>
+              <ReserveLayout placeItems="start">
+                <FormMessage match="valueMissing">
+                  Please enter a title for your album
+                </FormMessage>
+                <FormErrorMessage match="invalid_value">
+                  Title cannot be "test"
+                </FormErrorMessage>
+              </ReserveLayout>
+            </FormField>
+
+            <DialogFooter>
+              <Button asChild>
+                <SubmitButton>
+                  <PlusIcon className="size-4" />
+                  <ReserveLayout>
+                    <SubmitMessage>Create</SubmitMessage>
+                    <LoadingMessage>Creating…</LoadingMessage>
+                  </ReserveLayout>
+                </SubmitButton>
+              </Button>
+            </DialogFooter>
+          </InteractiveForm>
         </Form>
       </DialogContent>
     </Dialog>
