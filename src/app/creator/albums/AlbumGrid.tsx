@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { CheckIcon, PencilIcon, XIcon } from "lucide-react";
+import { CheckIcon, Loader2, PencilIcon, XIcon } from "lucide-react";
 import {
   AlbumCardRoot,
   EditMode,
@@ -7,6 +7,16 @@ import {
   ViewMode,
 } from "./AlbumCard.ui";
 import { Input } from "@/components/ui/input";
+import { Form, FormField, FormLabel, InputControl } from "@/components/ui/form";
+import {
+  FormErrorMessage,
+  InteractiveForm,
+  LoadingMessage,
+  PrintResult,
+  SubmitButton,
+  SubmitMessage,
+} from "@/components/behaviors/interactive-form";
+import { ReserveLayout } from "@/components/ui/reserve-layout";
 
 export default function AlbumGrid() {
   return (
@@ -37,23 +47,55 @@ function AlbumCard() {
         </ViewMode>
 
         <EditMode className="contents">
-          <Input
-            autoFocus
-            placeholder="Album title"
-            defaultValue="Untitled Album 1"
-          />
-          <Button variant="outline" asChild>
-            <ModeToggleButton>
-              <CheckIcon className="size-4" />
-              <span className="sr-only">Save</span>
-            </ModeToggleButton>
-          </Button>
-          <Button variant="outline" asChild>
-            <ModeToggleButton>
-              <XIcon className="size-4" />
-              <span className="sr-only">Cancel</span>
-            </ModeToggleButton>
-          </Button>
+          <Form className="contents" asChild>
+            <InteractiveForm
+              fields={["title"]}
+              action={async (formData) => {
+                "use server";
+                const title = formData.get("title") as string;
+                if (!title) {
+                  return { errors: { title: ["valueMissing"] } };
+                }
+
+                return { result: { success: true } };
+              }}
+            >
+              <FormField name="title" className="relative">
+                <FormLabel className="sr-only">Album Title</FormLabel>
+                <InputControl asChild>
+                  <Input
+                    autoFocus
+                    placeholder="Album title"
+                    defaultValue="Untitled Album 1"
+                  />
+                </InputControl>
+                <FormErrorMessage
+                  name="title"
+                  className="absolute bottom-full text-sm text-destructive p-1 mb-1 bg-white rounded-md"
+                >
+                  <p>Title is required</p>
+                </FormErrorMessage>
+              </FormField>
+              <Button variant="outline" asChild>
+                <SubmitButton>
+                  <SubmitMessage>
+                    <CheckIcon className="size-4" />
+                    <span className="sr-only">Save</span>
+                  </SubmitMessage>
+                  <LoadingMessage>
+                    <Loader2 className="size-4 animate-spin" />
+                    <span className="sr-only">Saving…</span>
+                  </LoadingMessage>
+                </SubmitButton>
+              </Button>
+              <Button variant="outline" asChild>
+                <ModeToggleButton>
+                  <XIcon className="size-4" />
+                  <span className="sr-only">Cancel</span>
+                </ModeToggleButton>
+              </Button>
+            </InteractiveForm>
+          </Form>
         </EditMode>
       </footer>
     </AlbumCardRoot>
