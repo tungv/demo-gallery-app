@@ -2,7 +2,7 @@
 
 import { Slot } from "@radix-ui/react-slot";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useTransition } from "react";
+import { createContext, Fragment, useContext, useTransition } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { createReducerContext } from "@/utils/reducer-context";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,8 @@ type LocalState<FieldNames extends string = string> = {
   result?: unknown;
   nextElement?: ReactNode;
   counter: number;
+  hasOuterBoundary: boolean;
+  outerKey: number;
 };
 
 const NO_RESULT = Symbol("NO_RESULT");
@@ -44,6 +46,8 @@ const initialState: LocalState<string> = {
   errors: {},
   result: NO_RESULT,
   counter: 0,
+  hasOuterBoundary: false,
+  outerKey: 0,
 };
 
 type FormAction<FieldNames extends string = string> =
@@ -71,6 +75,9 @@ const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
         errors: {},
         ...action.result,
         counter: state.counter + 1,
+
+        // reset outer when form result is successful
+        outerKey: state.outerKey + 1,
       };
     case "clear_field_error": {
       if (!state.errors?.[action.fieldName]) {
@@ -110,12 +117,20 @@ export function InteractiveForm<const FieldNames extends string>({
   fields: _fields, // We don't actually use this at runtime, just for type inference
   ...props
 }: InteractiveFormProps<FieldNames>) {
+  const context = useFormState();
+  if (!context.hasOuterBoundary) {
+    return (
+      <FormStateProvider>
+        <InteractiveFormImpl action={action} {...props}>
+          {children}
+        </InteractiveFormImpl>
+      </FormStateProvider>
+    );
+  }
   return (
-    <FormStateProvider>
-      <InteractiveFormImpl action={action} {...props}>
-        {children}
-      </InteractiveFormImpl>
-    </FormStateProvider>
+    <InteractiveFormImpl action={action} {...props}>
+      {children}
+    </InteractiveFormImpl>
   );
 }
 
@@ -292,4 +307,19 @@ export function LoadingMessage({ children }: ComponentProps<"span">) {
   }
 
   return <Visible>{children}</Visible>;
+}
+
+export function FormBoundary({ children }: { children: ReactNode }) {
+  return (
+    <FormStateProvider hasOuterBoundary>
+      <FormBoundaryImpl>{children}</FormBoundaryImpl>
+    </FormStateProvider>
+  );
+}
+
+function FormBoundaryImpl({ children }: { children: ReactNode }) {
+  const context = useFormState();
+  const { outerKey } = context;
+
+  return <Fragment key={outerKey}>{children}</Fragment>;
 }
