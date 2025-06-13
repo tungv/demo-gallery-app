@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import {
+  Debugger,
   GridListBody,
   GridListFooter,
   GridListHeader,
@@ -12,8 +13,15 @@ export default function ListPage() {
   return (
     <div className="bg-muted p-12">
       <Button>Before</Button>
-      <GridListRoot gridColumnTemplate="1fr auto 1fr" className="bg-white p-2">
-        <GridListHeader>header</GridListHeader>
+      <GridListRoot
+        gridColumnTemplate="auto 1fr auto"
+        className="bg-white p-2 rounded-lg focus-within:outline-2"
+      >
+        <GridListHeader className="p-1 gap-x-8">
+          <h2 className="text-sm font-medium">Title</h2>
+          <span className="text-sm font-medium">Amount</span>
+          <div className="text-sm font-medium">actions</div>
+        </GridListHeader>
         <GridListBody>
           <GridListRow asChild rowId="1">
             <CustomRow />
@@ -21,21 +29,10 @@ export default function ListPage() {
           <GridListRow asChild rowId="2">
             <CustomRow />
           </GridListRow>
-          <GridListRow
-            rowId="3"
-            className="data-[focused=true]:outline outline-secondary"
-          >
-            <div>1</div>
-            <div>2</div>
-            <div>
-              <Button variant="outline">
-                <PlusIcon />
-                <span>Add</span>
-              </Button>
-            </div>
+          <GridListRow asChild rowId="3">
+            <CustomRow />
           </GridListRow>
         </GridListBody>
-        <GridListFooter>footer</GridListFooter>
       </GridListRoot>
       <Button>After</Button>
     </div>
@@ -44,12 +41,12 @@ export default function ListPage() {
 
 function CustomRow() {
   return (
-    <div className="items-center data-[focused=true]:outline outline-primary">
-      <h2>row title</h2>
+    <div className="items-center data-[focused=true]:outline-2 outline-primary rounded-md p-1 gap-x-8">
+      <h2 className="p-1 font-medium">row title</h2>
 
-      <span>10,000,000</span>
+      <span className="p-1 tabular-nums">10,000,000</span>
 
-      <div>
+      <div className="ml-auto">
         <Button>
           <PlusIcon />
           <span>Add</span>
