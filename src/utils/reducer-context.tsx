@@ -13,6 +13,7 @@ import {
 export function createReducerContext<Action, State>(
   reducer: Reducer<State, Action>,
   initialState: State,
+  displayName = "ReducerContext",
 ) {
   const stateCtx = createContext<State>(initialState);
   const dispatchCtx = createContext<Dispatch<Action>>(() => {});
@@ -53,6 +54,8 @@ export function createReducerContext<Action, State>(
   function useStateContext() {
     return useContext(stateCtx);
   }
+
+  Provider.displayName = displayName;
 
   return [memo(Provider), useStateContext, useDispatch] as const;
 }
