@@ -185,6 +185,8 @@ function GridListInner({
   useHandleShiftTab();
   useHandleUpArrow();
   useHandleDownArrow();
+  useHandleLeftArrow();
+  useHandleRightArrow();
 
   // Focus management for entering the grid
   useEffect(() => {
@@ -573,6 +575,104 @@ function useHandleDownArrow() {
       container.removeEventListener("keydown", handleDownArrow);
     };
   }, [containerRef, focusRow]);
+}
+
+function useHandleLeftArrow() {
+  const { containerRef } = useGridListState();
+
+  useEffect(() => {
+    const container = containerRef?.current;
+    if (!container) return;
+    const handleLeftArrow = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowLeft") {
+        return;
+      }
+
+      event.preventDefault();
+
+      const activeElement = document.activeElement;
+      if (!activeElement) return;
+
+      const currentRowElement = activeElement.closest("[data-row-id]");
+      if (!currentRowElement) return;
+
+      const allTabbableElements = getTabbableElements(currentRowElement);
+      if (allTabbableElements.length === 0) return;
+
+      console.log("allTabbableElements", allTabbableElements);
+
+      const currentTabbableIndex = allTabbableElements.indexOf(
+        activeElement as HTMLElement,
+      );
+      if (currentTabbableIndex === -1) {
+        // focus the first tabbable element
+        allTabbableElements[0]?.focus();
+        return;
+      }
+
+      const targetTabbableIndex = currentTabbableIndex - 1;
+      if (targetTabbableIndex < 0) return;
+
+      const targetTabbableElement = allTabbableElements[targetTabbableIndex];
+      if (!targetTabbableElement) return;
+
+      targetTabbableElement.focus();
+    };
+
+    container.addEventListener("keydown", handleLeftArrow);
+
+    return () => {
+      container.removeEventListener("keydown", handleLeftArrow);
+    };
+  }, [containerRef]);
+}
+
+function useHandleRightArrow() {
+  const { containerRef } = useGridListState();
+
+  useEffect(() => {
+    const container = containerRef?.current;
+    if (!container) return;
+    const handleRightArrow = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowRight") {
+        return;
+      }
+
+      event.preventDefault();
+
+      const activeElement = document.activeElement;
+      if (!activeElement) return;
+
+      const currentRowElement = activeElement.closest("[data-row-id]");
+      if (!currentRowElement) return;
+
+      const allTabbableElements = getTabbableElements(currentRowElement);
+      if (allTabbableElements.length === 0) return;
+
+      const currentTabbableIndex = allTabbableElements.indexOf(
+        activeElement as HTMLElement,
+      );
+      if (currentTabbableIndex === -1) {
+        // focus the last tabbable element
+        allTabbableElements[allTabbableElements.length - 1]?.focus();
+        return;
+      }
+
+      const targetTabbableIndex = currentTabbableIndex + 1;
+      if (targetTabbableIndex >= allTabbableElements.length) return;
+
+      const targetTabbableElement = allTabbableElements[targetTabbableIndex];
+      if (!targetTabbableElement) return;
+
+      targetTabbableElement.focus();
+    };
+
+    container.addEventListener("keydown", handleRightArrow);
+
+    return () => {
+      container.removeEventListener("keydown", handleRightArrow);
+    };
+  }, [containerRef]);
 }
 
 function safelyFocusElement(element: Element): void {
