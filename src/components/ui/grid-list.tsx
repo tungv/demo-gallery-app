@@ -56,6 +56,32 @@ function useRegisterRow(rowId: string) {
   }, [dispatch, rowId]);
 }
 
+// Helper function to get all tabbable elements
+function getTabbableElements(container: Element): Element[] {
+  const tabbableSelectors = [
+    "button:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
+    "textarea:not([disabled])",
+    "a[href]",
+    '[tabindex]:not([tabindex="-1"])',
+    "details",
+    "summary",
+  ].join(",");
+
+  return Array.from(container.querySelectorAll(tabbableSelectors)).filter(
+    (el) => {
+      const tabIndex = el.getAttribute("tabindex");
+      return tabIndex !== "-1" && (el as HTMLElement).offsetParent !== null;
+    },
+  );
+}
+
+// Helper function to get all tabbable elements on the page
+function getAllTabbableElements(): Element[] {
+  return getTabbableElements(document.body);
+}
+
 const RESTORE_FOCUS_EVENT = "restore-focus";
 
 export function GridListRoot({
@@ -70,6 +96,7 @@ export function GridListRoot({
   const startRef = useRef<HTMLSpanElement>(null);
   const endRef = useRef<HTMLSpanElement>(null);
   const scopeRef = useRef<Element[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: tracking children for refreshing scope
   useLayoutEffect(() => {
@@ -97,9 +124,79 @@ export function GridListRoot({
     };
   }, [children]);
 
+  // Focus trapping logic
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+
+      const activeElement = document.activeElement;
+      if (!activeElement || !container.contains(activeElement)) return;
+
+      if (event.shiftKey) {
+        // Shift+Tab: move to previous tabbable element before the grid
+        event.preventDefault();
+        const allTabbableElements = getAllTabbableElements();
+        const containerTabbableElements = getTabbableElements(container);
+
+        // Find the first tabbable element in the container
+        const firstContainerElement = containerTabbableElements[0];
+        if (!firstContainerElement) return;
+
+        // Find the index of the first container element in the page's tabbable elements
+        const firstContainerIndex = allTabbableElements.indexOf(
+          firstContainerElement,
+        );
+
+        // Move to the previous element before the container
+        const previousIndex = firstContainerIndex - 1;
+        if (previousIndex >= 0) {
+          (allTabbableElements[previousIndex] as HTMLElement).focus();
+        } else {
+          // If at the beginning of the page, wrap to the last tabbable element
+          (
+            allTabbableElements[allTabbableElements.length - 1] as HTMLElement
+          )?.focus();
+        }
+      } else {
+        // Tab: move to next tabbable element on the page (outside the grid)
+        event.preventDefault();
+        const allTabbableElements = getAllTabbableElements();
+        const containerTabbableElements = getTabbableElements(container);
+
+        // Find the last tabbable element in the container
+        const lastContainerElement =
+          containerTabbableElements[containerTabbableElements.length - 1];
+        if (!lastContainerElement) return;
+
+        // Find the index of the last container element in the page's tabbable elements
+        const lastContainerIndex =
+          allTabbableElements.indexOf(lastContainerElement);
+
+        // Move to the next element after the container
+        const nextIndex = lastContainerIndex + 1;
+        if (nextIndex < allTabbableElements.length) {
+          (allTabbableElements[nextIndex] as HTMLElement).focus();
+        } else {
+          // If at the end of the page, wrap to the first tabbable element
+          (allTabbableElements[0] as HTMLElement)?.focus();
+        }
+      }
+    };
+
+    container.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      container.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   return (
     <GridListProvider scope={scopeRef}>
       <div
+        ref={containerRef}
         className="contents"
         style={
           {
