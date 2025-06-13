@@ -3,11 +3,18 @@
 import { cn } from "@/lib/utils";
 import { createReducerContext } from "@/utils/reducer-context";
 import { Slot } from "@radix-ui/react-slot";
-import { createContext, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  createContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 
 type GridState = {
   rows: Array<{ rowId: string }>;
-  scope: React.RefObject<Element[]> | null;
+  lastFocusedRowId: string | null;
+  isFocusWithinContainer: boolean;
 };
 
 type GridAction =
@@ -18,11 +25,20 @@ type GridAction =
   | {
       type: "removeRow";
       rowId: string;
+    }
+  | {
+      type: "setLastFocusedRow";
+      rowId: string | null;
+    }
+  | {
+      type: "setFocusWithinContainer";
+      isFocusWithinContainer: boolean;
     };
 
 const defaultState: GridState = {
   rows: [],
-  scope: null,
+  lastFocusedRowId: null,
+  isFocusWithinContainer: false,
 };
 
 const [GridListProvider, useGridListState, useGridListDispatch] =
@@ -35,10 +51,28 @@ const [GridListProvider, useGridListState, useGridListDispatch] =
         }
 
         return { ...state, rows: [...state.rows, { rowId: action.rowId }] };
-      case "removeRow":
+      case "removeRow": {
+        const newRows = state.rows.filter((row) => row.rowId !== action.rowId);
+        // Clear lastFocusedRowId if the removed row was the last focused one
+        const newLastFocusedRowId =
+          state.lastFocusedRowId === action.rowId
+            ? null
+            : state.lastFocusedRowId;
         return {
           ...state,
-          rows: state.rows.filter((row) => row.rowId !== action.rowId),
+          rows: newRows,
+          lastFocusedRowId: newLastFocusedRowId,
+        };
+      }
+      case "setLastFocusedRow":
+        return {
+          ...state,
+          lastFocusedRowId: action.rowId,
+        };
+      case "setFocusWithinContainer":
+        return {
+          ...state,
+          isFocusWithinContainer: action.isFocusWithinContainer,
         };
     }
 
@@ -95,8 +129,6 @@ export function GridListRoot({
 } & React.HTMLAttributes<HTMLDivElement>) {
   const startRef = useRef<HTMLSpanElement>(null);
   const endRef = useRef<HTMLSpanElement>(null);
-  const scopeRef = useRef<Element[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: tracking children for refreshing scope
   useLayoutEffect(() => {
@@ -115,8 +147,6 @@ export function GridListRoot({
       node = node.nextSibling as Element;
     }
 
-    scopeRef.current = nodes;
-
     return () => {
       for (const node of nodes) {
         node.removeEventListener(RESTORE_FOCUS_EVENT, stopPropagation);
@@ -124,10 +154,121 @@ export function GridListRoot({
     };
   }, [children]);
 
-  // Focus trapping logic
+  return (
+    <GridListProvider>
+      <div
+        className="contents"
+        style={
+          {
+            "--grid-template-columns": gridColumnTemplate,
+          } as React.CSSProperties
+        }
+      >
+        <span data-focus-scope-start hidden ref={startRef} />
+        <GridListInner className={className} {...divProps}>
+          {children}
+        </GridListInner>
+        <span data-focus-scope-end hidden ref={endRef} />
+      </div>
+    </GridListProvider>
+  );
+}
+
+function GridListInner({
+  children,
+  className,
+  ...divProps
+}: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const state = useGridListState();
+  const dispatch = useGridListDispatch();
+
+  // Helper function to focus a specific row
+  const focusRow = useCallback((rowId: string) => {
+    const container = containerRef.current;
+    if (!container) return false;
+
+    // Find the row element with the specific rowId
+    const rowElement = container.querySelector(`[data-row-id="${rowId}"]`);
+    if (!rowElement) return false;
+
+    // Find the first tabbable element in that row
+    const tabbableElements = getTabbableElements(rowElement);
+    if (tabbableElements.length > 0) {
+      (tabbableElements[0] as HTMLElement).focus();
+      return true;
+    }
+    return false;
+  }, []);
+
+  // Helper function to focus the first row
+  const focusFirstRow = useCallback(() => {
+    console.log("focusFirstRow");
+    if (state.rows.length === 0) return false;
+
+    const firstRowId = state.rows[0].rowId;
+
+    console.log("focusing first row", firstRowId);
+    return focusRow(firstRowId);
+  }, [state.rows, focusRow]);
+
+  // Focus management for entering the grid
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as Element;
+      if (!target || !container.contains(target)) return;
+
+      // Set focus within container to true
+      if (!state.isFocusWithinContainer) {
+        dispatch({
+          type: "setFocusWithinContainer",
+          isFocusWithinContainer: true,
+        });
+      }
+
+      // Check if focus is coming from outside the grid
+      const relatedTarget = event.relatedTarget as Element;
+      const focusComingFromOutside =
+        !relatedTarget || !container.contains(relatedTarget);
+
+      if (focusComingFromOutside) {
+        // Try to restore focus to the previously focused row
+        if (state.lastFocusedRowId && focusRow(state.lastFocusedRowId)) {
+          return;
+        }
+        // If no previously focused row or it doesn't exist, focus the first row
+        focusFirstRow();
+      }
+
+      // Track which row is currently focused
+      const rowElement = target.closest("[data-row-id]");
+      if (rowElement) {
+        const rowId = rowElement.getAttribute("data-row-id");
+        if (rowId && rowId !== state.lastFocusedRowId) {
+          dispatch({ type: "setLastFocusedRow", rowId });
+        }
+      }
+    };
+
+    const handleFocusOut = (event: FocusEvent) => {
+      const target = event.target as Element;
+      const relatedTarget = event.relatedTarget as Element;
+
+      // Check if focus is leaving the container
+      if (
+        target &&
+        container.contains(target) &&
+        (!relatedTarget || !container.contains(relatedTarget))
+      ) {
+        dispatch({
+          type: "setFocusWithinContainer",
+          isFocusWithinContainer: false,
+        });
+      }
+    };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Tab") return;
@@ -186,41 +327,26 @@ export function GridListRoot({
       }
     };
 
-    container.addEventListener("keydown", handleKeyDown);
+    container.addEventListener("focusin", handleFocusIn);
+    container.addEventListener("focusout", handleFocusOut);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      container.removeEventListener("keydown", handleKeyDown);
+      container.removeEventListener("focusin", handleFocusIn);
+      container.removeEventListener("focusout", handleFocusOut);
+      document.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [
+    state.lastFocusedRowId,
+    state.isFocusWithinContainer,
+    dispatch,
+    focusRow,
+    focusFirstRow,
+  ]);
 
-  return (
-    <GridListProvider scope={scopeRef}>
-      <div
-        ref={containerRef}
-        className="contents"
-        style={
-          {
-            "--grid-template-columns": gridColumnTemplate,
-          } as React.CSSProperties
-        }
-      >
-        <span data-focus-scope-start hidden ref={startRef} />
-        <GridListInner className={className} {...divProps}>
-          {children}
-        </GridListInner>
-        <span data-focus-scope-end hidden ref={endRef} />
-      </div>
-    </GridListProvider>
-  );
-}
-
-function GridListInner({
-  children,
-  className,
-  ...divProps
-}: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      ref={containerRef}
       {...divProps}
       className={cn(
         "grid grid-cols-(--grid-template-columns) focus-within:outline outline-primary",
@@ -260,10 +386,16 @@ export function GridListRow({
   asChild?: boolean;
   rowId: string;
 } & React.HTMLAttributes<HTMLDivElement>) {
+  const state = useGridListState();
+  const isFocused =
+    state.lastFocusedRowId === rowId && state.isFocusWithinContainer;
+
   const rowProps = {
     ...divProps,
     role: "row",
     className: "grid col-span-full grid-cols-subgrid",
+    "data-row-id": rowId,
+    "data-focused": isFocused ? "true" : undefined,
   };
 
   useRegisterRow(rowId);
