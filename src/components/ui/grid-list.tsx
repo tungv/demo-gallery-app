@@ -346,7 +346,12 @@ export function GridListRow({
 } & React.HTMLAttributes<HTMLDivElement>) {
   const state = useGridListState();
   const isLastFocusedRow = state.lastFocusedRowId === rowId;
-  const isFocused = isLastFocusedRow && state.isFocusWithinContainer;
+
+  // Only show as focused when the row element itself is the active element
+  const isFocused =
+    isLastFocusedRow &&
+    state.isFocusWithinContainer &&
+    document.activeElement?.getAttribute("data-row-id") === rowId;
 
   const rowProps: React.HTMLAttributes<HTMLDivElement> & {
     "data-row-id": string;
@@ -666,6 +671,18 @@ function useHandleLeftArrow() {
       const allTabbableElements = getTabbableElements(currentRowElement);
       if (allTabbableElements.length === 0) return;
 
+      // Check if currently focused element is the row itself
+      const isRowFocused = activeElement === currentRowElement;
+
+      if (isRowFocused) {
+        // If row is focused, go to the last tabbable element
+        const lastElement = allTabbableElements[allTabbableElements.length - 1];
+        if (lastElement) {
+          lastElement.focus();
+        }
+        return;
+      }
+
       const currentTabbableIndex = allTabbableElements.indexOf(
         activeElement as HTMLElement,
       );
@@ -676,7 +693,13 @@ function useHandleLeftArrow() {
       }
 
       const targetTabbableIndex = currentTabbableIndex - 1;
-      if (targetTabbableIndex < 0) return;
+      if (targetTabbableIndex < 0) {
+        // Cycle back to the row element
+        if (currentRowElement instanceof HTMLElement) {
+          currentRowElement.focus();
+        }
+        return;
+      }
 
       const targetTabbableElement = allTabbableElements[targetTabbableIndex];
       if (!targetTabbableElement) return;
@@ -714,6 +737,18 @@ function useHandleRightArrow() {
       const allTabbableElements = getTabbableElements(currentRowElement);
       if (allTabbableElements.length === 0) return;
 
+      // Check if currently focused element is the row itself
+      const isRowFocused = activeElement === currentRowElement;
+
+      if (isRowFocused) {
+        // If row is focused, go to the first tabbable element
+        const firstElement = allTabbableElements[0];
+        if (firstElement) {
+          firstElement.focus();
+        }
+        return;
+      }
+
       const currentTabbableIndex = allTabbableElements.indexOf(
         activeElement as HTMLElement,
       );
@@ -724,7 +759,13 @@ function useHandleRightArrow() {
       }
 
       const targetTabbableIndex = currentTabbableIndex + 1;
-      if (targetTabbableIndex >= allTabbableElements.length) return;
+      if (targetTabbableIndex >= allTabbableElements.length) {
+        // Cycle back to the row element
+        if (currentRowElement instanceof HTMLElement) {
+          currentRowElement.focus();
+        }
+        return;
+      }
 
       const targetTabbableElement = allTabbableElements[targetTabbableIndex];
       if (!targetTabbableElement) return;
