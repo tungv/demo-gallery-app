@@ -63,7 +63,7 @@ export default function ListPage() {
 
 function CustomRow() {
   return (
-    <div className="items-center data-[focused=true]:outline-2 outline-primary rounded-md p-1 gap-x-8">
+    <div className="items-center data-[focused-visible=true]:outline-2 outline-primary rounded-md p-1 gap-x-8">
       <h2 className="p-1 font-medium">row title</h2>
 
       <span className="p-1 tabular-nums">10,000,000</span>
