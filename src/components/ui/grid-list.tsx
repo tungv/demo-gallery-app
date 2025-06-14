@@ -143,6 +143,25 @@ export function GridListRoot({
   const endRef = useRef<HTMLSpanElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: we need to re-run this effect when the children change
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    // set tabIndex=0 for the first row
+    const firstRow = container.querySelector("[data-row-id]");
+    console.log("firstRow", firstRow);
+    if (firstRow) {
+      firstRow.setAttribute("tabindex", "0");
+    }
+
+    return () => {
+      const firstRow = container.querySelector("[data-row-id]");
+      if (firstRow) {
+        firstRow.setAttribute("tabindex", "-1");
+      }
+    };
+  }, [children]);
+
   return (
     <GridListProvider
       startRef={startRef}
@@ -150,19 +169,20 @@ export function GridListRoot({
       containerRef={containerRef}
     >
       <div
-        ref={containerRef}
         className="contents"
+        tabIndex={-1}
         style={
           {
             "--grid-template-columns": gridColumnTemplate,
           } as React.CSSProperties
         }
+        ref={containerRef}
       >
-        <span data-focus-scope-start hidden ref={startRef} />
         <GridListInner className={className} {...divProps}>
+          <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
           {children}
+          <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
         </GridListInner>
-        <span data-focus-scope-end hidden ref={endRef} />
       </div>
     </GridListProvider>
   );
@@ -173,9 +193,9 @@ function GridListInner({
   className,
   ...divProps
 }: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { containerRef } = useGridListState();
   const dispatch = useGridListDispatch();
-  const { rows, isFocusWithinContainer, lastFocusedRowId } = useGridListState();
+  const { lastFocusedRowId } = useGridListState();
 
   const focusRow = useFocusRow();
   // Helper function to focus the first row
@@ -190,19 +210,30 @@ function GridListInner({
 
   // Focus management for entering the grid
   useEffect(() => {
-    const container = containerRef.current;
+    const container = containerRef?.current;
     if (!container) return;
 
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as Element;
       if (!target || !container.contains(target)) return;
 
+      console.log("focus in", target, container);
+
       // Set focus within container to true
-      if (!isFocusWithinContainer) {
-        dispatch({
-          type: "setFocusWithinContainer",
-          isFocusWithinContainer: true,
-        });
+      dispatch({
+        type: "setFocusWithinContainer",
+        isFocusWithinContainer: true,
+      });
+
+      // Track which row is currently focused
+      const rowElement = target.closest("[data-row-id]");
+      if (rowElement) {
+        const rowId = rowElement.getAttribute("data-row-id");
+        if (rowId && rowId !== lastFocusedRowId) {
+          if (focusRow(rowId)) {
+            return;
+          }
+        }
       }
 
       // Check if focus is coming from outside the grid
@@ -217,15 +248,7 @@ function GridListInner({
         }
         // If no previously focused row or it doesn't exist, focus the first row
         focusFirstRow();
-      }
-
-      // Track which row is currently focused
-      const rowElement = target.closest("[data-row-id]");
-      if (rowElement) {
-        const rowId = rowElement.getAttribute("data-row-id");
-        if (rowId && rowId !== lastFocusedRowId) {
-          focusRow(rowId);
-        }
+        return;
       }
     };
 
@@ -253,26 +276,19 @@ function GridListInner({
       container.removeEventListener("focusin", handleFocusIn);
       container.removeEventListener("focusout", handleFocusOut);
     };
-  }, [
-    lastFocusedRowId,
-    isFocusWithinContainer,
-    focusRow,
-    focusFirstRow,
-    dispatch,
-  ]);
+  }, [lastFocusedRowId, focusRow, focusFirstRow, dispatch, containerRef]);
 
-  return (
-    <div
-      ref={containerRef}
-      {...divProps}
-      className={cn(
-        "grid grid-cols-(--grid-template-columns) focus-within:outline outline-primary",
-        className,
-      )}
-    >
-      <div className="contents">{children}</div>
-    </div>
-  );
+  const innerProps = {
+    ...divProps,
+    className: cn(
+      "grid grid-cols-(--grid-template-columns) focus-within:outline outline-primary",
+      className,
+    ),
+    role: "grid",
+    tabIndex: -1,
+  };
+
+  return <div {...innerProps}>{children}</div>;
 }
 
 export function GridListHeader({
@@ -327,19 +343,21 @@ export function GridListRow({
   rowId: string;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const state = useGridListState();
-  const isFocused =
-    state.lastFocusedRowId === rowId && state.isFocusWithinContainer;
+  const isLastFocusedRow = state.lastFocusedRowId === rowId;
+  const isFocused = isLastFocusedRow && state.isFocusWithinContainer;
 
   const rowProps: React.HTMLAttributes<HTMLDivElement> & {
     "data-row-id": string;
     "data-focused"?: string;
+    "data-restore-focus"?: string;
   } = {
     ...divProps,
-    role: "listitem",
-    tabIndex: 0,
+    role: "row",
+    tabIndex: isLastFocusedRow ? 0 : -1,
     className: cn("grid col-span-full grid-cols-subgrid", className),
     "data-row-id": rowId,
     "data-focused": isFocused ? "true" : undefined,
+    "data-restore-focus": isLastFocusedRow ? "true" : undefined,
   };
 
   useRegisterRow(rowId);
@@ -390,8 +408,12 @@ function useHandleTab() {
         return;
       }
 
+      console.log("handleTab", container);
+
       event.preventDefault();
       const allTabbableElements = getAllTabbableElements();
+
+      console.log("allTabbableElements", allTabbableElements);
 
       if (!sentinelEnd) {
         console.error("sentinel end is not defined");
@@ -400,6 +422,7 @@ function useHandleTab() {
       }
 
       const sentinelEndIndex = allTabbableElements.indexOf(sentinelEnd);
+      const lookupIndex = sentinelEndIndex + 1;
 
       if (sentinelEndIndex === -1) {
         console.error("sentinel end is not in the list of tabbable elements");
@@ -409,7 +432,7 @@ function useHandleTab() {
 
       // find the first tabbable element after the sentinel end
       const firstTabbableElementAfterSentinelEnd =
-        allTabbableElements[sentinelEndIndex + 1];
+        allTabbableElements[lookupIndex];
 
       // if the grid is the last tabbable element, focus the first tabbable element
       if (!firstTabbableElementAfterSentinelEnd) {
@@ -417,7 +440,25 @@ function useHandleTab() {
         return;
       }
 
-      firstTabbableElementAfterSentinelEnd.focus();
+      console.log(
+        "firstTabbableElementAfterSentinelEnd",
+        firstTabbableElementAfterSentinelEnd,
+      );
+
+      // if the next tabbable element is a start sentinel, we need to focus on its last focused row or first row
+      if (
+        firstTabbableElementAfterSentinelEnd.hasAttribute(
+          "data-focus-scope-start",
+        )
+      ) {
+        const container =
+          firstTabbableElementAfterSentinelEnd.closest("[role='grid']");
+        if (container && safelyFocusElement(container)) {
+          return;
+        }
+      }
+
+      firstTabbableElementAfterSentinelEnd?.focus();
     };
 
     container.addEventListener("keydown", handleTab);
@@ -456,6 +497,7 @@ function useHandleShiftTab() {
       const allTabbableElements = getAllTabbableElements();
 
       const sentinelStartIndex = allTabbableElements.indexOf(sentinelStart);
+      const lookupIndex = sentinelStartIndex - 1;
 
       if (sentinelStartIndex === -1) {
         console.error("sentinel start is not in the list of tabbable elements");
@@ -463,15 +505,36 @@ function useHandleShiftTab() {
         return;
       }
 
+      // find the first tabbable element before the sentinel start
       const lastTabbableElementBeforeSentinelStart =
-        allTabbableElements[sentinelStartIndex - 1];
+        allTabbableElements[lookupIndex];
 
+      // if the grid is the first tabbable element, focus the last tabbable element
       if (!lastTabbableElementBeforeSentinelStart) {
         allTabbableElements[allTabbableElements.length - 1]?.focus();
         return;
       }
 
-      lastTabbableElementBeforeSentinelStart.focus();
+      console.log(
+        "lastTabbableElementBeforeSentinelStart",
+        lastTabbableElementBeforeSentinelStart,
+      );
+
+      // if the last tabbable element is an end sentinel, we need to focus on its container
+      if (
+        lastTabbableElementBeforeSentinelStart.hasAttribute(
+          "data-focus-scope-end",
+        )
+      ) {
+        const container =
+          lastTabbableElementBeforeSentinelStart.closest("[role='grid']");
+
+        if (container && safelyFocusElement(container)) {
+          return;
+        }
+      }
+
+      lastTabbableElementBeforeSentinelStart?.focus();
     };
 
     container.addEventListener("keydown", handleShiftTab);
@@ -675,29 +738,36 @@ function useHandleRightArrow() {
   }, [containerRef]);
 }
 
-function safelyFocusElement(element: Element): void {
+function safelyFocusElement(element: Element): boolean {
   if (element instanceof HTMLElement && element.focus) {
     element.focus();
-    return;
+    return true;
   }
+
+  return false;
 }
 
 function useFocusRow() {
   const { containerRef } = useGridListState();
   const dispatch = useGridListDispatch();
 
-  return (rowId: string) => {
+  return (rowId: string): boolean => {
     const container = containerRef?.current;
-    if (!container) return;
+    if (!container) return false;
 
     const rowElement = container.querySelector(`[data-row-id="${rowId}"]`);
-    if (!rowElement) return;
+    if (!rowElement) return false;
 
-    safelyFocusElement(rowElement);
-    dispatch({
-      type: "setLastFocusedRow",
-      rowId,
-    });
+    if (safelyFocusElement(rowElement)) {
+      dispatch({
+        type: "setLastFocusedRow",
+        rowId,
+      });
+
+      return true;
+    }
+
+    return false;
   };
 }
 
