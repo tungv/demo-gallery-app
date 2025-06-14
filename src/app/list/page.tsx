@@ -7,12 +7,12 @@ import {
   GridListRoot,
   GridListRow,
 } from "@/components/ui/grid-list";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, TrashIcon } from "lucide-react";
 
 export default function ListPage() {
   return (
-    <div className="bg-muted p-12">
-      <Button>Before</Button>
+    <div className="bg-muted grid grid-cols-1 gap-12 p-12">
+      <a href="#1">1</a>
       <GridListRoot
         gridColumnTemplate="auto 1fr auto"
         className="bg-white p-2 rounded-lg focus-within:outline-2"
@@ -34,7 +34,29 @@ export default function ListPage() {
           </GridListRow>
         </GridListBody>
       </GridListRoot>
-      <Button>After</Button>
+
+      <GridListRoot
+        gridColumnTemplate="auto 1fr auto"
+        className="bg-white p-2 rounded-lg focus-within:outline-2"
+        cycleRowFocus
+      >
+        <GridListHeader className="p-1 gap-x-8">
+          <h2 className="text-sm font-medium">Title</h2>
+          <span className="text-sm font-medium">Amount</span>
+          <div className="text-sm font-medium">actions</div>
+        </GridListHeader>
+        <GridListBody>
+          <GridListRow asChild rowId="1">
+            <CustomRow />
+          </GridListRow>
+          <GridListRow asChild rowId="2">
+            <CustomRow />
+          </GridListRow>
+          <GridListRow asChild rowId="3">
+            <CustomRow />
+          </GridListRow>
+        </GridListBody>
+      </GridListRoot>
     </div>
   );
 }
@@ -46,10 +68,15 @@ function CustomRow() {
 
       <span className="p-1 tabular-nums">10,000,000</span>
 
-      <div className="ml-auto">
+      <div className="flex gap-x-2 items-center">
         <Button>
           <PlusIcon />
           <span>Add</span>
+        </Button>
+
+        <Button variant="destructive">
+          <TrashIcon />
+          <span>Remove</span>
         </Button>
       </div>
     </div>

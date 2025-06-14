@@ -18,6 +18,7 @@ type GridState = {
   containerRef?: React.RefObject<HTMLDivElement | null>;
   startRef?: React.RefObject<HTMLSpanElement | null>;
   endRef?: React.RefObject<HTMLSpanElement | null>;
+  cycleRowFocus: boolean;
 };
 
 type GridAction =
@@ -42,6 +43,7 @@ const defaultState: GridState = {
   rows: [],
   lastFocusedRowId: null,
   isFocusWithinContainer: false,
+  cycleRowFocus: false,
 };
 
 const [GridListProvider, useGridListState, useGridListDispatch] =
@@ -134,10 +136,12 @@ export function GridListRoot({
   children,
   className,
   gridColumnTemplate,
+  cycleRowFocus = false,
   ...divProps
 }: {
   children: React.ReactNode;
   gridColumnTemplate: string;
+  cycleRowFocus?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const startRef = useRef<HTMLSpanElement>(null);
   const endRef = useRef<HTMLSpanElement>(null);
@@ -149,7 +153,6 @@ export function GridListRoot({
     if (!container) return;
     // set tabIndex=0 for the first row
     const firstRow = container.querySelector("[data-row-id]");
-    console.log("firstRow", firstRow);
     if (firstRow) {
       firstRow.setAttribute("tabindex", "0");
     }
@@ -167,6 +170,7 @@ export function GridListRoot({
       startRef={startRef}
       endRef={endRef}
       containerRef={containerRef}
+      cycleRowFocus={cycleRowFocus}
     >
       <div
         className="contents"
@@ -216,8 +220,6 @@ function GridListInner({
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as Element;
       if (!target || !container.contains(target)) return;
-
-      console.log("focus in", target, container);
 
       // Set focus within container to true
       dispatch({
@@ -408,12 +410,8 @@ function useHandleTab() {
         return;
       }
 
-      console.log("handleTab", container);
-
       event.preventDefault();
       const allTabbableElements = getAllTabbableElements();
-
-      console.log("allTabbableElements", allTabbableElements);
 
       if (!sentinelEnd) {
         console.error("sentinel end is not defined");
@@ -439,11 +437,6 @@ function useHandleTab() {
         allTabbableElements[0]?.focus();
         return;
       }
-
-      console.log(
-        "firstTabbableElementAfterSentinelEnd",
-        firstTabbableElementAfterSentinelEnd,
-      );
 
       // if the next tabbable element is a start sentinel, we need to focus on its last focused row or first row
       if (
@@ -491,8 +484,6 @@ function useHandleShiftTab() {
         return;
       }
 
-      console.log("handleShiftTab", event);
-
       event.preventDefault();
       const allTabbableElements = getAllTabbableElements();
 
@@ -514,11 +505,6 @@ function useHandleShiftTab() {
         allTabbableElements[allTabbableElements.length - 1]?.focus();
         return;
       }
-
-      console.log(
-        "lastTabbableElementBeforeSentinelStart",
-        lastTabbableElementBeforeSentinelStart,
-      );
 
       // if the last tabbable element is an end sentinel, we need to focus on its container
       if (
@@ -546,7 +532,7 @@ function useHandleShiftTab() {
 }
 
 function useHandleUpArrow() {
-  const { containerRef } = useGridListState();
+  const { containerRef, cycleRowFocus } = useGridListState();
   const focusRow = useFocusRow();
 
   useEffect(() => {
@@ -574,7 +560,18 @@ function useHandleUpArrow() {
       if (currentRowIndex === -1) return;
 
       const targetRowIndex = currentRowIndex - 1;
-      if (targetRowIndex < 0) return;
+
+      // If we're at the first row and cycling is enabled, go to the last row
+      if (targetRowIndex < 0) {
+        if (cycleRowFocus && allRows.length > 0) {
+          const lastRow = allRows[allRows.length - 1];
+          const id = lastRow.getAttribute("data-row-id");
+          if (id) {
+            focusRow(id);
+          }
+        }
+        return;
+      }
 
       const targetRow = allRows[targetRowIndex];
 
@@ -589,11 +586,11 @@ function useHandleUpArrow() {
     return () => {
       container.removeEventListener("keydown", handleUpArrow);
     };
-  }, [containerRef, focusRow]);
+  }, [containerRef, focusRow, cycleRowFocus]);
 }
 
 function useHandleDownArrow() {
-  const { containerRef } = useGridListState();
+  const { containerRef, cycleRowFocus } = useGridListState();
   const focusRow = useFocusRow();
 
   useEffect(() => {
@@ -609,8 +606,6 @@ function useHandleDownArrow() {
       const activeElement = document.activeElement;
       if (!activeElement) return;
 
-      console.log("activeElement", activeElement);
-
       const currentRowElement = activeElement.closest("[data-row-id]");
       if (!currentRowElement) return;
 
@@ -620,10 +615,19 @@ function useHandleDownArrow() {
       );
       if (currentRowIndex === -1) return;
 
-      console.log("currentRowIndex", currentRowIndex);
-
       const targetRowIndex = currentRowIndex + 1;
-      if (targetRowIndex >= allRows.length) return;
+
+      // If we're at the last row and cycling is enabled, go to the first row
+      if (targetRowIndex >= allRows.length) {
+        if (cycleRowFocus && allRows.length > 0) {
+          const firstRow = allRows[0];
+          const id = firstRow.getAttribute("data-row-id");
+          if (id) {
+            focusRow(id);
+          }
+        }
+        return;
+      }
 
       const targetRow = allRows[targetRowIndex];
       const id = targetRow.getAttribute("data-row-id");
@@ -637,7 +641,7 @@ function useHandleDownArrow() {
     return () => {
       container.removeEventListener("keydown", handleDownArrow);
     };
-  }, [containerRef, focusRow]);
+  }, [containerRef, focusRow, cycleRowFocus]);
 }
 
 function useHandleLeftArrow() {
@@ -661,8 +665,6 @@ function useHandleLeftArrow() {
 
       const allTabbableElements = getTabbableElements(currentRowElement);
       if (allTabbableElements.length === 0) return;
-
-      console.log("allTabbableElements", allTabbableElements);
 
       const currentTabbableIndex = allTabbableElements.indexOf(
         activeElement as HTMLElement,
