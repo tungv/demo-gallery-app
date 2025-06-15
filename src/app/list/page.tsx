@@ -33,7 +33,9 @@ export default function ListPage() {
             <CustomRow />
           </GridListRow>
         </GridListBody>
-        <Debugger />
+        <GridListFooter>
+          <Debugger />
+        </GridListFooter>
       </GridListRoot>
 
       <GridListRoot
@@ -57,7 +59,9 @@ export default function ListPage() {
             <CustomRow />
           </GridListRow>
         </GridListBody>
-        <Debugger />
+        <GridListFooter>
+          <Debugger />
+        </GridListFooter>
       </GridListRoot>
     </div>
   );
