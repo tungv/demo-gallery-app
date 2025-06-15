@@ -15,7 +15,7 @@ export default function ListPage() {
       <a href="#1">1</a>
       <GridListRoot
         gridColumnTemplate="auto 1fr auto"
-        className="bg-white p-2 rounded-lg focus-within:outline-2"
+        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary"
       >
         <GridListHeader className="p-1 gap-x-8">
           <h2 className="text-sm font-medium">Title</h2>
@@ -33,11 +33,12 @@ export default function ListPage() {
             <CustomRow />
           </GridListRow>
         </GridListBody>
+        <Debugger />
       </GridListRoot>
 
       <GridListRoot
         gridColumnTemplate="auto 1fr auto"
-        className="bg-white p-2 rounded-lg focus-within:outline-2"
+        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary"
         cycleRowFocus
       >
         <GridListHeader className="p-1 gap-x-8">
@@ -56,6 +57,7 @@ export default function ListPage() {
             <CustomRow />
           </GridListRow>
         </GridListBody>
+        <Debugger />
       </GridListRoot>
     </div>
   );
@@ -63,7 +65,7 @@ export default function ListPage() {
 
 function CustomRow() {
   return (
-    <div className="items-center data-[focused-visible=true]:outline-2 outline-primary rounded-md p-1 gap-x-8">
+    <div className="items-center data-[focus-visible=true]:outline-2 outline-primary rounded-md p-1 gap-x-8">
       <h2 className="p-1 font-medium">row title</h2>
 
       <span className="p-1 tabular-nums">10,000,000</span>
