@@ -3,13 +3,8 @@
 import { cn } from "@/lib/utils";
 import { createReducerContext } from "@/utils/reducer-context";
 import { Slot } from "@radix-ui/react-slot";
-import {
-  createContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useCallback,
-} from "react";
+import { createContext, useEffect, useLayoutEffect, useRef } from "react";
+import { useFocusVisible } from "./use-focus-visible";
 
 type GridState = {
   rows: Array<{ rowId: string }>;
@@ -19,7 +14,6 @@ type GridState = {
   startRef?: React.RefObject<HTMLSpanElement | null>;
   endRef?: React.RefObject<HTMLSpanElement | null>;
   cycleRowFocus: boolean;
-  focusVisible: boolean;
 };
 
 type GridAction =
@@ -38,10 +32,6 @@ type GridAction =
   | {
       type: "setFocusWithinContainer";
       isFocusWithinContainer: boolean;
-    }
-  | {
-      type: "setFocusVisible";
-      focusVisible: boolean;
     };
 
 const defaultState: GridState = {
@@ -49,7 +39,6 @@ const defaultState: GridState = {
   lastFocusedRowId: null,
   isFocusWithinContainer: false,
   cycleRowFocus: false,
-  focusVisible: false,
 };
 
 const [GridListProvider, useGridListState, useGridListDispatch] =
@@ -84,11 +73,6 @@ const [GridListProvider, useGridListState, useGridListDispatch] =
         return {
           ...state,
           isFocusWithinContainer: action.isFocusWithinContainer,
-        };
-      case "setFocusVisible":
-        return {
-          ...state,
-          focusVisible: action.focusVisible,
         };
     }
 
@@ -208,9 +192,10 @@ function GridListInner({
   className,
   ...divProps
 }: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
-  const { containerRef } = useGridListState();
+  const { containerRef, isFocusWithinContainer } = useGridListState();
   const dispatch = useGridListDispatch();
   const { lastFocusedRowId } = useGridListState();
+  const { isFocusVisible } = useFocusVisible();
 
   const focusRow = useFocusRow();
   // Helper function to focus the first row
@@ -223,25 +208,6 @@ function GridListInner({
   useHandleLeftArrow();
   useHandleRightArrow();
 
-  // Focus visibility management - only track mouse interactions
-  useEffect(() => {
-    const container = containerRef?.current;
-    if (!container) return;
-
-    const handleMouseDown = () => {
-      dispatch({
-        type: "setFocusVisible",
-        focusVisible: false,
-      });
-    };
-
-    container.addEventListener("mousedown", handleMouseDown);
-
-    return () => {
-      container.removeEventListener("mousedown", handleMouseDown);
-    };
-  }, [dispatch, containerRef]);
-
   // Focus management for entering the grid
   useEffect(() => {
     const container = containerRef?.current;
@@ -250,6 +216,10 @@ function GridListInner({
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as Element;
       if (!target || !container.contains(target)) return;
+
+      // check if the focus is triggered by keyboard
+      const isKeyboardFocus = "key" in event;
+      console.log(event);
 
       // Set focus within container to true
       dispatch({
@@ -262,8 +232,7 @@ function GridListInner({
       if (rowElement) {
         const rowId = rowElement.getAttribute("data-row-id");
         if (rowId && rowId !== lastFocusedRowId) {
-          // Focus is not visible when set programmatically via mouse or initial focus
-          if (focusRow(rowId, false)) {
+          if (focusRow(rowId)) {
             return;
           }
         }
@@ -276,7 +245,7 @@ function GridListInner({
 
       if (focusComingFromOutside) {
         // Try to restore focus to the previously focused row
-        if (lastFocusedRowId && focusRow(lastFocusedRowId, false)) {
+        if (lastFocusedRowId && focusRow(lastFocusedRowId)) {
           return;
         }
         // If no previously focused row or it doesn't exist, focus the first row
@@ -311,14 +280,21 @@ function GridListInner({
     };
   }, [lastFocusedRowId, focusRow, focusFirstRow, dispatch, containerRef]);
 
+  // Check if a row is currently focused and focus is visible
+  const activeElement =
+    typeof document !== "undefined" ? document.activeElement : null;
+  const isRowFocused =
+    activeElement?.getAttribute("data-row-id") &&
+    lastFocusedRowId === activeElement.getAttribute("data-row-id");
+  const gridFocusVisible = isRowFocused && isFocusVisible;
+
   const innerProps = {
     ...divProps,
-    className: cn(
-      "grid grid-cols-(--grid-template-columns) focus-within:outline outline-primary",
-      className,
-    ),
+    className: cn("grid grid-cols-(--grid-template-columns)", className),
     role: "grid",
     tabIndex: -1,
+    "data-focused": isFocusWithinContainer ? "true" : undefined,
+    "data-focus-visible": gridFocusVisible ? "true" : undefined,
   };
 
   return <div {...innerProps}>{children}</div>;
@@ -377,6 +353,7 @@ export function GridListRow({
 } & React.HTMLAttributes<HTMLDivElement>) {
   const state = useGridListState();
   const isLastFocusedRow = state.lastFocusedRowId === rowId;
+  const { isFocusVisible } = useFocusVisible();
 
   // Only show as focused when the row element itself is the active element
   const isFocused =
@@ -385,7 +362,7 @@ export function GridListRow({
     document.activeElement?.getAttribute("data-row-id") === rowId;
 
   // Show focus-visible when focused and focus is visible (set via keyboard)
-  const isFocusVisible = isFocused && state.focusVisible;
+  const gridFocusVisible = isFocused && isFocusVisible;
 
   const rowProps: React.HTMLAttributes<HTMLDivElement> & {
     "data-row-id": string;
@@ -399,7 +376,7 @@ export function GridListRow({
     className: cn("grid col-span-full grid-cols-subgrid", className),
     "data-row-id": rowId,
     "data-focused": isFocused ? "true" : undefined,
-    "data-focus-visible": isFocusVisible ? "true" : undefined,
+    "data-focus-visible": gridFocusVisible ? "true" : undefined,
     "data-restore-focus": isLastFocusedRow ? "true" : undefined,
   };
 
@@ -421,15 +398,20 @@ export function GridListRow({
 }
 
 export function Debugger() {
-  const { startRef, endRef, containerRef, ...state } = useGridListState();
+  const { isFocusWithinContainer, lastFocusedRowId, cycleRowFocus } =
+    useGridListState();
+
+  const { isFocusVisible } = useFocusVisible();
+
   return (
     <dl className="text-sm bg-muted/50 p-1 rounded-md text-muted-foreground flex flex-row gap-8">
-      <TextValue label="lastFocusedRowId" value={state.lastFocusedRowId} />
+      <BooleanValue label="cycleRowFocus" value={cycleRowFocus} />
+      <TextValue label="lastFocusedRowId" value={lastFocusedRowId} />
       <BooleanValue
         label="isFocusWithinContainer"
-        value={state.isFocusWithinContainer}
+        value={isFocusWithinContainer}
       />
-      <BooleanValue label="focusVisible" value={state.focusVisible} />
+      <BooleanValue label="focusVisible" value={isFocusVisible} />
     </dl>
   );
 }
@@ -621,7 +603,6 @@ function useHandleShiftTab() {
 
 function useHandleUpArrow() {
   const { containerRef, cycleRowFocus } = useGridListState();
-  const dispatch = useGridListDispatch();
   const focusRow = useFocusRow();
 
   useEffect(() => {
@@ -633,12 +614,6 @@ function useHandleUpArrow() {
       }
 
       event.preventDefault();
-
-      // Set focus visible when using keyboard navigation
-      dispatch({
-        type: "setFocusVisible",
-        focusVisible: true,
-      });
 
       const activeElement = document.activeElement;
       if (!activeElement) return;
@@ -681,12 +656,11 @@ function useHandleUpArrow() {
     return () => {
       container.removeEventListener("keydown", handleUpArrow);
     };
-  }, [containerRef, focusRow, cycleRowFocus, dispatch]);
+  }, [containerRef, focusRow, cycleRowFocus]);
 }
 
 function useHandleDownArrow() {
   const { containerRef, cycleRowFocus } = useGridListState();
-  const dispatch = useGridListDispatch();
   const focusRow = useFocusRow();
 
   useEffect(() => {
@@ -698,12 +672,6 @@ function useHandleDownArrow() {
       }
 
       event.preventDefault();
-
-      // Set focus visible when using keyboard navigation
-      dispatch({
-        type: "setFocusVisible",
-        focusVisible: true,
-      });
 
       const activeElement = document.activeElement;
       if (!activeElement) return;
@@ -743,7 +711,7 @@ function useHandleDownArrow() {
     return () => {
       container.removeEventListener("keydown", handleDownArrow);
     };
-  }, [containerRef, focusRow, cycleRowFocus, dispatch]);
+  }, [containerRef, focusRow, cycleRowFocus]);
 }
 
 function useHandleLeftArrow() {
@@ -891,7 +859,7 @@ function useFocusRow() {
   const { containerRef } = useGridListState();
   const dispatch = useGridListDispatch();
 
-  return (rowId: string, focusVisible = true): boolean => {
+  return (rowId: string): boolean => {
     const container = containerRef?.current;
     if (!container) return false;
 
@@ -902,11 +870,6 @@ function useFocusRow() {
       dispatch({
         type: "setLastFocusedRow",
         rowId,
-      });
-
-      dispatch({
-        type: "setFocusVisible",
-        focusVisible,
       });
 
       return true;
@@ -920,7 +883,7 @@ function useFocusFirstRow() {
   const { containerRef } = useGridListState();
   const focusRow = useFocusRow();
 
-  return (focusVisible = false) => {
+  return () => {
     const container = containerRef?.current;
     if (!container) return;
 
@@ -930,6 +893,6 @@ function useFocusFirstRow() {
     const id = firstRow.getAttribute("data-row-id");
     if (!id) return;
 
-    focusRow(id, focusVisible);
+    focusRow(id);
   };
 }
