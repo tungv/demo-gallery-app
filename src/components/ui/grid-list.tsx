@@ -423,8 +423,55 @@ export function GridListRow({
 export function Debugger() {
   const { startRef, endRef, containerRef, ...state } = useGridListState();
   return (
-    <div>
-      <pre>{JSON.stringify(state, null, 2)}</pre>
+    <dl className="text-sm bg-muted/50 p-1 rounded-md text-muted-foreground flex flex-row gap-8">
+      <TextValue label="lastFocusedRowId" value={state.lastFocusedRowId} />
+      <BooleanValue
+        label="isFocusWithinContainer"
+        value={state.isFocusWithinContainer}
+      />
+      <BooleanValue label="focusVisible" value={state.focusVisible} />
+    </dl>
+  );
+}
+
+function TextValue({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  if (value == null) {
+    return (
+      <div className="flex flex-row gap-2 bg-muted items-center">
+        <dt className="tracking-tight font-semibold">{label}</dt>
+        <dd className="italic font-mono">NULL</dd>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-row gap-2 bg-muted items-center">
+      <dt className="tracking-tight font-semibold">{label}</dt>
+      <dd className="font-mono">{JSON.stringify(value)}</dd>
+    </div>
+  );
+}
+
+function BooleanValue({ label, value }: { label: string; value: boolean }) {
+  return (
+    <div className="flex flex-row gap-2 bg-muted items-center">
+      <dt className="tracking-tight font-semibold">{label}</dt>
+      <dd>
+        <div
+          className={cn(
+            "size-3 text-transparent overflow-hidden rounded-full",
+            value ? "bg-green-500" : "bg-red-500",
+          )}
+        >
+          {value ? "true" : "false"}
+        </div>
+      </dd>
     </div>
   );
 }
