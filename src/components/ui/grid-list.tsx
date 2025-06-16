@@ -10,23 +10,19 @@ import {
   useId,
   useLayoutEffect,
   useRef,
+  useCallback,
+  memo,
 } from "react";
 import { useFocusVisible } from "./use-focus-visible";
+import type { FormEventHandler } from "react";
+import useEffectEvent from "./use-effect-event";
 
-type GridState = {
+// Grid Data Types - for managing row data
+type GridDataState = {
   rows: Array<{ rowId: string }>;
-  lastFocusedRowId: string | null;
-  isFocusWithinContainer: boolean;
-  containerRef?: React.RefObject<HTMLDivElement | null>;
-  startRef?: React.RefObject<HTMLSpanElement | null>;
-  endRef?: React.RefObject<HTMLSpanElement | null>;
-  cycleRowFocus: boolean;
-  selectionMode: "none" | "single";
-  selectedRows: Set<string>;
-  name?: string;
 };
 
-type GridAction =
+type GridDataAction =
   | {
       type: "addRow";
       rowId: string;
@@ -34,7 +30,23 @@ type GridAction =
   | {
       type: "removeRow";
       rowId: string;
-    }
+    };
+
+// Grid State Types - for managing focus and selection
+type GridState = {
+  lastFocusedRowId: string | null;
+  isFocusWithinContainer: boolean;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+  startRef?: React.RefObject<HTMLSpanElement | null>;
+  endRef?: React.RefObject<HTMLSpanElement | null>;
+  cycleRowFocus: boolean;
+  selectionMode: "none" | "single" | "multiple";
+  selectedRows: Set<string>;
+  name?: string;
+  required?: boolean;
+};
+
+type GridAction =
   | {
       type: "setLastFocusedRow";
       rowId: string | null;
@@ -59,8 +71,11 @@ type GridAction =
       type: "clearSelection";
     };
 
-const defaultState: GridState = {
+const defaultGridDataState: GridDataState = {
   rows: [],
+};
+
+const defaultGridState: GridState = {
   lastFocusedRowId: null,
   isFocusWithinContainer: false,
   cycleRowFocus: false,
@@ -68,35 +83,45 @@ const defaultState: GridState = {
   selectedRows: new Set(),
 };
 
-const [GridListProvider, useGridListState, useGridListDispatch] =
+// Grid Data Provider
+const [GridDataProvider, useGridDataState, useGridDataDispatch] =
+  createReducerContext(
+    (state: GridDataState, action: GridDataAction): GridDataState => {
+      switch (action.type) {
+        case "addRow":
+          // check for existence before adding
+          if (state.rows.some((row) => row.rowId === action.rowId)) {
+            return state;
+          }
+          return { ...state, rows: [...state.rows, { rowId: action.rowId }] };
+        case "removeRow": {
+          const newRows = state.rows.filter(
+            (row) => row.rowId !== action.rowId,
+          );
+          return {
+            ...state,
+            rows: newRows,
+          };
+        }
+      }
+      return state;
+    },
+    defaultGridDataState,
+  );
+
+// Grid State Provider
+const [GridListStateProvider, useGridListState, useGridListDispatch] =
   createReducerContext((state: GridState, action: GridAction): GridState => {
     switch (action.type) {
-      case "addRow":
-        // check for existence before adding
-        if (state.rows.some((row) => row.rowId === action.rowId)) {
-          return state;
-        }
-
-        return { ...state, rows: [...state.rows, { rowId: action.rowId }] };
-      case "removeRow": {
-        const newRows = state.rows.filter((row) => row.rowId !== action.rowId);
-        // Clear lastFocusedRowId if the removed row was the last focused one
-        const newLastFocusedRowId =
-          state.lastFocusedRowId === action.rowId
-            ? null
-            : state.lastFocusedRowId;
-        return {
-          ...state,
-          rows: newRows,
-          lastFocusedRowId: newLastFocusedRowId,
-        };
-      }
       case "setLastFocusedRow":
         return {
           ...state,
           lastFocusedRowId: action.rowId,
         };
       case "setFocusWithinContainer":
+        if (state.isFocusWithinContainer === action.isFocusWithinContainer) {
+          return state;
+        }
         return {
           ...state,
           isFocusWithinContainer: action.isFocusWithinContainer,
@@ -145,10 +170,11 @@ const [GridListProvider, useGridListState, useGridListDispatch] =
     }
 
     return state;
-  }, defaultState);
+  }, defaultGridState);
 
 function useRegisterRow(rowId: string) {
-  const dispatch = useGridListDispatch();
+  const dispatch = useGridDataDispatch();
+
   useEffect(() => {
     dispatch({ type: "addRow", rowId });
 
@@ -202,63 +228,86 @@ export function GridListRoot({
   cycleRowFocus = false,
   selectionMode = "none",
   name,
+  required = false,
+  onValueChange,
+  onInvalid,
   ...divProps
 }: {
   children: React.ReactNode;
   gridColumnTemplate: string;
   cycleRowFocus?: boolean;
-  selectionMode?: "none" | "single";
+  selectionMode?: "none" | "single" | "multiple";
   name?: string;
+  required?: boolean;
+  onValueChange?: (value: string | string[]) => void;
+  onInvalid?: FormEventHandler<HTMLSelectElement>;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const startRef = useRef<HTMLSpanElement>(null);
   const endRef = useRef<HTMLSpanElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we need to re-run this effect when the children change
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    // set tabIndex=0 for the first row
-    const firstRow = container.querySelector("[data-row-id]");
-    if (firstRow) {
-      firstRow.setAttribute("tabindex", "0");
+  const onValueChangeEvent = useEffectEvent((value: string | string[]) => {
+    if (typeof onValueChange === "function") {
+      onValueChange(value);
     }
+  });
 
-    return () => {
-      const firstRow = container.querySelector("[data-row-id]");
-      if (firstRow) {
-        firstRow.setAttribute("tabindex", "-1");
-      }
-    };
-  }, [children]);
+  const middleware = useCallback(
+    (
+      dispatch: ReturnType<typeof useGridListDispatch>,
+      getNextState: (action: GridAction) => GridState,
+    ) =>
+      (action: GridAction) => {
+        dispatch(action);
+        if (
+          action.type === "selectRow" ||
+          action.type === "deselectRow" ||
+          action.type === "toggleRowSelection"
+        ) {
+          const state = getNextState(action);
+          const selectedArray = Array.from(state.selectedRows);
+          onValueChangeEvent(
+            selectionMode === "multiple"
+              ? selectedArray
+              : selectedArray[0] || "",
+          );
+        }
+      },
+    [onValueChangeEvent, selectionMode],
+  );
 
   return (
-    <GridListProvider
-      startRef={startRef}
-      endRef={endRef}
-      containerRef={containerRef}
-      cycleRowFocus={cycleRowFocus}
-      selectionMode={selectionMode}
-      name={name}
-    >
-      <div
-        className="contents"
-        tabIndex={-1}
-        style={
-          {
-            "--grid-template-columns": gridColumnTemplate,
-          } as React.CSSProperties
-        }
-        ref={containerRef}
+    <GridDataProvider>
+      <GridListStateProvider
+        startRef={startRef}
+        endRef={endRef}
+        containerRef={containerRef}
+        cycleRowFocus={cycleRowFocus}
+        selectionMode={selectionMode}
+        name={name}
+        required={required}
+        middleware={middleware}
       >
-        <GridListInner className={className} {...divProps}>
-          <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
-          {children}
-          <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
-          <HiddenSelectionInput />
-        </GridListInner>
-      </div>
-    </GridListProvider>
+        <div
+          className="contents"
+          tabIndex={-1}
+          style={
+            {
+              "--grid-template-columns": gridColumnTemplate,
+            } as React.CSSProperties
+          }
+          ref={containerRef}
+        >
+          <GridListInner className={className} {...divProps}>
+            <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
+            {children}
+            <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
+            <HiddenSelectionInput selectRef={selectRef} onInvalid={onInvalid} />
+          </GridListInner>
+        </div>
+      </GridListStateProvider>
+    </GridDataProvider>
   );
 }
 
@@ -276,6 +325,22 @@ function GridListInner({
   // Helper function to focus the first row
   const focusFirstRow = useFocusFirstRow();
 
+  // Effect to validate the currently focused row still exists
+  useEffect(() => {
+    if (!lastFocusedRowId || !containerRef?.current) return;
+
+    const rowElement = containerRef.current.querySelector(
+      `[data-row-id="${lastFocusedRowId}"]`,
+    );
+    if (!rowElement) {
+      // If the focused row no longer exists, clear the focus
+      dispatch({
+        type: "setLastFocusedRow",
+        rowId: null,
+      });
+    }
+  }, [lastFocusedRowId, containerRef, dispatch]);
+
   useHandleTab();
   useHandleShiftTab();
   useHandleUpArrow();
@@ -291,10 +356,6 @@ function GridListInner({
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as Element;
       if (!target || !container.contains(target)) return;
-
-      // check if the focus is triggered by keyboard
-      const isKeyboardFocus = "key" in event;
-      console.log(event);
 
       // Set focus within container to true
       dispatch({
@@ -372,22 +433,50 @@ function GridListInner({
     "data-focus-visible": gridFocusVisible ? "true" : undefined,
   };
 
-  return <div {...innerProps}>{children}</div>;
+  return (
+    <div {...innerProps}>
+      <GridListTabIndexManager>{children}</GridListTabIndexManager>
+    </div>
+  );
 }
 
-function HiddenSelectionInput() {
-  const { selectionMode, selectedRows, name } = useGridListState();
+function HiddenSelectionInput({
+  selectRef,
+  onInvalid,
+}: {
+  selectRef: React.RefObject<HTMLSelectElement | null>;
+  onInvalid?: FormEventHandler<HTMLSelectElement>;
+}) {
+  const { selectionMode, selectedRows, name, required } = useGridListState();
 
   if (selectionMode === "none" || !name) {
     return null;
   }
 
-  const selectedValue =
-    selectionMode === "single"
-      ? Array.from(selectedRows)[0] || ""
-      : Array.from(selectedRows).join(",");
+  const selectedArray = Array.from(selectedRows);
+  const isMultiple = selectionMode === "multiple";
+  const selectValue = isMultiple ? selectedArray : selectedArray[0] || "";
 
-  return <input type="hidden" name={name} value={selectedValue} />;
+  return (
+    <select
+      hidden
+      ref={selectRef}
+      name={name}
+      multiple={isMultiple}
+      value={selectValue}
+      onChange={() => {}}
+      onInvalid={onInvalid}
+      required={required}
+      tabIndex={-1}
+      aria-hidden="true"
+    >
+      {selectedArray.map((value) => (
+        <option key={value} value={value}>
+          {value}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 export function GridListHeader({
@@ -441,7 +530,7 @@ const RowContext = createContext<{
   rowId: "",
 });
 
-export function GridListRow({
+export const GridListRow = memo(function GridListRow({
   children,
   className,
   asChild,
@@ -499,7 +588,7 @@ export function GridListRow({
       <div {...rowProps}>{children}</div>
     </RowContext>
   );
-}
+});
 
 export function GridListCheckbox({
   children,
@@ -551,7 +640,7 @@ export function GridListCheckbox({
   return <input {...checkboxProps} />;
 }
 
-export function Debugger() {
+export const Debugger = memo(function Debugger() {
   const {
     isFocusWithinContainer,
     lastFocusedRowId,
@@ -559,8 +648,6 @@ export function Debugger() {
     selectionMode,
     selectedRows,
   } = useGridListState();
-
-  const { isFocusVisible } = useFocusVisible();
 
   return (
     <GridListRow>
@@ -571,7 +658,6 @@ export function Debugger() {
           label="isFocusWithinContainer"
           value={isFocusWithinContainer}
         />
-        <BooleanValue label="focusVisible" value={isFocusVisible} />
         <TextValue label="selectionMode" value={selectionMode} />
         <TextValue
           label="selectedRows"
@@ -580,7 +666,7 @@ export function Debugger() {
       </dl>
     </GridListRow>
   );
-}
+});
 
 function TextValue({
   label,
@@ -1030,7 +1116,14 @@ function useFocusRow() {
     if (!container) return false;
 
     const rowElement = container.querySelector(`[data-row-id="${rowId}"]`);
-    if (!rowElement) return false;
+    if (!rowElement) {
+      // If the row doesn't exist, clear the focus
+      dispatch({
+        type: "setLastFocusedRow",
+        rowId: null,
+      });
+      return false;
+    }
 
     if (safelyFocusElement(rowElement)) {
       dispatch({
@@ -1061,4 +1154,29 @@ function useFocusFirstRow() {
 
     focusRow(id);
   };
+}
+
+function GridListTabIndexManager({ children }: { children: React.ReactNode }) {
+  const { containerRef } = useGridListState();
+  const { rows } = useGridDataState();
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: we need to re-run this effect when the children change
+  useLayoutEffect(() => {
+    const container = containerRef?.current;
+    if (!container) return;
+    // set tabIndex=0 for the first row
+    const firstRow = container.querySelector("[data-row-id]");
+    if (firstRow) {
+      firstRow.setAttribute("tabindex", "0");
+    }
+
+    return () => {
+      const firstRow = container.querySelector("[data-row-id]");
+      if (firstRow) {
+        firstRow.setAttribute("tabindex", "-1");
+      }
+    };
+  }, [children, rows]);
+
+  return <>{children}</>;
 }
