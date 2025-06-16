@@ -5,6 +5,7 @@ import { createReducerContext } from "@/utils/reducer-context";
 import { Slot } from "@radix-ui/react-slot";
 import {
   createContext,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
@@ -20,6 +21,9 @@ type GridState = {
   startRef?: React.RefObject<HTMLSpanElement | null>;
   endRef?: React.RefObject<HTMLSpanElement | null>;
   cycleRowFocus: boolean;
+  selectionMode: "none" | "single";
+  selectedRows: Set<string>;
+  name?: string;
 };
 
 type GridAction =
@@ -38,6 +42,21 @@ type GridAction =
   | {
       type: "setFocusWithinContainer";
       isFocusWithinContainer: boolean;
+    }
+  | {
+      type: "selectRow";
+      rowId: string;
+    }
+  | {
+      type: "deselectRow";
+      rowId: string;
+    }
+  | {
+      type: "toggleRowSelection";
+      rowId: string;
+    }
+  | {
+      type: "clearSelection";
     };
 
 const defaultState: GridState = {
@@ -45,6 +64,8 @@ const defaultState: GridState = {
   lastFocusedRowId: null,
   isFocusWithinContainer: false,
   cycleRowFocus: false,
+  selectionMode: "none",
+  selectedRows: new Set(),
 };
 
 const [GridListProvider, useGridListState, useGridListDispatch] =
@@ -79,6 +100,47 @@ const [GridListProvider, useGridListState, useGridListDispatch] =
         return {
           ...state,
           isFocusWithinContainer: action.isFocusWithinContainer,
+        };
+      case "selectRow": {
+        const newSelectedRows = new Set(state.selectedRows);
+        if (state.selectionMode === "single") {
+          newSelectedRows.clear();
+        }
+        newSelectedRows.add(action.rowId);
+        return {
+          ...state,
+          selectedRows: newSelectedRows,
+        };
+      }
+      case "deselectRow": {
+        const newSelectedRows = new Set(state.selectedRows);
+        newSelectedRows.delete(action.rowId);
+        return {
+          ...state,
+          selectedRows: newSelectedRows,
+        };
+      }
+
+      case "toggleRowSelection": {
+        const newSelectedRows = new Set(state.selectedRows);
+        if (newSelectedRows.has(action.rowId)) {
+          newSelectedRows.delete(action.rowId);
+        } else {
+          if (state.selectionMode === "single") {
+            newSelectedRows.clear();
+          }
+          newSelectedRows.add(action.rowId);
+        }
+        return {
+          ...state,
+          selectedRows: newSelectedRows,
+        };
+      }
+
+      case "clearSelection":
+        return {
+          ...state,
+          selectedRows: new Set(),
         };
     }
 
@@ -138,11 +200,15 @@ export function GridListRoot({
   className,
   gridColumnTemplate,
   cycleRowFocus = false,
+  selectionMode = "none",
+  name,
   ...divProps
 }: {
   children: React.ReactNode;
   gridColumnTemplate: string;
   cycleRowFocus?: boolean;
+  selectionMode?: "none" | "single";
+  name?: string;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const startRef = useRef<HTMLSpanElement>(null);
   const endRef = useRef<HTMLSpanElement>(null);
@@ -172,6 +238,8 @@ export function GridListRoot({
       endRef={endRef}
       containerRef={containerRef}
       cycleRowFocus={cycleRowFocus}
+      selectionMode={selectionMode}
+      name={name}
     >
       <div
         className="contents"
@@ -187,6 +255,7 @@ export function GridListRoot({
           <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
           {children}
           <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
+          <HiddenSelectionInput />
         </GridListInner>
       </div>
     </GridListProvider>
@@ -306,6 +375,21 @@ function GridListInner({
   return <div {...innerProps}>{children}</div>;
 }
 
+function HiddenSelectionInput() {
+  const { selectionMode, selectedRows, name } = useGridListState();
+
+  if (selectionMode === "none" || !name) {
+    return null;
+  }
+
+  const selectedValue =
+    selectionMode === "single"
+      ? Array.from(selectedRows)[0] || ""
+      : Array.from(selectedRows).join(",");
+
+  return <input type="hidden" name={name} value={selectedValue} />;
+}
+
 export function GridListHeader({
   children,
   className,
@@ -417,9 +501,64 @@ export function GridListRow({
   );
 }
 
+export function GridListCheckbox({
+  children,
+  className,
+  asChild,
+  onChangePropName = "onChange",
+  checkedPropName = "checked",
+  ...inputProps
+}: {
+  children?: React.ReactNode;
+  asChild?: boolean;
+  onChangePropName?: string;
+  checkedPropName?: string;
+} & React.InputHTMLAttributes<HTMLInputElement>) {
+  const { selectedRows, selectionMode } = useGridListState();
+  const dispatch = useGridListDispatch();
+  const rowContext = useContext(RowContext);
+
+  if (!rowContext.rowId) {
+    throw new Error("GridListCheckbox must be used within a GridListRow");
+  }
+
+  const { rowId } = rowContext;
+  const isSelected = selectedRows.has(rowId);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log({ event });
+    if (selectionMode === "none") return;
+
+    // toggle
+    dispatch({
+      type: "toggleRowSelection",
+      rowId,
+    });
+  };
+
+  const checkboxProps = {
+    ...inputProps,
+    type: "checkbox" as const,
+    [onChangePropName]: handleChange,
+    [checkedPropName]: isSelected,
+    className: cn("", className),
+  };
+
+  if (asChild && children) {
+    return <Slot {...checkboxProps}>{children}</Slot>;
+  }
+
+  return <input {...checkboxProps} />;
+}
+
 export function Debugger() {
-  const { isFocusWithinContainer, lastFocusedRowId, cycleRowFocus } =
-    useGridListState();
+  const {
+    isFocusWithinContainer,
+    lastFocusedRowId,
+    cycleRowFocus,
+    selectionMode,
+    selectedRows,
+  } = useGridListState();
 
   const { isFocusVisible } = useFocusVisible();
 
@@ -433,6 +572,11 @@ export function Debugger() {
           value={isFocusWithinContainer}
         />
         <BooleanValue label="focusVisible" value={isFocusVisible} />
+        <TextValue label="selectionMode" value={selectionMode} />
+        <TextValue
+          label="selectedRows"
+          value={Array.from(selectedRows).join(", ") || "none"}
+        />
       </dl>
     </GridListRow>
   );
