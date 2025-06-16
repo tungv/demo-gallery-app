@@ -15,10 +15,7 @@ export default function ListPage() {
   return (
     <div className="bg-muted grid grid-cols-1 gap-12 p-12">
       <a href="#1">1</a>
-      <GridListRoot
-        gridColumnTemplate="auto 1fr auto"
-        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary"
-      >
+      <GridListRoot className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_1fr_auto]">
         <GridListHeader className="p-1 gap-x-8">
           <h3 className="text-sm font-medium">Title</h3>
           <span className="text-sm font-medium">Amount</span>
@@ -41,8 +38,7 @@ export default function ListPage() {
       </GridListRoot>
 
       <GridListRoot
-        gridColumnTemplate="auto 1fr auto"
-        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary"
+        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_1fr_auto]"
         cycleRowFocus
       >
         <GridListHeader className="p-1 gap-x-8">
@@ -67,8 +63,7 @@ export default function ListPage() {
       </GridListRoot>
 
       <GridListRoot
-        gridColumnTemplate="auto auto 1fr auto"
-        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary"
+        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_auto_1fr_auto]"
         selectionMode="single"
         name="single-selection"
       >
@@ -91,6 +86,39 @@ export default function ListPage() {
             <CustomRowWithCheckbox />
           </GridListRow>
           <GridListRow asChild rowId="3">
+            <CustomRowWithCheckbox />
+          </GridListRow>
+        </GridListBody>
+        <GridListFooter>
+          <Debugger />
+        </GridListFooter>
+      </GridListRoot>
+
+      <GridListRoot
+        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_auto_1fr_auto]"
+        selectionMode="multiple"
+        name="multiple-selection"
+        required
+      >
+        <GridListHeader>
+          <h2 className="text-sm font-medium col-span-full">
+            Multiple selection
+          </h2>
+        </GridListHeader>
+        <GridListHeader className="p-1 gap-x-8">
+          <div className="text-sm font-medium">Select</div>
+          <h3 className="text-sm font-medium">Title</h3>
+          <span className="text-sm font-medium">Amount</span>
+          <div className="text-sm font-medium">actions</div>
+        </GridListHeader>
+        <GridListBody>
+          <GridListRow asChild rowId="4">
+            <CustomRowWithCheckbox />
+          </GridListRow>
+          <GridListRow asChild rowId="5">
+            <CustomRowWithCheckbox />
+          </GridListRow>
+          <GridListRow asChild rowId="6">
             <CustomRowWithCheckbox />
           </GridListRow>
         </GridListBody>

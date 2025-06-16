@@ -224,7 +224,6 @@ function getAllTabbableElements(): HTMLElement[] {
 export function GridListRoot({
   children,
   className,
-  gridColumnTemplate,
   cycleRowFocus = false,
   selectionMode = "none",
   name,
@@ -234,7 +233,6 @@ export function GridListRoot({
   ...divProps
 }: {
   children: React.ReactNode;
-  gridColumnTemplate: string;
   cycleRowFocus?: boolean;
   selectionMode?: "none" | "single" | "multiple";
   name?: string;
@@ -289,23 +287,12 @@ export function GridListRoot({
         required={required}
         middleware={middleware}
       >
-        <div
-          className="contents"
-          tabIndex={-1}
-          style={
-            {
-              "--grid-template-columns": gridColumnTemplate,
-            } as React.CSSProperties
-          }
-          ref={containerRef}
-        >
-          <GridListInner className={className} {...divProps}>
-            <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
-            {children}
-            <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
-            <HiddenSelectionInput selectRef={selectRef} onInvalid={onInvalid} />
-          </GridListInner>
-        </div>
+        <GridListInner className={className} {...divProps}>
+          <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
+          {children}
+          <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
+          <HiddenSelectionInput selectRef={selectRef} onInvalid={onInvalid} />
+        </GridListInner>
       </GridListStateProvider>
     </GridDataProvider>
   );
@@ -426,7 +413,7 @@ function GridListInner({
 
   const innerProps = {
     ...divProps,
-    className: cn("grid grid-cols-(--grid-template-columns)", className),
+    className: cn("grid", className),
     role: "grid",
     tabIndex: -1,
     "data-focused": isFocusWithinContainer ? "true" : undefined,
@@ -434,7 +421,7 @@ function GridListInner({
   };
 
   return (
-    <div {...innerProps}>
+    <div {...innerProps} ref={containerRef}>
       <GridListTabIndexManager>{children}</GridListTabIndexManager>
     </div>
   );
