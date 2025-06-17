@@ -12,16 +12,7 @@ export {
 } from "./components";
 
 // Types that consumers might need
-export type {
-  GridListRootProps,
-  GridListRowProps,
-  SelectionState,
-  SelectionAction,
-  GridDataState,
-  GridDataAction,
-  GridState,
-  GridAction,
-} from "./types";
+export type { GridListRootProps, GridListRowProps } from "./types";
 
 // State hooks that might be useful for consumers
 export { useSelectedRows } from "./state";
