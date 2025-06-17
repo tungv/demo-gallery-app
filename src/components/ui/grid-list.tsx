@@ -42,29 +42,13 @@ type GridDataAction =
       disabled?: boolean;
     };
 
-// Grid State Types - for managing focus and selection
-type GridState = {
-  lastFocusedRowId: string | null;
-  isFocusWithinContainer: boolean;
-  containerRef?: React.RefObject<HTMLDivElement | null>;
-  startRef?: React.RefObject<HTMLSpanElement | null>;
-  endRef?: React.RefObject<HTMLSpanElement | null>;
-  cycleRowFocus: boolean;
+// Selection State Types - for managing selection
+type SelectionState = {
   selectionMode: "none" | "single" | "multiple";
   selectedRows: Set<string>;
-  name?: string;
-  required?: boolean;
 };
 
-type GridAction =
-  | {
-      type: "setLastFocusedRow";
-      rowId: string | null;
-    }
-  | {
-      type: "setFocusWithinContainer";
-      isFocusWithinContainer: boolean;
-    }
+type SelectionAction =
   | {
       type: "selectRow";
       rowId: string;
@@ -88,68 +72,205 @@ type GridAction =
         readOnly?: boolean;
         disabled?: boolean;
       }>;
+    }
+  | {
+      type: "setSelectedRows";
+      selectedRows: string[];
+    };
+
+// Grid State Types - for managing focus and navigation (selection removed)
+type GridState = {
+  lastFocusedRowId: string | null;
+  isFocusWithinContainer: boolean;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+  startRef?: React.RefObject<HTMLSpanElement | null>;
+  endRef?: React.RefObject<HTMLSpanElement | null>;
+  cycleRowFocus: boolean;
+  name?: string;
+  required?: boolean;
+};
+
+type GridAction =
+  | {
+      type: "setLastFocusedRow";
+      rowId: string | null;
+    }
+  | {
+      type: "setFocusWithinContainer";
+      isFocusWithinContainer: boolean;
     };
 
 const defaultGridDataState: GridDataState = {
   rows: [],
 };
 
-const defaultGridState: GridState = {
-  lastFocusedRowId: null,
-  isFocusWithinContainer: false,
-  cycleRowFocus: false,
+const defaultSelectionState: SelectionState = {
   selectionMode: "none",
   selectedRows: new Set(),
 };
 
+const defaultGridState: GridState = {
+  lastFocusedRowId: null,
+  isFocusWithinContainer: false,
+  cycleRowFocus: false,
+  name: undefined,
+  required: false,
+};
+
+function gridDataReducer(
+  state: GridDataState,
+  action: GridDataAction,
+): GridDataState {
+  switch (action.type) {
+    case "addRow":
+      // check for existence before adding
+      if (state.rows.some((row) => row.rowId === action.rowId)) {
+        return state;
+      }
+      return {
+        ...state,
+        rows: [
+          ...state.rows,
+          {
+            rowId: action.rowId,
+            readOnly: action.readOnly,
+            disabled: action.disabled,
+          },
+        ],
+      };
+    case "removeRow": {
+      const newRows = state.rows.filter((row) => row.rowId !== action.rowId);
+      return {
+        ...state,
+        rows: newRows,
+      };
+    }
+    case "updateRow": {
+      const newRows = state.rows.map((row) =>
+        row.rowId === action.rowId
+          ? { ...row, readOnly: action.readOnly, disabled: action.disabled }
+          : row,
+      );
+      return {
+        ...state,
+        rows: newRows,
+      };
+    }
+  }
+  return state;
+}
+
 // Grid Data Provider
 const [GridDataProvider, useGridDataState, useGridDataDispatch] =
-  createReducerContext(
-    (state: GridDataState, action: GridDataAction): GridDataState => {
-      switch (action.type) {
-        case "addRow":
-          // check for existence before adding
-          if (state.rows.some((row) => row.rowId === action.rowId)) {
-            return state;
-          }
-          return {
-            ...state,
-            rows: [
-              ...state.rows,
-              {
-                rowId: action.rowId,
-                readOnly: action.readOnly,
-                disabled: action.disabled,
-              },
-            ],
-          };
-        case "removeRow": {
-          const newRows = state.rows.filter(
-            (row) => row.rowId !== action.rowId,
-          );
-          return {
-            ...state,
-            rows: newRows,
-          };
+  createReducerContext(gridDataReducer, defaultGridDataState);
+
+function selectionReducer(
+  state: SelectionState,
+  action: SelectionAction,
+): SelectionState {
+  switch (action.type) {
+    case "selectRow": {
+      const newSelectedRows = new Set(state.selectedRows);
+      if (state.selectionMode === "single") {
+        newSelectedRows.clear();
+      }
+      newSelectedRows.add(action.rowId);
+      return {
+        ...state,
+        selectedRows: newSelectedRows,
+      };
+    }
+    case "deselectRow": {
+      const newSelectedRows = new Set(state.selectedRows);
+      newSelectedRows.delete(action.rowId);
+      return {
+        ...state,
+        selectedRows: newSelectedRows,
+      };
+    }
+
+    case "toggleRowSelection": {
+      const newSelectedRows = new Set(state.selectedRows);
+      if (newSelectedRows.has(action.rowId)) {
+        newSelectedRows.delete(action.rowId);
+      } else {
+        if (state.selectionMode === "single") {
+          newSelectedRows.clear();
         }
-        case "updateRow": {
-          const newRows = state.rows.map((row) =>
-            row.rowId === action.rowId
-              ? { ...row, readOnly: action.readOnly, disabled: action.disabled }
-              : row,
-          );
-          return {
-            ...state,
-            rows: newRows,
-          };
+        newSelectedRows.add(action.rowId);
+      }
+      return {
+        ...state,
+        selectedRows: newSelectedRows,
+      };
+    }
+
+    case "clearSelection": {
+      // Preserve read-only rows that are currently selected
+      if (!action.rows) {
+        return {
+          ...state,
+          selectedRows: new Set(),
+        };
+      }
+
+      const readOnlyRowIds = action.rows
+        .filter((row) => row.readOnly)
+        .map((row) => row.rowId);
+
+      const preservedReadOnlySelections = readOnlyRowIds.filter((rowId) =>
+        state.selectedRows.has(rowId),
+      );
+
+      return {
+        ...state,
+        selectedRows: new Set(preservedReadOnlySelections),
+      };
+    }
+
+    case "selectAllRows": {
+      // Get selectable rows (not disabled and not read-only)
+      const selectableRowIds = action.allRows
+        .filter((row) => !row.disabled && !row.readOnly)
+        .map((row) => row.rowId);
+
+      // Start with the selectable rows to select
+      const newSelectedRows = new Set(selectableRowIds);
+
+      // Get read-only rows and preserve their previous selections
+      const readOnlyRowIds = action.allRows
+        .filter((row) => row.readOnly)
+        .map((row) => row.rowId);
+
+      // Add back any read-only rows that were previously selected
+      for (const rowId of readOnlyRowIds) {
+        if (state.selectedRows.has(rowId)) {
+          newSelectedRows.add(rowId);
         }
       }
-      return state;
-    },
-    defaultGridDataState,
-  );
 
-// Grid State Provider
+      return {
+        ...state,
+        selectedRows: newSelectedRows,
+      };
+    }
+
+    case "setSelectedRows": {
+      return {
+        ...state,
+        selectedRows: new Set(action.selectedRows),
+      };
+    }
+  }
+
+  return state;
+}
+
+// Selection State Provider
+const [SelectionStateProvider, useSelectionState, useSelectionDispatch] =
+  createReducerContext(selectionReducer, defaultSelectionState);
+
+// Grid State Provider (focus and navigation only)
 const [GridListStateProvider, useGridListState, useGridListDispatch] =
   createReducerContext((state: GridState, action: GridAction): GridState => {
     switch (action.type) {
@@ -166,95 +287,17 @@ const [GridListStateProvider, useGridListState, useGridListDispatch] =
           ...state,
           isFocusWithinContainer: action.isFocusWithinContainer,
         };
-      case "selectRow": {
-        const newSelectedRows = new Set(state.selectedRows);
-        if (state.selectionMode === "single") {
-          newSelectedRows.clear();
-        }
-        newSelectedRows.add(action.rowId);
-        return {
-          ...state,
-          selectedRows: newSelectedRows,
-        };
-      }
-      case "deselectRow": {
-        const newSelectedRows = new Set(state.selectedRows);
-        newSelectedRows.delete(action.rowId);
-        return {
-          ...state,
-          selectedRows: newSelectedRows,
-        };
-      }
-
-      case "toggleRowSelection": {
-        const newSelectedRows = new Set(state.selectedRows);
-        if (newSelectedRows.has(action.rowId)) {
-          newSelectedRows.delete(action.rowId);
-        } else {
-          if (state.selectionMode === "single") {
-            newSelectedRows.clear();
-          }
-          newSelectedRows.add(action.rowId);
-        }
-        return {
-          ...state,
-          selectedRows: newSelectedRows,
-        };
-      }
-
-      case "clearSelection": {
-        // Preserve read-only rows that are currently selected
-        if (!action.rows) {
-          return {
-            ...state,
-            selectedRows: new Set(),
-          };
-        }
-
-        const readOnlyRowIds = action.rows
-          .filter((row) => row.readOnly)
-          .map((row) => row.rowId);
-
-        const preservedReadOnlySelections = readOnlyRowIds.filter((rowId) =>
-          state.selectedRows.has(rowId),
-        );
-
-        return {
-          ...state,
-          selectedRows: new Set(preservedReadOnlySelections),
-        };
-      }
-
-      case "selectAllRows": {
-        // Get selectable rows (not disabled and not read-only)
-        const selectableRowIds = action.allRows
-          .filter((row) => !row.disabled && !row.readOnly)
-          .map((row) => row.rowId);
-
-        // Start with the selectable rows to select
-        const newSelectedRows = new Set(selectableRowIds);
-
-        // Get read-only rows and preserve their previous selections
-        const readOnlyRowIds = action.allRows
-          .filter((row) => row.readOnly)
-          .map((row) => row.rowId);
-
-        // Add back any read-only rows that were previously selected
-        for (const rowId of readOnlyRowIds) {
-          if (state.selectedRows.has(rowId)) {
-            newSelectedRows.add(rowId);
-          }
-        }
-
-        return {
-          ...state,
-          selectedRows: newSelectedRows,
-        };
-      }
     }
 
     return state;
   }, defaultGridState);
+
+// Internal hook for accessing selected rows
+function useSelectedRows() {
+  const controlledValue = useContext(ControlledValueContext);
+  const { selectedRows } = useSelectionState();
+  return controlledValue == null ? selectedRows : new Set(controlledValue);
+}
 
 const RowContext = createContext<{
   rowId: string;
@@ -323,6 +366,28 @@ function getAllTabbableElements(): HTMLElement[] {
   return getTabbableElements(document.body) as HTMLElement[];
 }
 
+type ValueOnChangeMode =
+  | {
+      selectionMode: "multiple";
+      initialValue?: string[];
+      value?: string[];
+      onValueChange?: (value: string[]) => void;
+    }
+  | {
+      selectionMode: "single";
+      initialValue?: string;
+      value?: string;
+      onValueChange?: (value: string) => void;
+    }
+  | {
+      selectionMode: "none";
+      initialValue?: undefined;
+      value?: undefined;
+      onValueChange?: undefined;
+    };
+
+const ControlledValueContext = createContext<Set<string> | null>(null);
+
 export function GridListRoot({
   children,
   className,
@@ -331,6 +396,7 @@ export function GridListRoot({
   name,
   required = false,
   initialValue,
+  value,
   onValueChange,
   onInvalid,
   ...divProps
@@ -340,10 +406,10 @@ export function GridListRoot({
   selectionMode?: "none" | "single" | "multiple";
   name?: string;
   required?: boolean;
-  initialValue?: string | string[];
-  onValueChange?: (value: string | string[]) => void;
   onInvalid?: FormEventHandler<HTMLSelectElement>;
-} & React.HTMLAttributes<HTMLDivElement>) {
+} & React.HTMLAttributes<HTMLDivElement> &
+  ValueOnChangeMode) {
+  const isControlled = typeof value !== "undefined";
   const startRef = useRef<HTMLSpanElement>(null);
   const endRef = useRef<HTMLSpanElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -351,75 +417,115 @@ export function GridListRoot({
 
   const onValueChangeEvent = useEffectEvent((value: string | string[]) => {
     if (typeof onValueChange === "function") {
-      onValueChange(value);
+      // biome-ignore lint/suspicious/noExplicitAny: we know if this is a string or string[] already
+      onValueChange(value as any);
     }
   });
 
   // Create initial selectedRows set based on initialValue (only used once, not reactive)
   const [initialSelectedRows] = useState(() => {
-    if (!initialValue || selectionMode === "none") {
+    const actualInitialValue =
+      typeof value !== "undefined" ? value : initialValue;
+
+    if (!actualInitialValue || selectionMode === "none") {
       return new Set<string>();
     }
 
     if (selectionMode === "single") {
-      return typeof initialValue === "string"
-        ? new Set<string>([initialValue])
+      return typeof actualInitialValue === "string"
+        ? new Set<string>([actualInitialValue])
         : new Set<string>();
     }
 
     if (selectionMode === "multiple") {
-      return Array.isArray(initialValue)
-        ? new Set<string>(initialValue)
+      return Array.isArray(actualInitialValue)
+        ? new Set<string>(actualInitialValue)
         : new Set<string>();
     }
 
     return new Set<string>();
   });
 
-  const middleware = useCallback(
+  const selectionMiddleware = useCallback(
     (
-      dispatch: ReturnType<typeof useGridListDispatch>,
-      getNextState: (action: GridAction) => GridState,
+      dispatch: ReturnType<typeof useSelectionDispatch>,
+      getNextState: (action: SelectionAction) => SelectionState,
     ) =>
-      (action: GridAction) => {
-        dispatch(action);
-        if (
-          action.type === "selectRow" ||
-          action.type === "deselectRow" ||
-          action.type === "toggleRowSelection"
-        ) {
-          const state = getNextState(action);
+      (action: SelectionAction) => {
+        // If controlled, don't dispatch to internal state
+        if (typeof value !== "undefined") {
+          // apply the reducer logic on the controlled state
+          const state = selectionReducer(
+            {
+              selectionMode,
+              selectedRows: new Set(value),
+            },
+            action,
+          );
+
           const selectedArray = Array.from(state.selectedRows);
           onValueChangeEvent(
             selectionMode === "multiple"
               ? selectedArray
               : selectedArray[0] || "",
           );
+
+          return;
         }
+
+        // Apply the action to get the next state
+        dispatch(action);
+        const state = getNextState(action);
+        console.log("not controlled", state);
+        const selectedArray = Array.from(state.selectedRows);
+        onValueChangeEvent(
+          selectionMode === "multiple" ? selectedArray : selectedArray[0] || "",
+        );
       },
-    [onValueChangeEvent, selectionMode],
+    [onValueChangeEvent, selectionMode, value],
+  );
+
+  const reactiveValue = useMemo(() => {
+    if (typeof value === "undefined") return new Set<string>();
+    if (Array.isArray(value)) return new Set<string>(value);
+    return new Set<string>([value]);
+  }, [value]);
+
+  const listInner = (
+    <GridListInner className={className} {...divProps}>
+      <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
+      {children}
+      <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
+      <HiddenSelectionInput selectRef={selectRef} onInvalid={onInvalid} />
+    </GridListInner>
+  );
+
+  const optionalControlled = isControlled ? (
+    <ControlledValueContext value={reactiveValue}>
+      {listInner}
+    </ControlledValueContext>
+  ) : (
+    listInner
   );
 
   return (
     <GridDataProvider>
-      <GridListStateProvider
-        startRef={startRef}
-        endRef={endRef}
-        containerRef={containerRef}
-        cycleRowFocus={cycleRowFocus}
+      <SelectionStateProvider
         selectionMode={selectionMode}
         selectedRows={initialSelectedRows}
-        name={name}
-        required={required}
-        middleware={middleware}
+        middleware={selectionMiddleware}
       >
-        <GridListInner className={className} {...divProps}>
-          <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
-          {children}
-          <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
-          <HiddenSelectionInput selectRef={selectRef} onInvalid={onInvalid} />
-        </GridListInner>
-      </GridListStateProvider>
+        <GridListStateProvider
+          startRef={startRef}
+          endRef={endRef}
+          containerRef={containerRef}
+          cycleRowFocus={cycleRowFocus}
+          name={name}
+          required={required}
+        >
+          {optionalControlled}
+        </GridListStateProvider>
+      </SelectionStateProvider>
     </GridDataProvider>
   );
 }
@@ -428,7 +534,9 @@ function GridListInner({
   children,
   className,
   ...divProps
-}: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+}: {
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
   const { containerRef, isFocusWithinContainer } = useGridListState();
   const dispatch = useGridListDispatch();
   const { lastFocusedRowId } = useGridListState();
@@ -551,7 +659,9 @@ function HiddenSelectionInput({
   selectRef: React.RefObject<HTMLSelectElement | null>;
   onInvalid?: FormEventHandler<HTMLSelectElement>;
 }) {
-  const { selectionMode, selectedRows, name, required } = useGridListState();
+  const { selectionMode } = useSelectionState();
+  const { name, required } = useGridListState();
+  const selectedRows = useSelectedRows();
 
   if (selectionMode === "none" || !name) {
     return null;
@@ -596,9 +706,10 @@ export function GridListHeader({
   className,
   ...divProps
 }: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
-  const dispatch = useGridListDispatch();
+  const dispatch = useSelectionDispatch();
   const { rows } = useGridDataState();
-  const { selectedRows, selectionMode } = useGridListState();
+  const { selectionMode } = useSelectionState();
+  const selectedRows = useSelectedRows();
 
   const headerElem = (
     <header
@@ -699,7 +810,9 @@ export const GridListRow = memo(function GridListRow({
   disabled?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const state = useGridListState();
-  const dispatch = useGridListDispatch();
+  const selectionDispatch = useSelectionDispatch();
+  const { selectionMode } = useSelectionState();
+  const selectedRows = useSelectedRows();
   const isLastFocusedRow = state.lastFocusedRowId === rowId;
 
   const autoGeneratedRowId = useId();
@@ -713,7 +826,7 @@ export const GridListRow = memo(function GridListRow({
 
   // Check if row is selected
   const isRowSelected =
-    state.selectionMode !== "none" && state.selectedRows.has(actualRowId);
+    selectionMode !== "none" && selectedRows.has(actualRowId);
 
   const rowProps: React.HTMLAttributes<HTMLDivElement> & {
     "data-row-id": string;
@@ -753,8 +866,6 @@ export const GridListRow = memo(function GridListRow({
     <RowContext value={rowContextValue}>{rowElem}</RowContext>
   );
 
-  const { selectionMode } = state;
-
   if (selectionMode === "none") {
     return contextWrappedElem;
   }
@@ -764,10 +875,20 @@ export const GridListRow = memo(function GridListRow({
       selected: isRowSelected,
       onCheckedChange: () => {
         if (disabled || readOnly) return;
-        dispatch({ type: "toggleRowSelection", rowId: actualRowId });
+        console.log(
+          "onCheckedChange #%s : %s -> %s",
+          actualRowId,
+          isRowSelected,
+          !isRowSelected,
+        );
+        if (isRowSelected) {
+          selectionDispatch({ type: "deselectRow", rowId: actualRowId });
+        } else {
+          selectionDispatch({ type: "selectRow", rowId: actualRowId });
+        }
       },
     };
-  }, [dispatch, actualRowId, isRowSelected, disabled, readOnly]);
+  }, [selectionDispatch, actualRowId, isRowSelected, disabled, readOnly]);
 
   return (
     <SelectionIndicatorContext value={selectionCtxValue}>
@@ -775,56 +896,6 @@ export const GridListRow = memo(function GridListRow({
     </SelectionIndicatorContext>
   );
 });
-
-export function GridListCheckbox({
-  children,
-  className,
-  asChild,
-  onChangePropName = "onChange",
-  checkedPropName = "checked",
-  ...inputProps
-}: {
-  children?: React.ReactNode;
-  asChild?: boolean;
-  onChangePropName?: string;
-  checkedPropName?: string;
-} & React.InputHTMLAttributes<HTMLInputElement>) {
-  const { selectedRows, selectionMode } = useGridListState();
-  const dispatch = useGridListDispatch();
-  const rowContext = useContext(RowContext);
-
-  if (!rowContext.rowId) {
-    throw new Error("GridListCheckbox must be used within a GridListRow");
-  }
-
-  const { rowId } = rowContext;
-  const isSelected = selectedRows.has(rowId);
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log({ event });
-    if (selectionMode === "none") return;
-
-    // toggle
-    dispatch({
-      type: "toggleRowSelection",
-      rowId,
-    });
-  };
-
-  const checkboxProps = {
-    ...inputProps,
-    type: "checkbox" as const,
-    [onChangePropName]: handleChange,
-    [checkedPropName]: isSelected,
-    className: cn("", className),
-  };
-
-  if (asChild && children) {
-    return <Slot {...checkboxProps}>{children}</Slot>;
-  }
-
-  return <input {...checkboxProps} />;
-}
 
 export function GridListItemIndicatorRoot({
   children,
@@ -914,13 +985,10 @@ export function GridListItemIndeterminateIndicator({
 }
 
 export const Debugger = memo(function Debugger() {
-  const {
-    isFocusWithinContainer,
-    lastFocusedRowId,
-    cycleRowFocus,
-    selectionMode,
-    selectedRows,
-  } = useGridListState();
+  const { isFocusWithinContainer, lastFocusedRowId, cycleRowFocus } =
+    useGridListState();
+  const { selectionMode } = useSelectionState();
+  const selectedRows = useSelectedRows();
 
   return (
     <GridListRow>
@@ -1376,9 +1444,10 @@ function useHandleRightArrow() {
 }
 
 function useHandleSpacebar() {
-  const { containerRef, selectionMode } = useGridListState();
+  const { containerRef } = useGridListState();
+  const { selectionMode } = useSelectionState();
   const { rows } = useGridDataState();
-  const dispatch = useGridListDispatch();
+  const dispatch = useSelectionDispatch();
 
   useEffect(() => {
     const container = containerRef?.current;
@@ -1519,4 +1588,10 @@ function GridListTabIndexManager({ children }: { children: React.ReactNode }) {
   }, [children, rows]);
 
   return <>{children}</>;
+}
+
+function arr(value: string | string[] | undefined): string[] {
+  if (typeof value === "undefined") return [];
+  if (Array.isArray(value)) return value;
+  return [value];
 }
