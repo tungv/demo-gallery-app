@@ -645,9 +645,11 @@ function GridListInner({
     "data-focused": isFocusWithinContainer ? "true" : undefined,
   };
 
+  useGridListTabIndexManager(children);
+
   return (
     <div {...innerProps} ref={containerRef}>
-      <GridListTabIndexManager>{children}</GridListTabIndexManager>
+      {children}
     </div>
   );
 }
@@ -1562,7 +1564,7 @@ function useFocusFirstRow() {
   };
 }
 
-function GridListTabIndexManager({ children }: { children: React.ReactNode }) {
+function useGridListTabIndexManager(children: React.ReactNode) {
   const { containerRef } = useGridListState();
   const { rows } = useGridDataState();
 
@@ -1587,12 +1589,4 @@ function GridListTabIndexManager({ children }: { children: React.ReactNode }) {
       }
     };
   }, [children, rows]);
-
-  return <>{children}</>;
-}
-
-function arr(value: string | string[] | undefined): string[] {
-  if (typeof value === "undefined") return [];
-  if (Array.isArray(value)) return value;
-  return [value];
 }
