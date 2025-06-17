@@ -20,7 +20,7 @@ export default function ListPage() {
           <FocusVisibleDebugger />
         </a>
       </div>
-      {/* <GridListRoot className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_1fr_auto]">
+      <GridListRoot className="bg-white p-2 rounded-lg grid-cols-[auto_1fr_auto]">
         <GridListHeader className="p-1 gap-x-8">
           <h3 className="text-sm font-medium">Title</h3>
           <span className="text-sm font-medium">Amount</span>
@@ -43,7 +43,7 @@ export default function ListPage() {
       </GridListRoot>
 
       <GridListRoot
-        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_1fr_auto]"
+        className="bg-white p-2 rounded-lg grid-cols-[auto_1fr_auto]"
         cycleRowFocus
       >
         <GridListHeader className="p-1 gap-x-8">
@@ -65,10 +65,10 @@ export default function ListPage() {
         <GridListFooter>
           <Debugger />
         </GridListFooter>
-      </GridListRoot> */}
+      </GridListRoot>
 
       <GridListRoot
-        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_auto_1fr_auto] h-fit"
+        className="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
         selectionMode="single"
         name="single-selection"
       >
@@ -100,7 +100,7 @@ export default function ListPage() {
       </GridListRoot>
 
       <GridListRoot
-        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_auto_1fr_auto] h-fit"
+        className="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
         selectionMode="multiple"
         name="multiple-selection"
         required
@@ -137,7 +137,7 @@ export default function ListPage() {
 
 function CustomRow() {
   return (
-    <div className="items-center data-[focus-visible=true]:outline-2 outline-primary rounded-md p-1 gap-x-8">
+    <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8">
       <h2 className="p-1 font-medium">row title</h2>
 
       <span className="p-1 tabular-nums">10,000,000</span>
@@ -159,7 +159,7 @@ function CustomRow() {
 
 function CustomRowWithCheckbox() {
   return (
-    <div className="items-center data-[focus-visible=true]:outline-2 outline-primary rounded-md p-1 gap-x-8">
+    <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8">
       <div className="p-1">
         <GridListCheckbox
           asChild
@@ -175,12 +175,15 @@ function CustomRowWithCheckbox() {
       <span className="p-1 tabular-nums">10,000,000</span>
 
       <div className="flex gap-x-2 items-center">
-        <Button>
+        <Button className="focus-visible:outline-2 outline-primary">
           <PlusIcon />
           <span>Add</span>
         </Button>
 
-        <Button variant="destructive">
+        <Button
+          variant="destructive"
+          className="focus-visible:outline-2 outline-primary"
+        >
           <TrashIcon />
           <span>Remove</span>
         </Button>
