@@ -140,6 +140,43 @@ export default function ListPage() {
           <Debugger />
         </GridListFooter>
       </GridListRoot>
+
+      <GridListRoot
+        className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
+        selectionMode="multiple"
+        name="disabled-readonly-example"
+      >
+        <GridListHeader>
+          <h2 className="text-sm font-medium col-span-full p-2">
+            Disabled and Read-only Rows (Try spacebar to toggle selection)
+          </h2>
+        </GridListHeader>
+        <GridListHeader className="p-1 gap-x-8">
+          <div className="text-sm font-medium px-1">
+            <CustomCheckbox />
+          </div>
+          <h3 className="text-sm font-medium">Title</h3>
+          <span className="text-sm font-medium">Amount</span>
+          <div className="text-sm font-medium">actions</div>
+        </GridListHeader>
+        <GridListBody className="divide-y border-y">
+          <GridListRow asChild rowId="7">
+            <CustomRowWithCheckboxAndTitle title="Normal row" />
+          </GridListRow>
+          <GridListRow asChild rowId="8" readOnly>
+            <CustomRowWithCheckboxAndTitle title="Read-only row" readOnly />
+          </GridListRow>
+          <GridListRow asChild rowId="9" disabled>
+            <CustomRowWithCheckboxAndTitle title="Disabled row" disabled />
+          </GridListRow>
+          <GridListRow asChild rowId="10">
+            <CustomRowWithCheckboxAndTitle title="Another normal row" />
+          </GridListRow>
+        </GridListBody>
+        <GridListFooter>
+          <Debugger />
+        </GridListFooter>
+      </GridListRoot>
     </div>
   );
 }
@@ -202,6 +239,51 @@ function CustomRowWithCheckbox() {
         <Button
           variant="destructive"
           className="focus-visible:outline-2 outline-primary"
+        >
+          <TrashIcon />
+          <span>Remove</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CustomRowWithCheckboxAndTitle({
+  title = "row title",
+  readOnly = false,
+  disabled = false,
+}: {
+  title?: string;
+  readOnly?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      className={`items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md ${
+        disabled ? "opacity-50 cursor-not-allowed" : ""
+      } ${readOnly ? "bg-gray-50" : ""}`}
+    >
+      <div className="p-1">
+        <CustomCheckbox />
+      </div>
+
+      <h2 className="p-1 font-medium">{title}</h2>
+
+      <span className="p-1 tabular-nums">10,000,000</span>
+
+      <div className="flex gap-x-2 items-center">
+        <Button
+          className="focus-visible:outline-2 outline-primary"
+          disabled={disabled}
+        >
+          <PlusIcon />
+          <span>Add</span>
+        </Button>
+
+        <Button
+          variant="destructive"
+          className="focus-visible:outline-2 outline-primary"
+          disabled={disabled}
         >
           <TrashIcon />
           <span>Remove</span>

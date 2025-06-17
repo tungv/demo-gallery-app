@@ -20,17 +20,25 @@ import { Checkbox } from "./checkbox";
 
 // Grid Data Types - for managing row data
 type GridDataState = {
-  rows: Array<{ rowId: string }>;
+  rows: Array<{ rowId: string; readOnly?: boolean; disabled?: boolean }>;
 };
 
 type GridDataAction =
   | {
       type: "addRow";
       rowId: string;
+      readOnly?: boolean;
+      disabled?: boolean;
     }
   | {
       type: "removeRow";
       rowId: string;
+    }
+  | {
+      type: "updateRow";
+      rowId: string;
+      readOnly?: boolean;
+      disabled?: boolean;
     };
 
 // Grid State Types - for managing focus and selection
@@ -98,10 +106,31 @@ const [GridDataProvider, useGridDataState, useGridDataDispatch] =
           if (state.rows.some((row) => row.rowId === action.rowId)) {
             return state;
           }
-          return { ...state, rows: [...state.rows, { rowId: action.rowId }] };
+          return {
+            ...state,
+            rows: [
+              ...state.rows,
+              {
+                rowId: action.rowId,
+                readOnly: action.readOnly,
+                disabled: action.disabled,
+              },
+            ],
+          };
         case "removeRow": {
           const newRows = state.rows.filter(
             (row) => row.rowId !== action.rowId,
+          );
+          return {
+            ...state,
+            rows: newRows,
+          };
+        }
+        case "updateRow": {
+          const newRows = state.rows.map((row) =>
+            row.rowId === action.rowId
+              ? { ...row, readOnly: action.readOnly, disabled: action.disabled }
+              : row,
           );
           return {
             ...state,
@@ -193,7 +222,7 @@ const RowContext = createContext<{
 
 const GridListBodyContext = createContext<boolean>(false);
 
-function useRegisterRow(rowId: string) {
+function useRegisterRow(rowId: string, readOnly?: boolean, disabled?: boolean) {
   const dispatch = useGridDataDispatch();
   const isInsideBody = useContext(GridListBodyContext);
 
@@ -201,12 +230,18 @@ function useRegisterRow(rowId: string) {
     // Only register rows that are inside GridListBody
     if (!isInsideBody) return;
 
-    dispatch({ type: "addRow", rowId });
+    dispatch({ type: "addRow", rowId, readOnly, disabled });
 
     return () => {
       dispatch({ type: "removeRow", rowId });
     };
-  }, [dispatch, rowId, isInsideBody]);
+  }, [dispatch, rowId, readOnly, disabled, isInsideBody]);
+
+  useEffect(() => {
+    if (!isInsideBody) return;
+
+    dispatch({ type: "updateRow", rowId, readOnly, disabled });
+  }, [dispatch, rowId, readOnly, disabled, isInsideBody]);
 }
 
 // Helper function to get all tabbable elements
@@ -358,6 +393,7 @@ function GridListInner({
   useHandleDownArrow();
   useHandleLeftArrow();
   useHandleRightArrow();
+  useHandleSpacebar();
 
   // Focus management for entering the grid
   useEffect(() => {
@@ -512,8 +548,18 @@ export function GridListHeader({
     return headerElem;
   }
 
-  const isEmpty = selectedRows.size === 0;
-  const isAllSelected = !isEmpty && selectedRows.size === rows.length;
+  // Only consider selectable rows (not disabled or read-only)
+  const selectableRows = rows.filter((row) => !row.disabled && !row.readOnly);
+  const selectableRowIds = selectableRows.map((row) => row.rowId);
+
+  // Count how many selectable rows are currently selected
+  const selectedSelectableRowsCount = selectableRowIds.filter((rowId) =>
+    selectedRows.has(rowId),
+  ).length;
+
+  const isEmpty = selectedSelectableRowsCount === 0;
+  const isAllSelected =
+    !isEmpty && selectedSelectableRowsCount === selectableRows.length;
 
   const isIndeterminate = !isEmpty && !isAllSelected;
 
@@ -522,11 +568,11 @@ export function GridListHeader({
       value={{
         selected: isIndeterminate ? "indeterminate" : isAllSelected,
         onCheckedChange: (isCheckingEverything) => {
-          // if isCheckingEverything is true, we need to check all rows. Otherwise, we need to uncheck all rows.
+          // if isCheckingEverything is true, we need to check all selectable rows. Otherwise, we need to uncheck all rows.
           if (isCheckingEverything) {
             dispatch({
               type: "selectAllRows",
-              rows: rows.map((row) => row.rowId),
+              rows: selectableRowIds,
             });
           } else {
             dispatch({ type: "clearSelection" });
@@ -576,11 +622,15 @@ export const GridListRow = memo(function GridListRow({
   className,
   asChild,
   rowId,
+  readOnly,
+  disabled,
   ...divProps
 }: {
   children: React.ReactNode;
   asChild?: boolean;
   rowId?: string;
+  readOnly?: boolean;
+  disabled?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const state = useGridListState();
   const dispatch = useGridListDispatch();
@@ -604,18 +654,22 @@ export const GridListRow = memo(function GridListRow({
     "data-focused"?: string;
     "data-restore-focus"?: string;
     "data-selected"?: string;
+    "data-readonly"?: string;
+    "data-disabled"?: string;
   } = {
     ...divProps,
     role: "row",
-    tabIndex: isLastFocusedRow ? 0 : -1,
+    tabIndex: disabled ? -1 : isLastFocusedRow ? 0 : -1,
     className: cn("grid col-span-full grid-cols-subgrid", className),
     "data-row-id": actualRowId,
     "data-focused": isFocused ? "true" : undefined,
     "data-restore-focus": isLastFocusedRow ? "true" : undefined,
     "data-selected": isRowSelected ? "true" : undefined,
+    "data-readonly": readOnly ? "true" : undefined,
+    "data-disabled": disabled ? "true" : undefined,
   };
 
-  useRegisterRow(actualRowId);
+  useRegisterRow(actualRowId, readOnly, disabled);
 
   const rowContextValue = useMemo(() => {
     return {
@@ -643,10 +697,11 @@ export const GridListRow = memo(function GridListRow({
     return {
       selected: isRowSelected,
       onCheckedChange: () => {
+        if (disabled || readOnly) return;
         dispatch({ type: "toggleRowSelection", rowId: actualRowId });
       },
     };
-  }, [dispatch, actualRowId, isRowSelected]);
+  }, [dispatch, actualRowId, isRowSelected, disabled, readOnly]);
 
   return (
     <SelectionIndicatorContext value={selectionCtxValue}>
@@ -1025,8 +1080,10 @@ function useHandleUpArrow() {
       const currentRowElement = activeElement.closest("[data-row-id]");
       if (!currentRowElement) return;
 
-      // find previous row using selector
-      const allRows = container.querySelectorAll("[data-row-id]");
+      // find previous row using selector (exclude disabled rows)
+      const allRows = container.querySelectorAll(
+        "[data-row-id]:not([data-disabled='true'])",
+      );
 
       const currentRowIndex = Array.from(allRows).findIndex(
         (row) => row === currentRowElement,
@@ -1083,7 +1140,9 @@ function useHandleDownArrow() {
       const currentRowElement = activeElement.closest("[data-row-id]");
       if (!currentRowElement) return;
 
-      const allRows = container.querySelectorAll("[data-row-id]");
+      const allRows = container.querySelectorAll(
+        "[data-row-id]:not([data-disabled='true'])",
+      );
       const currentRowIndex = Array.from(allRows).findIndex(
         (row) => row === currentRowElement,
       );
@@ -1250,6 +1309,53 @@ function useHandleRightArrow() {
   }, [containerRef]);
 }
 
+function useHandleSpacebar() {
+  const { containerRef, selectionMode } = useGridListState();
+  const { rows } = useGridDataState();
+  const dispatch = useGridListDispatch();
+
+  useEffect(() => {
+    const container = containerRef?.current;
+    if (!container || selectionMode === "none") return;
+
+    const handleSpacebar = (event: KeyboardEvent) => {
+      if (event.key !== " " && event.key !== "Spacebar") {
+        return;
+      }
+
+      const activeElement = document.activeElement;
+      if (!activeElement) return;
+
+      const currentRowElement = activeElement.closest("[data-row-id]");
+      if (!currentRowElement) return;
+
+      const rowId = currentRowElement.getAttribute("data-row-id");
+      if (!rowId) return;
+
+      // Check if currently focused element is the row itself
+      const isRowFocused = activeElement === currentRowElement;
+      if (!isRowFocused) return;
+
+      // Find the row data to check if it's read-only or disabled
+      const rowData = rows.find((row) => row.rowId === rowId);
+      if (rowData?.disabled || rowData?.readOnly) {
+        return;
+      }
+
+      event.preventDefault();
+
+      // Toggle row selection
+      dispatch({ type: "toggleRowSelection", rowId });
+    };
+
+    container.addEventListener("keydown", handleSpacebar);
+
+    return () => {
+      container.removeEventListener("keydown", handleSpacebar);
+    };
+  }, [containerRef, selectionMode, rows, dispatch]);
+}
+
 function safelyFocusElement(element: Element): boolean {
   if (element instanceof HTMLElement && element.focus) {
     element.focus();
@@ -1277,6 +1383,12 @@ function useFocusRow() {
       return false;
     }
 
+    // Check if the row is disabled
+    const isDisabled = rowElement.getAttribute("data-disabled") === "true";
+    if (isDisabled) {
+      return false;
+    }
+
     if (safelyFocusElement(rowElement)) {
       dispatch({
         type: "setLastFocusedRow",
@@ -1298,13 +1410,19 @@ function useFocusFirstRow() {
     const container = containerRef?.current;
     if (!container) return;
 
-    const firstRow = container.querySelector("[data-row-id]");
-    if (!firstRow) return;
+    // Find the first non-disabled row
+    const rows = container.querySelectorAll("[data-row-id]");
+    for (const row of rows) {
+      const isDisabled = row.getAttribute("data-disabled") === "true";
+      if (isDisabled) continue;
 
-    const id = firstRow.getAttribute("data-row-id");
-    if (!id) return;
+      const id = row.getAttribute("data-row-id");
+      if (!id) continue;
 
-    focusRow(id);
+      if (focusRow(id)) {
+        break;
+      }
+    }
   };
 }
 
@@ -1316,14 +1434,18 @@ function GridListTabIndexManager({ children }: { children: React.ReactNode }) {
   useLayoutEffect(() => {
     const container = containerRef?.current;
     if (!container) return;
-    // set tabIndex=0 for the first row
-    const firstRow = container.querySelector("[data-row-id]");
+    // set tabIndex=0 for the first non-disabled row
+    const firstRow = container.querySelector(
+      "[data-row-id]:not([data-disabled='true'])",
+    );
     if (firstRow) {
       firstRow.setAttribute("tabindex", "0");
     }
 
     return () => {
-      const firstRow = container.querySelector("[data-row-id]");
+      const firstRow = container.querySelector(
+        "[data-row-id]:not([data-disabled='true'])",
+      );
       if (firstRow) {
         firstRow.setAttribute("tabindex", "-1");
       }
