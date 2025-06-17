@@ -595,10 +595,15 @@ export const GridListRow = memo(function GridListRow({
     state.isFocusWithinContainer &&
     document.activeElement?.getAttribute("data-row-id") === rowId;
 
+  // Check if row is selected
+  const isRowSelected =
+    state.selectionMode !== "none" && state.selectedRows.has(actualRowId);
+
   const rowProps: React.HTMLAttributes<HTMLDivElement> & {
     "data-row-id": string;
     "data-focused"?: string;
     "data-restore-focus"?: string;
+    "data-selected"?: string;
   } = {
     ...divProps,
     role: "row",
@@ -607,6 +612,7 @@ export const GridListRow = memo(function GridListRow({
     "data-row-id": actualRowId,
     "data-focused": isFocused ? "true" : undefined,
     "data-restore-focus": isLastFocusedRow ? "true" : undefined,
+    "data-selected": isRowSelected ? "true" : undefined,
   };
 
   useRegisterRow(actualRowId);
@@ -627,13 +633,11 @@ export const GridListRow = memo(function GridListRow({
     <RowContext value={rowContextValue}>{rowElem}</RowContext>
   );
 
-  const { selectionMode, selectedRows } = state;
+  const { selectionMode } = state;
 
   if (selectionMode === "none") {
     return contextWrappedElem;
   }
-
-  const isRowSelected = selectedRows.has(actualRowId);
 
   const selectionCtxValue = useMemo(() => {
     return {

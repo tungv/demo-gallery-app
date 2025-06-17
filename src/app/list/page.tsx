@@ -107,13 +107,13 @@ export default function ListPage() {
       </GridListRoot>
 
       <GridListRoot
-        className="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
+        className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
         selectionMode="multiple"
         name="multiple-selection"
         required
       >
         <GridListHeader>
-          <h2 className="text-sm font-medium col-span-full">
+          <h2 className="text-sm font-medium col-span-full p-2">
             Multiple selection
           </h2>
         </GridListHeader>
@@ -125,7 +125,7 @@ export default function ListPage() {
           <span className="text-sm font-medium">Amount</span>
           <div className="text-sm font-medium">actions</div>
         </GridListHeader>
-        <GridListBody>
+        <GridListBody className="divide-y border-y">
           <GridListRow asChild rowId="4">
             <CustomRowWithCheckbox />
           </GridListRow>
@@ -184,7 +184,7 @@ function CustomCheckbox() {
 
 function CustomRowWithCheckbox() {
   return (
-    <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8">
+    <div className="items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md">
       <div className="p-1">
         <CustomCheckbox />
       </div>
@@ -213,7 +213,7 @@ function CustomRowWithCheckbox() {
 
 function CustomRowWithTraditionalCheckbox() {
   return (
-    <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8">
+    <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8 data-[selected=true]:bg-primary/10">
       <div className="p-1">
         <GridListItemIndicatorRoot />
       </div>
