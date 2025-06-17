@@ -39,6 +39,16 @@ const FOCUS_VISIBLE_KEYS = new Set([
 ]);
 
 function onKeyDown(event: KeyboardEvent) {
+  // Don't activate focus visible for modifier keys
+  if (
+    event.key === "Meta" ||
+    event.key === "Control" ||
+    event.key === "Shift" ||
+    event.key === "Alt"
+  ) {
+    return;
+  }
+
   // Only set modality if it's a navigation key or we're not in a text input
   if (FOCUS_VISIBLE_KEYS.has(event.key) || !isTextInputContext) {
     modality = "keyboard";
