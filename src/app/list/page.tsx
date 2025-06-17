@@ -118,7 +118,9 @@ export default function ListPage() {
           </h2>
         </GridListHeader>
         <GridListHeader className="p-1 gap-x-8">
-          <div className="text-sm font-medium">Select</div>
+          <div className="text-sm font-medium px-1">
+            <CustomCheckbox />
+          </div>
           <h3 className="text-sm font-medium">Title</h3>
           <span className="text-sm font-medium">Amount</span>
           <div className="text-sm font-medium">actions</div>
