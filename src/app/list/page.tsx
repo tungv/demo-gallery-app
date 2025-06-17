@@ -15,9 +15,12 @@ import FocusVisibleDebugger from "./FocusVisibleDebugger";
 export default function ListPage() {
   return (
     <div className="bg-muted grid grid-cols-1 gap-12 p-12 h-dvh">
-      <a href="#1">1</a>
-      <FocusVisibleDebugger />
-      <GridListRoot className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_1fr_auto]">
+      <div>
+        <a href="#1">
+          <FocusVisibleDebugger />
+        </a>
+      </div>
+      {/* <GridListRoot className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_1fr_auto]">
         <GridListHeader className="p-1 gap-x-8">
           <h3 className="text-sm font-medium">Title</h3>
           <span className="text-sm font-medium">Amount</span>
@@ -62,10 +65,10 @@ export default function ListPage() {
         <GridListFooter>
           <Debugger />
         </GridListFooter>
-      </GridListRoot>
+      </GridListRoot> */}
 
       <GridListRoot
-        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_auto_1fr_auto]"
+        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_auto_1fr_auto] h-fit"
         selectionMode="single"
         name="single-selection"
       >
@@ -97,7 +100,7 @@ export default function ListPage() {
       </GridListRoot>
 
       <GridListRoot
-        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_auto_1fr_auto]"
+        className="bg-white p-2 rounded-lg data-[focus-visible=true]:outline-2 outline-primary grid-cols-[auto_auto_1fr_auto] h-fit"
         selectionMode="multiple"
         name="multiple-selection"
         required
