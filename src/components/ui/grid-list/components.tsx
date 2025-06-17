@@ -294,6 +294,11 @@ function GridListInner({
     role: "grid",
     tabIndex: -1,
     "data-focused": isFocusWithinContainer ? "true" : undefined,
+    // FIXME: HIGH PRIORITY - Add WAI-ARIA grid labeling support
+    // - Add aria-label or aria-labelledby prop to GridListRootProps
+    // - Add aria-describedby prop for captions/descriptions
+    // - Pass these through to the grid element
+    // Example: "aria-label": ariaLabel, "aria-labelledby": ariaLabelledBy, "aria-describedby": ariaDescribedBy
   };
 
   useGridListTabIndexManager(children);
@@ -360,6 +365,9 @@ export function GridListHeader({
     <header
       className={cn("grid col-span-full grid-cols-subgrid", className)}
       {...divProps}
+      // FIXME: HIGH PRIORITY - Add WAI-ARIA rowgroup role
+      // This header should have role="rowgroup" for proper grid structure
+      // role="rowgroup"
     >
       {children}
     </header>
@@ -417,6 +425,9 @@ export function GridListBody({
       <div
         className={cn("grid col-span-full grid-cols-subgrid", className)}
         {...divProps}
+        // FIXME: HIGH PRIORITY - Add WAI-ARIA rowgroup role
+        // This body should have role="rowgroup" for proper grid structure
+        // role="rowgroup"
       >
         {children}
       </div>
@@ -433,6 +444,9 @@ export function GridListFooter({
     <footer
       className={cn("grid col-span-full grid-cols-subgrid", className)}
       {...divProps}
+      // FIXME: HIGH PRIORITY - Add WAI-ARIA rowgroup role
+      // This footer should have role="rowgroup" for proper grid structure
+      // role="rowgroup"
     >
       {children}
     </footer>
@@ -480,6 +494,13 @@ export const GridListRow = memo(function GridListRow({
     tabIndex: disabled ? -1 : isLastFocusedRow ? 0 : -1,
     className: cn("grid col-span-full grid-cols-subgrid", className),
     "aria-selected": selectionMode !== "none" ? isRowSelected : undefined,
+    // FIXME: HIGH PRIORITY - Add aria-readonly support for WAI-ARIA compliance
+    // When readOnly is true, should add "aria-readonly": true
+    // FIXME: HIGH PRIORITY - Add individual cell roles for proper grid structure
+    // Need to either:
+    // 1. Create GridListCell components with role="gridcell", "columnheader", or "rowheader"
+    // 2. Or automatically assign cell roles to direct children of rows
+    // Each cell should have appropriate role based on its purpose
     "data-row-id": actualRowId,
     "data-focused": isFocused ? "true" : undefined,
     "data-restore-focus": isLastFocusedRow ? "true" : undefined,

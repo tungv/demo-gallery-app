@@ -108,6 +108,17 @@ export type GridListRootProps = {
 	name?: string;
 	required?: boolean;
 	onInvalid?: FormEventHandler<HTMLSelectElement>;
+	// FIXME: HIGH PRIORITY - Add WAI-ARIA labeling props for grid accessibility
+	// ariaLabel?: string;
+	// ariaLabelledBy?: string;
+	// ariaDescribedBy?: string;
+	// FIXME: MEDIUM PRIORITY - Add sorting support props
+	// sortBy?: string;
+	// sortDirection?: "ascending" | "descending" | "none";
+	// onSort?: (column: string, direction: "ascending" | "descending") => void;
+	// FIXME: MEDIUM PRIORITY - Add dynamic content props for large datasets
+	// totalRows?: number;
+	// totalColumns?: number;
 } & React.HTMLAttributes<HTMLDivElement> &
 	ValueOnChangeMode;
 
@@ -118,3 +129,24 @@ export type GridListRowProps = {
 	readOnly?: boolean;
 	disabled?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
+
+// FIXME: HIGH PRIORITY - Add cell component types for proper WAI-ARIA grid structure
+// These new component types should be created:
+// export type GridListCellProps = {
+// 	children: React.ReactNode;
+// 	role?: "gridcell" | "columnheader" | "rowheader";
+// 	colSpan?: number;
+// 	rowSpan?: number;
+// 	readOnly?: boolean;
+// } & React.HTMLAttributes<HTMLDivElement>;
+//
+// export type GridListColumnHeaderProps = {
+// 	children: React.ReactNode;
+// 	sortable?: boolean;
+// 	sortDirection?: "ascending" | "descending" | "none";
+// 	onSort?: () => void;
+// } & React.HTMLAttributes<HTMLDivElement>;
+//
+// export type GridListRowHeaderProps = {
+// 	children: React.ReactNode;
+// } & React.HTMLAttributes<HTMLDivElement>;
