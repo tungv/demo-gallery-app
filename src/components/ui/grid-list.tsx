@@ -78,10 +78,15 @@ type GridAction =
     }
   | {
       type: "clearSelection";
+      rows?: Array<{ rowId: string; readOnly?: boolean; disabled?: boolean }>;
     }
   | {
       type: "selectAllRows";
-      rows: string[];
+      allRows: Array<{
+        rowId: string;
+        readOnly?: boolean;
+        disabled?: boolean;
+      }>;
     };
 
 const defaultGridDataState: GridDataState = {
@@ -196,14 +201,50 @@ const [GridListStateProvider, useGridListState, useGridListDispatch] =
         };
       }
 
-      case "clearSelection":
+      case "clearSelection": {
+        // Preserve read-only rows that are currently selected
+        if (!action.rows) {
+          return {
+            ...state,
+            selectedRows: new Set(),
+          };
+        }
+
+        const readOnlyRowIds = action.rows
+          .filter((row) => row.readOnly)
+          .map((row) => row.rowId);
+
+        const preservedReadOnlySelections = readOnlyRowIds.filter((rowId) =>
+          state.selectedRows.has(rowId),
+        );
+
         return {
           ...state,
-          selectedRows: new Set(),
+          selectedRows: new Set(preservedReadOnlySelections),
         };
+      }
 
       case "selectAllRows": {
-        const newSelectedRows = new Set(action.rows);
+        // Get selectable rows (not disabled and not read-only)
+        const selectableRowIds = action.allRows
+          .filter((row) => !row.disabled && !row.readOnly)
+          .map((row) => row.rowId);
+
+        // Start with the selectable rows to select
+        const newSelectedRows = new Set(selectableRowIds);
+
+        // Get read-only rows and preserve their previous selections
+        const readOnlyRowIds = action.allRows
+          .filter((row) => row.readOnly)
+          .map((row) => row.rowId);
+
+        // Add back any read-only rows that were previously selected
+        for (const rowId of readOnlyRowIds) {
+          if (state.selectedRows.has(rowId)) {
+            newSelectedRows.add(rowId);
+          }
+        }
+
         return {
           ...state,
           selectedRows: newSelectedRows,
@@ -288,6 +329,7 @@ export function GridListRoot({
   selectionMode = "none",
   name,
   required = false,
+  initialValue,
   onValueChange,
   onInvalid,
   ...divProps
@@ -297,6 +339,7 @@ export function GridListRoot({
   selectionMode?: "none" | "single" | "multiple";
   name?: string;
   required?: boolean;
+  initialValue?: string | string[];
   onValueChange?: (value: string | string[]) => void;
   onInvalid?: FormEventHandler<HTMLSelectElement>;
 } & React.HTMLAttributes<HTMLDivElement>) {
@@ -310,6 +353,27 @@ export function GridListRoot({
       onValueChange(value);
     }
   });
+
+  // Create initial selectedRows set based on initialValue
+  const initialSelectedRows = useMemo(() => {
+    if (!initialValue || selectionMode === "none") {
+      return new Set<string>();
+    }
+
+    if (selectionMode === "single") {
+      return typeof initialValue === "string"
+        ? new Set<string>([initialValue])
+        : new Set<string>();
+    }
+
+    if (selectionMode === "multiple") {
+      return Array.isArray(initialValue)
+        ? new Set<string>(initialValue)
+        : new Set<string>();
+    }
+
+    return new Set<string>();
+  }, [initialValue, selectionMode]);
 
   const middleware = useCallback(
     (
@@ -343,6 +407,7 @@ export function GridListRoot({
         containerRef={containerRef}
         cycleRowFocus={cycleRowFocus}
         selectionMode={selectionMode}
+        selectedRows={initialSelectedRows}
         name={name}
         required={required}
         middleware={middleware}
@@ -572,10 +637,10 @@ export function GridListHeader({
           if (isCheckingEverything) {
             dispatch({
               type: "selectAllRows",
-              rows: selectableRowIds,
+              allRows: rows,
             });
           } else {
-            dispatch({ type: "clearSelection" });
+            dispatch({ type: "clearSelection", rows });
           }
         },
       }}
