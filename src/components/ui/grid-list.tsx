@@ -13,6 +13,7 @@ import {
   useCallback,
   memo,
   useMemo,
+  useState,
 } from "react";
 import type { FormEventHandler } from "react";
 import useEffectEvent from "./use-effect-event";
@@ -354,8 +355,8 @@ export function GridListRoot({
     }
   });
 
-  // Create initial selectedRows set based on initialValue
-  const initialSelectedRows = useMemo(() => {
+  // Create initial selectedRows set based on initialValue (only used once, not reactive)
+  const [initialSelectedRows] = useState(() => {
     if (!initialValue || selectionMode === "none") {
       return new Set<string>();
     }
@@ -373,7 +374,7 @@ export function GridListRoot({
     }
 
     return new Set<string>();
-  }, [initialValue, selectionMode]);
+  });
 
   const middleware = useCallback(
     (
