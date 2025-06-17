@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Debugger,
+  GridListDebugger,
   GridListBody,
   GridListFooter,
   GridListHeader,
@@ -65,7 +65,7 @@ export default function ControlledListPage() {
           ))}
         </GridListBody>
         <GridListFooter>
-          <Debugger />
+          <GridListDebugger />
         </GridListFooter>
       </GridListRoot>
 

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import {
-  Debugger,
+  GridListDebugger,
   GridListBody,
   GridListFooter,
   GridListHeader,
@@ -52,7 +52,7 @@ export default function ListPage() {
           </GridListRow>
         </GridListBody>
         <GridListFooter>
-          <Debugger />
+          <GridListDebugger />
         </GridListFooter>
       </GridListRoot>
 
@@ -88,7 +88,7 @@ export default function ListPage() {
           </GridListRow>
         </GridListBody>
         <GridListFooter>
-          <Debugger />
+          <GridListDebugger />
         </GridListFooter>
       </GridListRoot>
 
@@ -126,7 +126,7 @@ export default function ListPage() {
           </GridListRow>
         </GridListBody>
         <GridListFooter>
-          <Debugger />
+          <GridListDebugger />
         </GridListFooter>
       </GridListRoot>
     </div>
