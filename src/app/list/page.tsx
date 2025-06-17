@@ -10,16 +10,10 @@ import {
   GridListRow,
 } from "@/components/ui/grid-list";
 import { PlusIcon, TrashIcon } from "lucide-react";
-import FocusVisibleDebugger from "./FocusVisibleDebugger";
 
 export default function ListPage() {
   return (
     <div className="bg-muted grid grid-cols-1 gap-12 p-12 h-dvh">
-      <div>
-        <a href="#1">
-          <FocusVisibleDebugger />
-        </a>
-      </div>
       <GridListRoot className="bg-white p-2 rounded-lg grid-cols-[auto_1fr_auto]">
         <GridListHeader className="p-1 gap-x-8">
           <h3 className="text-sm font-medium">Title</h3>

@@ -13,7 +13,6 @@ import {
   useCallback,
   memo,
 } from "react";
-import { useFocusVisible } from "./use-focus-visible";
 import type { FormEventHandler } from "react";
 import useEffectEvent from "./use-effect-event";
 
@@ -306,7 +305,6 @@ function GridListInner({
   const { containerRef, isFocusWithinContainer } = useGridListState();
   const dispatch = useGridListDispatch();
   const { lastFocusedRowId } = useGridListState();
-  const { isFocusVisible } = useFocusVisible();
 
   const focusRow = useFocusRow();
   // Helper function to focus the first row
@@ -403,16 +401,12 @@ function GridListInner({
     };
   }, [lastFocusedRowId, focusRow, focusFirstRow, dispatch, containerRef]);
 
-  // Check if the grid has focus and focus is visible
-  const gridFocusVisible = isFocusWithinContainer && isFocusVisible;
-
   const innerProps = {
     ...divProps,
     className: cn("grid", className),
     role: "grid",
     tabIndex: -1,
     "data-focused": isFocusWithinContainer ? "true" : undefined,
-    "data-focus-visible": gridFocusVisible ? "true" : undefined,
   };
 
   return (
