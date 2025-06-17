@@ -1,0 +1,625 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+import { Slot } from "@radix-ui/react-slot";
+import {
+  useContext,
+  useEffect,
+  useId,
+  useCallback,
+  memo,
+  useMemo,
+  useState,
+  useRef,
+} from "react";
+import type { FormEventHandler } from "react";
+import useEffectEvent from "../use-effect-event";
+import { Checkbox } from "../checkbox";
+import type { SelectionAction, SelectionState } from "./types";
+import type { GridListRootProps, GridListRowProps } from "./types";
+import {
+  GridDataProvider,
+  SelectionStateProvider,
+  GridListStateProvider,
+  ControlledValueContext,
+  RowContext,
+  GridListBodyContext,
+  SelectionIndicatorContext,
+  useSelectionState,
+  useSelectedRows,
+  useGridDataState,
+  useSelectionDispatch,
+  useGridListState,
+  useGridListDispatch,
+  selectionReducer,
+} from "./state";
+import {
+  useRegisterRow,
+  useFocusRow,
+  useFocusFirstRow,
+  useHandleTab,
+  useHandleShiftTab,
+  useHandleUpArrow,
+  useHandleDownArrow,
+  useHandleLeftArrow,
+  useHandleRightArrow,
+  useHandleSpacebar,
+  useGridListTabIndexManager,
+} from "./hooks";
+
+export function GridListRoot({
+  children,
+  className,
+  cycleRowFocus = false,
+  selectionMode = "none",
+  name,
+  required = false,
+  initialValue,
+  value,
+  onValueChange,
+  onInvalid,
+  ...divProps
+}: GridListRootProps) {
+  const isControlled = typeof value !== "undefined";
+  const startRef = useRef<HTMLSpanElement>(null);
+  const endRef = useRef<HTMLSpanElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
+
+  const onValueChangeEvent = useEffectEvent((value: string | string[]) => {
+    if (typeof onValueChange === "function") {
+      // biome-ignore lint/suspicious/noExplicitAny: we know if this is a string or string[] already
+      onValueChange(value as any);
+    }
+  });
+
+  // Create initial selectedRows set based on initialValue (only used once, not reactive)
+  const [initialSelectedRows] = useState(() => {
+    const actualInitialValue =
+      typeof value !== "undefined" ? value : initialValue;
+
+    if (!actualInitialValue || selectionMode === "none") {
+      return new Set<string>();
+    }
+
+    if (selectionMode === "single") {
+      return typeof actualInitialValue === "string"
+        ? new Set<string>([actualInitialValue])
+        : new Set<string>();
+    }
+
+    if (selectionMode === "multiple") {
+      return Array.isArray(actualInitialValue)
+        ? new Set<string>(actualInitialValue)
+        : new Set<string>();
+    }
+
+    return new Set<string>();
+  });
+
+  const selectionMiddleware = useCallback(
+    (
+      dispatch: ReturnType<typeof useSelectionDispatch>,
+      getNextState: (action: SelectionAction) => SelectionState,
+    ) =>
+      (action: SelectionAction) => {
+        // If controlled, don't dispatch to internal state
+        if (typeof value !== "undefined") {
+          // apply the reducer logic on the controlled state
+          const state = selectionReducer(
+            {
+              selectionMode,
+              selectedRows: new Set(value),
+            },
+            action,
+          );
+
+          const selectedArray = Array.from(state.selectedRows);
+          const valueToEmit =
+            selectionMode === "multiple"
+              ? selectedArray
+              : selectedArray[0] || "";
+          onValueChangeEvent(valueToEmit);
+
+          return;
+        }
+
+        // Apply the action to get the next state
+        dispatch(action);
+        const state = getNextState(action);
+        console.log("not controlled", state);
+        const selectedArray = Array.from(state.selectedRows);
+        const valueToEmit =
+          selectionMode === "multiple" ? selectedArray : selectedArray[0] || "";
+        onValueChangeEvent(valueToEmit);
+      },
+    [onValueChangeEvent, selectionMode, value],
+  );
+
+  const reactiveValue = useMemo(() => {
+    if (typeof value === "undefined") return new Set<string>();
+    if (Array.isArray(value)) return new Set<string>(value);
+    return new Set<string>([value]);
+  }, [value]);
+
+  const listInner = (
+    <GridListInner className={className} {...divProps}>
+      <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
+      {children}
+      <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
+      <HiddenSelectionInput selectRef={selectRef} onInvalid={onInvalid} />
+    </GridListInner>
+  );
+
+  const optionalControlled = isControlled ? (
+    <ControlledValueContext value={reactiveValue}>
+      {listInner}
+    </ControlledValueContext>
+  ) : (
+    listInner
+  );
+
+  return (
+    <GridDataProvider>
+      <SelectionStateProvider
+        selectionMode={selectionMode}
+        selectedRows={initialSelectedRows}
+        middleware={selectionMiddleware}
+      >
+        <GridListStateProvider
+          startRef={startRef}
+          endRef={endRef}
+          containerRef={containerRef}
+          cycleRowFocus={cycleRowFocus}
+          name={name}
+          required={required}
+        >
+          {optionalControlled}
+        </GridListStateProvider>
+      </SelectionStateProvider>
+    </GridDataProvider>
+  );
+}
+
+function GridListInner({
+  children,
+  className,
+  ...divProps
+}: {
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
+  const { containerRef, isFocusWithinContainer } = useGridListState();
+  const dispatch = useGridListDispatch();
+  const { lastFocusedRowId } = useGridListState();
+
+  const focusRow = useFocusRow();
+  // Helper function to focus the first row
+  const focusFirstRow = useFocusFirstRow();
+
+  // Effect to validate the currently focused row still exists
+  useEffect(() => {
+    if (!lastFocusedRowId || !containerRef?.current) return;
+
+    const rowElement = containerRef.current.querySelector(
+      `[data-row-id="${lastFocusedRowId}"]`,
+    );
+    if (!rowElement) {
+      // If the focused row no longer exists, clear the focus
+      dispatch({
+        type: "setLastFocusedRow",
+        rowId: null,
+      });
+    }
+  }, [lastFocusedRowId, containerRef, dispatch]);
+
+  useHandleTab();
+  useHandleShiftTab();
+  useHandleUpArrow();
+  useHandleDownArrow();
+  useHandleLeftArrow();
+  useHandleRightArrow();
+  useHandleSpacebar();
+
+  // Focus management for entering the grid
+  useEffect(() => {
+    const container = containerRef?.current;
+    if (!container) return;
+
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as Element;
+      if (!target || !container.contains(target)) return;
+
+      // Set focus within container to true
+      dispatch({
+        type: "setFocusWithinContainer",
+        isFocusWithinContainer: true,
+      });
+
+      // Track which row is currently focused
+      const rowElement = target.closest("[data-row-id]");
+      if (rowElement) {
+        const rowId = rowElement.getAttribute("data-row-id");
+        if (rowId && rowId !== lastFocusedRowId) {
+          if (focusRow(rowId)) {
+            return;
+          }
+        }
+      }
+
+      // Check if focus is coming from outside the grid
+      const relatedTarget = event.relatedTarget as Element;
+      const focusComingFromOutside =
+        !relatedTarget || !container.contains(relatedTarget);
+
+      if (focusComingFromOutside) {
+        // Try to restore focus to the previously focused row
+        if (lastFocusedRowId && focusRow(lastFocusedRowId)) {
+          return;
+        }
+        // If no previously focused row or it doesn't exist, focus the first row
+        focusFirstRow();
+        return;
+      }
+    };
+
+    const handleFocusOut = (event: FocusEvent) => {
+      const target = event.target as Element;
+      const relatedTarget = event.relatedTarget as Element;
+
+      // Check if focus is leaving the container
+      if (
+        target &&
+        container.contains(target) &&
+        (!relatedTarget || !container.contains(relatedTarget))
+      ) {
+        dispatch({
+          type: "setFocusWithinContainer",
+          isFocusWithinContainer: false,
+        });
+      }
+    };
+
+    container.addEventListener("focusin", handleFocusIn);
+    container.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      container.removeEventListener("focusin", handleFocusIn);
+      container.removeEventListener("focusout", handleFocusOut);
+    };
+  }, [lastFocusedRowId, focusRow, focusFirstRow, dispatch, containerRef]);
+
+  const innerProps = {
+    ...divProps,
+    className: cn("grid", className),
+    role: "grid",
+    tabIndex: -1,
+    "data-focused": isFocusWithinContainer ? "true" : undefined,
+  };
+
+  useGridListTabIndexManager(children);
+
+  return (
+    <div {...innerProps} ref={containerRef}>
+      {children}
+    </div>
+  );
+}
+
+function HiddenSelectionInput({
+  selectRef,
+  onInvalid,
+}: {
+  selectRef: React.RefObject<HTMLSelectElement | null>;
+  onInvalid?: FormEventHandler<HTMLSelectElement>;
+}) {
+  const { selectionMode } = useSelectionState();
+  const { name, required } = useGridListState();
+  const selectedRows = useSelectedRows();
+
+  if (selectionMode === "none" || !name) {
+    return null;
+  }
+
+  const selectedArray = Array.from(selectedRows);
+  const isMultiple = selectionMode === "multiple";
+  const selectValue = isMultiple ? selectedArray : selectedArray[0] || "";
+
+  return (
+    <select
+      hidden
+      ref={selectRef}
+      name={name}
+      multiple={isMultiple}
+      value={selectValue}
+      onChange={() => {}}
+      onInvalid={onInvalid}
+      required={required}
+      tabIndex={-1}
+      aria-hidden="true"
+    >
+      {selectedArray.map((value) => (
+        <option key={value} value={value}>
+          {value}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+export function GridListHeader({
+  children,
+  className,
+  ...divProps
+}: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  const dispatch = useSelectionDispatch();
+  const { rows } = useGridDataState();
+  const { selectionMode } = useSelectionState();
+  const selectedRows = useSelectedRows();
+
+  const headerElem = (
+    <header
+      className={cn("grid col-span-full grid-cols-subgrid", className)}
+      {...divProps}
+    >
+      {children}
+    </header>
+  );
+
+  // only wrap the context if we are in multiple selection mode
+  if (selectionMode !== "multiple") {
+    return headerElem;
+  }
+
+  // Only consider selectable rows (not disabled or read-only)
+  const selectableRows = rows.filter((row) => !row.disabled && !row.readOnly);
+  const selectableRowIds = selectableRows.map((row) => row.rowId);
+
+  // Count how many selectable rows are currently selected
+  const selectedSelectableRowsCount = selectableRowIds.filter((rowId) =>
+    selectedRows.has(rowId),
+  ).length;
+
+  const isEmpty = selectedSelectableRowsCount === 0;
+  const isAllSelected =
+    !isEmpty && selectedSelectableRowsCount === selectableRows.length;
+
+  const isIndeterminate = !isEmpty && !isAllSelected;
+
+  return (
+    <SelectionIndicatorContext
+      value={{
+        selected: isIndeterminate ? "indeterminate" : isAllSelected,
+        onCheckedChange: (isCheckingEverything) => {
+          // if isCheckingEverything is true, we need to check all selectable rows. Otherwise, we need to uncheck all rows.
+          if (isCheckingEverything) {
+            dispatch({
+              type: "selectAllRows",
+              allRows: rows,
+            });
+          } else {
+            dispatch({ type: "clearSelection", rows });
+          }
+        },
+      }}
+    >
+      {headerElem}
+    </SelectionIndicatorContext>
+  );
+}
+
+export function GridListBody({
+  children,
+  className,
+  ...divProps
+}: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <GridListBodyContext value={true}>
+      <div
+        className={cn("grid col-span-full grid-cols-subgrid", className)}
+        {...divProps}
+      >
+        {children}
+      </div>
+    </GridListBodyContext>
+  );
+}
+
+export function GridListFooter({
+  children,
+  className,
+  ...divProps
+}: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <footer
+      className={cn("grid col-span-full grid-cols-subgrid", className)}
+      {...divProps}
+    >
+      {children}
+    </footer>
+  );
+}
+
+export const GridListRow = memo(function GridListRow({
+  children,
+  className,
+  asChild,
+  rowId,
+  readOnly,
+  disabled,
+  ...divProps
+}: GridListRowProps) {
+  const state = useGridListState();
+  const selectionDispatch = useSelectionDispatch();
+  const { selectionMode } = useSelectionState();
+  const selectedRows = useSelectedRows();
+  const isLastFocusedRow = state.lastFocusedRowId === rowId;
+
+  const autoGeneratedRowId = useId();
+  const actualRowId = rowId ?? autoGeneratedRowId;
+
+  // Only show as focused when the row element itself is the active element
+  const isFocused =
+    isLastFocusedRow &&
+    state.isFocusWithinContainer &&
+    document.activeElement?.getAttribute("data-row-id") === rowId;
+
+  // Check if row is selected
+  const isRowSelected =
+    selectionMode !== "none" && selectedRows.has(actualRowId);
+
+  const rowProps: React.HTMLAttributes<HTMLDivElement> & {
+    "data-row-id": string;
+    "data-focused"?: string;
+    "data-restore-focus"?: string;
+    "data-selected"?: string;
+    "data-readonly"?: string;
+    "data-disabled"?: string;
+  } = {
+    ...divProps,
+    role: "row",
+    tabIndex: disabled ? -1 : isLastFocusedRow ? 0 : -1,
+    className: cn("grid col-span-full grid-cols-subgrid", className),
+    "aria-selected": selectionMode !== "none" ? isRowSelected : undefined,
+    "data-row-id": actualRowId,
+    "data-focused": isFocused ? "true" : undefined,
+    "data-restore-focus": isLastFocusedRow ? "true" : undefined,
+    "data-selected": isRowSelected ? "true" : undefined,
+    "data-readonly": readOnly ? "true" : undefined,
+    "data-disabled": disabled ? "true" : undefined,
+  };
+
+  useRegisterRow(actualRowId, readOnly, disabled);
+
+  const rowContextValue = useMemo(() => {
+    return {
+      rowId: actualRowId,
+    };
+  }, [actualRowId]);
+
+  const rowElem = asChild ? (
+    <Slot {...rowProps}>{children}</Slot>
+  ) : (
+    <div {...rowProps}>{children}</div>
+  );
+
+  const contextWrappedElem = (
+    <RowContext value={rowContextValue}>{rowElem}</RowContext>
+  );
+
+  if (selectionMode === "none") {
+    return contextWrappedElem;
+  }
+
+  const selectionCtxValue = useMemo(() => {
+    return {
+      selected: isRowSelected,
+      onCheckedChange: () => {
+        if (disabled || readOnly) return;
+        console.log(
+          "onCheckedChange #%s : %s -> %s",
+          actualRowId,
+          isRowSelected,
+          !isRowSelected,
+        );
+        if (isRowSelected) {
+          selectionDispatch({ type: "deselectRow", rowId: actualRowId });
+        } else {
+          selectionDispatch({ type: "selectRow", rowId: actualRowId });
+        }
+      },
+    };
+  }, [selectionDispatch, actualRowId, isRowSelected, disabled, readOnly]);
+
+  return (
+    <SelectionIndicatorContext value={selectionCtxValue}>
+      {contextWrappedElem}
+    </SelectionIndicatorContext>
+  );
+});
+
+export function GridListItemIndicatorRoot({
+  children,
+  className,
+  ...buttonProps
+}: {
+  children?: React.ReactNode;
+  onCheckedChange?: (checked: boolean) => void;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  const rowContext = useContext(RowContext);
+
+  if (!rowContext) {
+    throw new Error(
+      "GridListItemIndicatorRoot must be used within a GridListRow",
+    );
+  }
+
+  const { selected, onCheckedChange } = useContext(SelectionIndicatorContext);
+
+  if (!children) {
+    // render default checkbox
+    return <Checkbox checked={selected} onCheckedChange={onCheckedChange} />;
+  }
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        "cursor-pointer border-none bg-transparent p-0 m-0",
+        className,
+      )}
+      onClick={(event) => {
+        onCheckedChange(selected === "indeterminate" ? false : !selected);
+        buttonProps.onClick?.(event);
+      }}
+      {...buttonProps}
+    >
+      {children}
+    </button>
+  );
+}
+
+function IndicatorState({
+  children,
+  when,
+}: {
+  children: React.ReactNode;
+  when: "selected" | "unselected" | "indeterminate";
+}) {
+  const { selected } = useContext(SelectionIndicatorContext);
+  const isIndeterminate = selected === "indeterminate";
+
+  const shouldShow =
+    (when === "selected" && selected && !isIndeterminate) ||
+    (when === "unselected" && !selected && !isIndeterminate) ||
+    (when === "indeterminate" && selected === "indeterminate");
+
+  if (!shouldShow) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+export function GridListItemSelectedIndicator({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <IndicatorState when="selected">{children}</IndicatorState>;
+}
+
+export function GridListItemUnselectedIndicator({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <IndicatorState when="unselected">{children}</IndicatorState>;
+}
+
+export function GridListItemIndeterminateIndicator({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <IndicatorState when="indeterminate">{children}</IndicatorState>;
+}
