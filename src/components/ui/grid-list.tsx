@@ -840,6 +840,7 @@ export const GridListRow = memo(function GridListRow({
     role: "row",
     tabIndex: disabled ? -1 : isLastFocusedRow ? 0 : -1,
     className: cn("grid col-span-full grid-cols-subgrid", className),
+    "aria-selected": selectionMode !== "none" ? isRowSelected : undefined,
     "data-row-id": actualRowId,
     "data-focused": isFocused ? "true" : undefined,
     "data-restore-focus": isLastFocusedRow ? "true" : undefined,
