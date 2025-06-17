@@ -403,13 +403,8 @@ function GridListInner({
     };
   }, [lastFocusedRowId, focusRow, focusFirstRow, dispatch, containerRef]);
 
-  // Check if a row is currently focused and focus is visible
-  const activeElement =
-    typeof document !== "undefined" ? document.activeElement : null;
-  const isRowFocused =
-    activeElement?.getAttribute("data-row-id") &&
-    lastFocusedRowId === activeElement.getAttribute("data-row-id");
-  const gridFocusVisible = isRowFocused && isFocusVisible;
+  // Check if the grid has focus and focus is visible
+  const gridFocusVisible = isFocusWithinContainer && isFocusVisible;
 
   const innerProps = {
     ...divProps,
