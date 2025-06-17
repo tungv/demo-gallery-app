@@ -185,16 +185,28 @@ const [GridListStateProvider, useGridListState, useGridListDispatch] =
     return state;
   }, defaultGridState);
 
+const RowContext = createContext<{
+  rowId: string;
+}>({
+  rowId: "",
+});
+
+const GridListBodyContext = createContext<boolean>(false);
+
 function useRegisterRow(rowId: string) {
   const dispatch = useGridDataDispatch();
+  const isInsideBody = useContext(GridListBodyContext);
 
   useEffect(() => {
+    // Only register rows that are inside GridListBody
+    if (!isInsideBody) return;
+
     dispatch({ type: "addRow", rowId });
 
     return () => {
       dispatch({ type: "removeRow", rowId });
     };
-  }, [dispatch, rowId]);
+  }, [dispatch, rowId, isInsideBody]);
 }
 
 // Helper function to get all tabbable elements
@@ -533,12 +545,14 @@ export function GridListBody({
   ...divProps
 }: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={cn("grid col-span-full grid-cols-subgrid", className)}
-      {...divProps}
-    >
-      {children}
-    </div>
+    <GridListBodyContext value={true}>
+      <div
+        className={cn("grid col-span-full grid-cols-subgrid", className)}
+        {...divProps}
+      >
+        {children}
+      </div>
+    </GridListBodyContext>
   );
 }
 
@@ -556,12 +570,6 @@ export function GridListFooter({
     </footer>
   );
 }
-
-const RowContext = createContext<{
-  rowId: string;
-}>({
-  rowId: "",
-});
 
 export const GridListRow = memo(function GridListRow({
   children,
@@ -603,16 +611,26 @@ export const GridListRow = memo(function GridListRow({
 
   useRegisterRow(actualRowId);
 
+  const rowContextValue = useMemo(() => {
+    return {
+      rowId: actualRowId,
+    };
+  }, [actualRowId]);
+
   const rowElem = asChild ? (
     <Slot {...rowProps}>{children}</Slot>
   ) : (
     <div {...rowProps}>{children}</div>
   );
 
+  const contextWrappedElem = (
+    <RowContext value={rowContextValue}>{rowElem}</RowContext>
+  );
+
   const { selectionMode, selectedRows } = state;
 
   if (selectionMode === "none") {
-    return rowElem;
+    return contextWrappedElem;
   }
 
   const isRowSelected = selectedRows.has(actualRowId);
@@ -628,7 +646,7 @@ export const GridListRow = memo(function GridListRow({
 
   return (
     <SelectionIndicatorContext value={selectionCtxValue}>
-      {rowElem}
+      {contextWrappedElem}
     </SelectionIndicatorContext>
   );
 });
