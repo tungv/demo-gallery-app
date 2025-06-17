@@ -15,6 +15,7 @@ import {
 } from "react";
 import type { FormEventHandler } from "react";
 import useEffectEvent from "./use-effect-event";
+import { Checkbox } from "./checkbox";
 
 // Grid Data Types - for managing row data
 type GridDataState = {
@@ -608,6 +609,126 @@ export function GridListCheckbox({
   }
 
   return <input {...checkboxProps} />;
+}
+
+const SelectionIndicatorContext = createContext<{
+  isSelected: boolean;
+  isIndeterminate: boolean;
+}>({
+  isSelected: false,
+  isIndeterminate: false,
+});
+
+export function GridListItemIndicatorRoot({
+  children,
+  className,
+  onCheckedChange,
+  ...buttonProps
+}: {
+  children?: React.ReactNode;
+  onCheckedChange?: (checked: boolean) => void;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  const { selectedRows, selectionMode } = useGridListState();
+  const dispatch = useGridListDispatch();
+  const rowContext = useContext(RowContext);
+
+  if (!rowContext.rowId) {
+    throw new Error(
+      "GridListItemIndicatorRoot must be used within a GridListRow",
+    );
+  }
+
+  const { rowId } = rowContext;
+  const isSelected = selectedRows.has(rowId);
+
+  // For now, we don't have indeterminate state logic, but we can add it later
+  const isIndeterminate = false;
+
+  if (!children) {
+    // render default checkbox
+    return (
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={() => {
+          if (selectionMode !== "none") {
+            dispatch({ type: "toggleRowSelection", rowId });
+          }
+        }}
+      />
+    );
+  }
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (selectionMode !== "none") {
+      dispatch({
+        type: "toggleRowSelection",
+        rowId,
+      });
+    }
+    onCheckedChange?.(isSelected);
+    buttonProps.onClick?.(event);
+  };
+
+  return (
+    <SelectionIndicatorContext value={{ isSelected, isIndeterminate }}>
+      <button
+        type="button"
+        className={cn(
+          "cursor-pointer border-none bg-transparent p-0 m-0",
+          className,
+        )}
+        onClick={handleClick}
+        {...buttonProps}
+      >
+        {children}
+      </button>
+    </SelectionIndicatorContext>
+  );
+}
+
+function IndicatorState({
+  children,
+  when,
+}: {
+  children: React.ReactNode;
+  when: "selected" | "unselected" | "indeterminate";
+}) {
+  const { isSelected, isIndeterminate } = useContext(SelectionIndicatorContext);
+
+  const shouldShow =
+    (when === "selected" && isSelected && !isIndeterminate) ||
+    (when === "unselected" && !isSelected && !isIndeterminate) ||
+    (when === "indeterminate" && isIndeterminate);
+
+  if (!shouldShow) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+export function GridListItemSelectedIndicator({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <IndicatorState when="selected">{children}</IndicatorState>;
+}
+
+export function GridListItemUnselectedIndicator({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <IndicatorState when="unselected">{children}</IndicatorState>;
+}
+
+export function GridListItemIndeterminateIndicator({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <IndicatorState when="indeterminate">{children}</IndicatorState>;
 }
 
 export const Debugger = memo(function Debugger() {

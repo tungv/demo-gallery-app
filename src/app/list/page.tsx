@@ -6,10 +6,23 @@ import {
   GridListCheckbox,
   GridListFooter,
   GridListHeader,
+  GridListItemIndicatorRoot,
+  GridListItemSelectedIndicator,
+  GridListItemUnselectedIndicator,
+  GridListItemIndeterminateIndicator,
   GridListRoot,
   GridListRow,
 } from "@/components/ui/grid-list";
-import { PlusIcon, TrashIcon } from "lucide-react";
+import {
+  CheckCheckIcon,
+  CheckIcon,
+  CheckSquare,
+  CheckSquare2,
+  MinusSquareIcon,
+  PlusIcon,
+  Square,
+  TrashIcon,
+} from "lucide-react";
 
 export default function ListPage() {
   return (
@@ -79,13 +92,13 @@ export default function ListPage() {
         </GridListHeader>
         <GridListBody>
           <GridListRow asChild rowId="1">
-            <CustomRowWithCheckbox />
+            <CustomRowWithTraditionalCheckbox />
           </GridListRow>
           <GridListRow asChild rowId="2">
-            <CustomRowWithCheckbox />
+            <CustomRowWithTraditionalCheckbox />
           </GridListRow>
           <GridListRow asChild rowId="3">
-            <CustomRowWithCheckbox />
+            <CustomRowWithTraditionalCheckbox />
           </GridListRow>
         </GridListBody>
         <GridListFooter>
@@ -151,17 +164,56 @@ function CustomRow() {
   );
 }
 
+function CustomCheckbox() {
+  return (
+    <GridListItemIndicatorRoot>
+      <GridListItemSelectedIndicator>
+        <CheckSquare2 />
+      </GridListItemSelectedIndicator>
+      <GridListItemUnselectedIndicator>
+        <Square />
+      </GridListItemUnselectedIndicator>
+      <GridListItemIndeterminateIndicator>
+        <MinusSquareIcon />
+      </GridListItemIndeterminateIndicator>
+    </GridListItemIndicatorRoot>
+  );
+}
+
 function CustomRowWithCheckbox() {
   return (
     <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8">
       <div className="p-1">
-        <GridListCheckbox
-          asChild
-          checkedPropName="checked"
-          onChangePropName="onCheckedChange"
+        <CustomCheckbox />
+      </div>
+
+      <h2 className="p-1 font-medium">row title</h2>
+
+      <span className="p-1 tabular-nums">10,000,000</span>
+
+      <div className="flex gap-x-2 items-center">
+        <Button className="focus-visible:outline-2 outline-primary">
+          <PlusIcon />
+          <span>Add</span>
+        </Button>
+
+        <Button
+          variant="destructive"
+          className="focus-visible:outline-2 outline-primary"
         >
-          <Checkbox />
-        </GridListCheckbox>
+          <TrashIcon />
+          <span>Remove</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CustomRowWithTraditionalCheckbox() {
+  return (
+    <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8">
+      <div className="p-1">
+        <GridListItemIndicatorRoot />
       </div>
 
       <h2 className="p-1 font-medium">row title</h2>
