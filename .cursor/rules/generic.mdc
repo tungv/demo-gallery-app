@@ -1,0 +1,15 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+
+# Package manager
+
+We use bun
+
+# During development
+
+- try not to start another dev server while editing the code
+- try not to run build command while a dev server is running
