@@ -361,13 +361,15 @@ export function GridListHeader({
   const { selectionMode } = useSelectionState();
   const selectedRows = useSelectedRows();
 
+  const headerProps = {
+    ...divProps,
+    role: "rowgroup",
+  };
+
   const headerElem = (
     <header
       className={cn("grid col-span-full grid-cols-subgrid", className)}
-      {...divProps}
-      // FIXME: HIGH PRIORITY - Add WAI-ARIA rowgroup role
-      // This header should have role="rowgroup" for proper grid structure
-      // role="rowgroup"
+      {...headerProps}
     >
       {children}
     </header>
@@ -420,14 +422,15 @@ export function GridListBody({
   className,
   ...divProps
 }: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  const bodyProps = {
+    ...divProps,
+    role: "rowgroup",
+  };
   return (
     <GridListBodyContext value={true}>
       <div
         className={cn("grid col-span-full grid-cols-subgrid", className)}
-        {...divProps}
-        // FIXME: HIGH PRIORITY - Add WAI-ARIA rowgroup role
-        // This body should have role="rowgroup" for proper grid structure
-        // role="rowgroup"
+        {...bodyProps}
       >
         {children}
       </div>
@@ -440,13 +443,14 @@ export function GridListFooter({
   className,
   ...divProps
 }: { children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  const footerProps = {
+    ...divProps,
+    role: "rowgroup",
+  };
   return (
     <footer
       className={cn("grid col-span-full grid-cols-subgrid", className)}
-      {...divProps}
-      // FIXME: HIGH PRIORITY - Add WAI-ARIA rowgroup role
-      // This footer should have role="rowgroup" for proper grid structure
-      // role="rowgroup"
+      {...footerProps}
     >
       {children}
     </footer>
