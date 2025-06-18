@@ -81,6 +81,30 @@ export type GridAction =
 			isFocusWithinContainer: boolean;
 	  };
 
+// Grid Labeling State Types - for managing ARIA labels and descriptions
+export type GridLabelingState = {
+	labelIds: string[];
+	captionIds: string[];
+};
+
+export type GridLabelingAction =
+	| {
+			type: "addLabel";
+			id: string;
+	  }
+	| {
+			type: "removeLabel";
+			id: string;
+	  }
+	| {
+			type: "addCaption";
+			id: string;
+	  }
+	| {
+			type: "removeCaption";
+			id: string;
+	  };
+
 export type ValueOnChangeMode =
 	| {
 			selectionMode: "multiple";
@@ -108,10 +132,10 @@ export type GridListRootProps = {
 	name?: string;
 	required?: boolean;
 	onInvalid?: FormEventHandler<HTMLSelectElement>;
-	// FIXME: HIGH PRIORITY - Add WAI-ARIA labeling props for grid accessibility
-	// ariaLabel?: string;
-	// ariaLabelledBy?: string;
-	// ariaDescribedBy?: string;
+	// WAI-ARIA labeling props for grid accessibility
+	"aria-label"?: string;
+	"aria-labelledby"?: string;
+	"aria-describedby"?: string;
 	// FIXME: MEDIUM PRIORITY - Add sorting support props
 	// sortBy?: string;
 	// sortDirection?: "ascending" | "descending" | "none";
@@ -154,4 +178,14 @@ export type GridListRowHeaderProps = {
 	rowSpan?: number;
 	asChild?: boolean;
 	scope?: "row" | "rowgroup";
+} & React.HTMLAttributes<HTMLDivElement>;
+
+export type GridListTitleProps = {
+	children: React.ReactNode;
+	asChild?: boolean;
+} & React.HTMLAttributes<HTMLHeadingElement>;
+
+export type GridListCaptionProps = {
+	children: React.ReactNode;
+	asChild?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;

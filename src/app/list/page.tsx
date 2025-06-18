@@ -4,6 +4,8 @@ import {
   GridListBody,
   GridListFooter,
   GridListHeader,
+  GridListTitle,
+  GridListCaption,
   GridListItemIndicatorRoot,
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
@@ -35,11 +37,13 @@ export default function ListPage() {
         initialValue="2"
         cycleRowFocus
       >
-        <GridListHeader>
-          <h2 className="text-sm font-medium col-span-full">
-            Single selection
-          </h2>
-        </GridListHeader>
+        <GridListTitle className="col-span-full p-2">
+          Single Selection Example
+        </GridListTitle>
+        <GridListCaption className="col-span-full px-2 pb-2">
+          This table demonstrates single row selection. Use arrow keys to
+          navigate and spacebar to select.
+        </GridListCaption>
         <GridListHeader className="p-1 gap-x-8">
           <GridListRow>
             <GridListColumnHeader className="text-sm font-medium">
@@ -79,11 +83,13 @@ export default function ListPage() {
         initialValue={["4", "6"]}
         required
       >
-        <GridListHeader>
-          <h2 className="text-sm font-medium col-span-full p-2">
-            Multiple selection
-          </h2>
-        </GridListHeader>
+        <GridListTitle className="col-span-full p-2">
+          Multiple Selection Example
+        </GridListTitle>
+        <GridListCaption className="col-span-full px-2 pb-2">
+          Select multiple rows using checkboxes or spacebar. Header checkbox
+          selects/deselects all.
+        </GridListCaption>
         <GridListHeader className="p-1 gap-x-8">
           <GridListRow>
             <GridListColumnHeader className="text-sm font-medium px-1">
@@ -126,11 +132,13 @@ export default function ListPage() {
         name="disabled-readonly-example"
         initialValue={["8", "10"]}
       >
-        <GridListHeader>
-          <h2 className="text-sm font-medium col-span-full p-2">
-            Disabled and Read-only Rows (Try spacebar to toggle selection)
-          </h2>
-        </GridListHeader>
+        <GridListTitle className="col-span-full p-2">
+          Disabled and Read-only Rows
+        </GridListTitle>
+        <GridListCaption className="col-span-full px-2 pb-2">
+          This example shows disabled and read-only rows. Try using spacebar to
+          toggle selection on different row types.
+        </GridListCaption>
         <GridListHeader className="p-1 gap-x-8">
           <GridListRow>
             <GridListColumnHeader className="text-sm font-medium px-1">

@@ -21,11 +21,14 @@ import type {
   GridListRowProps,
   GridListColumnHeaderProps,
   GridListRowHeaderProps,
+  GridListTitleProps,
+  GridListCaptionProps,
 } from "./types";
 import {
   GridDataProvider,
   SelectionStateProvider,
   GridListStateProvider,
+  GridLabelingProvider,
   ControlledValueContext,
   RowContext,
   GridListBodyContext,
@@ -36,6 +39,8 @@ import {
   useSelectionDispatch,
   useGridListState,
   useGridListDispatch,
+  useGridLabelingState,
+  useGridLabelingDispatch,
   selectionReducer,
 } from "./state";
 import {
@@ -63,6 +68,9 @@ export function GridListRoot({
   value,
   onValueChange,
   onInvalid,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledby,
+  "aria-describedby": ariaDescribedby,
   ...divProps
 }: GridListRootProps) {
   const isControlled = typeof value !== "undefined";
@@ -144,7 +152,13 @@ export function GridListRoot({
   }, [value]);
 
   const listInner = (
-    <GridListInner className={className} {...divProps}>
+    <GridListInner
+      className={className}
+      ariaLabel={ariaLabel}
+      ariaLabelledby={ariaLabelledby}
+      ariaDescribedby={ariaDescribedby}
+      {...divProps}
+    >
       <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
       {children}
       <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
@@ -175,7 +189,7 @@ export function GridListRoot({
           name={name}
           required={required}
         >
-          {optionalControlled}
+          <GridLabelingProvider>{optionalControlled}</GridLabelingProvider>
         </GridListStateProvider>
       </SelectionStateProvider>
     </GridDataProvider>
@@ -185,9 +199,15 @@ export function GridListRoot({
 function GridListInner({
   children,
   className,
+  ariaLabel,
+  ariaLabelledby,
+  ariaDescribedby,
   ...divProps
 }: {
   children: React.ReactNode;
+  ariaLabel?: string;
+  ariaLabelledby?: string;
+  ariaDescribedby?: string;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const { containerRef, isFocusWithinContainer } = useGridListState();
   const dispatch = useGridListDispatch();
@@ -289,17 +309,28 @@ function GridListInner({
     };
   }, [lastFocusedRowId, focusRow, focusFirstRow, dispatch, containerRef]);
 
+  const { labelIds, captionIds } = useGridLabelingState();
+
+  // Combine manual ARIA props with registered label/caption IDs
+  const combinedLabelledBy =
+    [...(ariaLabelledby ? ariaLabelledby.split(/\s+/) : []), ...labelIds]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
+  const combinedDescribedBy =
+    [...(ariaDescribedby ? ariaDescribedby.split(/\s+/) : []), ...captionIds]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
   const innerProps = {
     ...divProps,
     className: cn("grid", className),
     role: "grid",
     tabIndex: -1,
     "data-focused": isFocusWithinContainer ? "true" : undefined,
-    // FIXME: HIGH PRIORITY - Add WAI-ARIA grid labeling support
-    // - Add aria-label or aria-labelledby prop to GridListRootProps
-    // - Add aria-describedby prop for captions/descriptions
-    // - Pass these through to the grid element
-    // Example: "aria-label": ariaLabel, "aria-labelledby": ariaLabelledBy, "aria-describedby": ariaDescribedBy
+    "aria-label": ariaLabel,
+    "aria-labelledby": combinedLabelledBy,
+    "aria-describedby": combinedDescribedBy,
   };
 
   useGridListTabIndexManager(children);
@@ -699,10 +730,7 @@ export function GridListColumnHeader({
   } = {
     ...divProps,
     role: "columnheader",
-    className: cn(
-      sortable && "cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50",
-      className,
-    ),
+    className: cn(sortable && "cursor-pointer", className),
     tabIndex: sortable ? 0 : undefined,
     onClick: sortable ? handleSort : divProps.onClick,
     onKeyDown: sortable
@@ -729,6 +757,66 @@ export function GridListColumnHeader({
   }
 
   return <div {...headerProps}>{children}</div>;
+}
+
+export function GridListTitle({
+  children,
+  className,
+  asChild,
+  ...headingProps
+}: GridListTitleProps) {
+  const id = useId();
+  const dispatch = useGridLabelingDispatch();
+
+  // Register this title ID when component mounts
+  useEffect(() => {
+    dispatch({ type: "addLabel", id });
+    return () => {
+      dispatch({ type: "removeLabel", id });
+    };
+  }, [dispatch, id]);
+
+  const titleProps = {
+    ...headingProps,
+    id,
+    className: cn("text-lg font-semibold", className),
+  };
+
+  if (asChild) {
+    return <Slot {...titleProps}>{children}</Slot>;
+  }
+
+  return <h2 {...titleProps}>{children}</h2>;
+}
+
+export function GridListCaption({
+  children,
+  className,
+  asChild,
+  ...divProps
+}: GridListCaptionProps) {
+  const id = useId();
+  const dispatch = useGridLabelingDispatch();
+
+  // Register this caption ID when component mounts
+  useEffect(() => {
+    dispatch({ type: "addCaption", id });
+    return () => {
+      dispatch({ type: "removeCaption", id });
+    };
+  }, [dispatch, id]);
+
+  const captionProps = {
+    ...divProps,
+    id,
+    className: cn("text-sm text-muted-foreground", className),
+  };
+
+  if (asChild) {
+    return <Slot {...captionProps}>{children}</Slot>;
+  }
+
+  return <div {...captionProps}>{children}</div>;
 }
 
 export function GridListRowHeader({

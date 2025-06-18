@@ -25,6 +25,8 @@ export {
   GridListRow,
   GridListColumnHeader,
   GridListRowHeader,
+  GridListTitle,
+  GridListCaption,
   GridListItemIndicatorRoot,
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
@@ -37,6 +39,8 @@ export type {
   GridListRowProps,
   GridListColumnHeaderProps,
   GridListRowHeaderProps,
+  GridListTitleProps,
+  GridListCaptionProps,
 } from "./types";
 
 // FIXME: HIGH PRIORITY - Export new cell component types when created

@@ -9,6 +9,8 @@ import type {
 	SelectionAction,
 	GridState,
 	GridAction,
+	GridLabelingState,
+	GridLabelingAction,
 } from "./types";
 
 const defaultGridDataState: GridDataState = {
@@ -26,6 +28,11 @@ const defaultGridState: GridState = {
 	cycleRowFocus: false,
 	name: undefined,
 	required: false,
+};
+
+const defaultGridLabelingState: GridLabelingState = {
+	labelIds: [],
+	captionIds: [],
 };
 
 function gridDataReducer(
@@ -173,6 +180,42 @@ export function selectionReducer(
 	return state;
 }
 
+function gridLabelingReducer(
+	state: GridLabelingState,
+	action: GridLabelingAction,
+): GridLabelingState {
+	switch (action.type) {
+		case "addLabel":
+			if (state.labelIds.includes(action.id)) {
+				return state;
+			}
+			return {
+				...state,
+				labelIds: [...state.labelIds, action.id],
+			};
+		case "removeLabel":
+			return {
+				...state,
+				labelIds: state.labelIds.filter((id) => id !== action.id),
+			};
+		case "addCaption":
+			if (state.captionIds.includes(action.id)) {
+				return state;
+			}
+			return {
+				...state,
+				captionIds: [...state.captionIds, action.id],
+			};
+		case "removeCaption":
+			return {
+				...state,
+				captionIds: state.captionIds.filter((id) => id !== action.id),
+			};
+		default:
+			return state;
+	}
+}
+
 // Grid Data Provider
 export const [GridDataProvider, useGridDataState, useGridDataDispatch] =
 	createReducerContext(gridDataReducer, defaultGridDataState);
@@ -220,6 +263,13 @@ export const SelectionIndicatorContext = createContext<{
 	selected: false,
 	onCheckedChange: () => {},
 });
+
+// Grid Labeling Provider
+export const [
+	GridLabelingProvider,
+	useGridLabelingState,
+	useGridLabelingDispatch,
+] = createReducerContext(gridLabelingReducer, defaultGridLabelingState);
 
 // Internal hook for accessing selected rows
 export function useSelectedRows() {
