@@ -12,6 +12,7 @@ import {
   GridListRow,
   GridListColumnHeader,
 } from "@/components/ui/grid-list";
+import { cn } from "@/lib/utils";
 import {
   CheckSquare2,
   MinusSquareIcon,
@@ -19,6 +20,7 @@ import {
   Square,
   TrashIcon,
 } from "lucide-react";
+import type { HTMLAttributes } from "react";
 
 export default function ListPage() {
   return (
@@ -215,16 +217,20 @@ function CustomRowWithCheckboxAndTitle({
   title = "row title",
   readOnly = false,
   disabled = false,
+  ...divProps
 }: {
   title?: string;
   readOnly?: boolean;
   disabled?: boolean;
-}) {
+} & HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md ${
-        disabled ? "opacity-50 cursor-not-allowed" : ""
-      } ${readOnly ? "bg-gray-50" : ""}`}
+      className={cn(
+        "items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md",
+        disabled ? "opacity-50 cursor-not-allowed" : "",
+        readOnly ? "bg-gray-50" : "",
+      )}
+      {...divProps}
     >
       <div className="p-1">
         <CustomCheckbox />
@@ -256,9 +262,14 @@ function CustomRowWithCheckboxAndTitle({
   );
 }
 
-function CustomRowWithTraditionalCheckbox() {
+function CustomRowWithTraditionalCheckbox(
+  divProps: HTMLAttributes<HTMLDivElement>,
+) {
   return (
-    <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8 data-[selected=true]:bg-primary/10">
+    <div
+      className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8 data-[selected=true]:bg-primary/10"
+      {...divProps}
+    >
       <div className="p-1">
         <GridListItemIndicatorRoot />
       </div>
