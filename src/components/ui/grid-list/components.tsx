@@ -23,6 +23,7 @@ import type {
   GridListRowHeaderProps,
   GridListTitleProps,
   GridListCaptionProps,
+  GridListCellProps,
 } from "./types";
 import {
   GridDataProvider,
@@ -350,10 +351,10 @@ function HiddenSelectionInput({
   onInvalid?: FormEventHandler<HTMLSelectElement>;
 }) {
   const { selectionMode } = useSelectionState();
-  const { name, required } = useGridListState();
+  const { name, required, lastFocusedRowId } = useGridListState();
   const selectedRows = useSelectedRows();
 
-  if (selectionMode === "none" || !name) {
+  if (!name) {
     return null;
   }
 
@@ -362,24 +363,38 @@ function HiddenSelectionInput({
   const selectValue = isMultiple ? selectedArray : selectedArray[0] || "";
 
   return (
-    <select
-      hidden
-      ref={selectRef}
-      name={name}
-      multiple={isMultiple}
-      value={selectValue}
-      onChange={() => {}}
-      onInvalid={onInvalid}
-      required={required}
-      tabIndex={-1}
-      aria-hidden="true"
-    >
-      {selectedArray.map((value) => (
-        <option key={value} value={value}>
-          {value}
-        </option>
-      ))}
-    </select>
+    <>
+      {selectionMode !== "none" && (
+        <select
+          hidden
+          ref={selectRef}
+          name={name}
+          multiple={isMultiple}
+          value={selectValue}
+          onChange={() => {}}
+          onInvalid={onInvalid}
+          required={required}
+          tabIndex={-1}
+          aria-hidden="true"
+        >
+          {selectedArray.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      )}
+      {lastFocusedRowId && (
+        <input
+          hidden
+          name={`${name}.focused`}
+          value={lastFocusedRowId}
+          onChange={() => {}}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      )}
+    </>
   );
 }
 
@@ -779,7 +794,7 @@ export function GridListTitle({
   const titleProps = {
     ...headingProps,
     id,
-    className: cn("text-lg font-semibold", className),
+    className: cn("text-lg font-semibold col-span-full", className),
   };
 
   if (asChild) {
@@ -809,7 +824,7 @@ export function GridListCaption({
   const captionProps = {
     ...divProps,
     id,
-    className: cn("text-sm text-muted-foreground", className),
+    className: cn("text-sm text-muted-foreground col-span-full", className),
   };
 
   if (asChild) {
@@ -847,4 +862,23 @@ export function GridListRowHeader({
   }
 
   return <div {...headerProps}>{children}</div>;
+}
+
+export function GridListCell({
+  children,
+  className,
+  asChild,
+  ...divProps
+}: GridListCellProps) {
+  const cellProps: React.HTMLAttributes<HTMLDivElement> = {
+    ...divProps,
+    className,
+    role: "gridcell",
+  };
+
+  if (asChild) {
+    return <Slot {...cellProps}>{children}</Slot>;
+  }
+
+  return <div {...cellProps}>{children}</div>;
 }

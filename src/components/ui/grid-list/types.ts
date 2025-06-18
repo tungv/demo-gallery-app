@@ -119,7 +119,7 @@ export type ValueOnChangeMode =
 			onValueChange?: (value: string) => void;
 	  }
 	| {
-			selectionMode: "none";
+			selectionMode?: "none";
 			initialValue?: undefined;
 			value?: undefined;
 			onValueChange?: undefined;
@@ -186,6 +186,11 @@ export type GridListTitleProps = {
 } & React.HTMLAttributes<HTMLHeadingElement>;
 
 export type GridListCaptionProps = {
+	children: React.ReactNode;
+	asChild?: boolean;
+} & React.HTMLAttributes<HTMLDivElement>;
+
+export type GridListCellProps = {
 	children: React.ReactNode;
 	asChild?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
