@@ -36,18 +36,20 @@ export default function ListPage() {
           </h2>
         </GridListHeader>
         <GridListHeader className="p-1 gap-x-8">
-          <GridListColumnHeader className="text-sm font-medium">
-            Select
-          </GridListColumnHeader>
-          <GridListColumnHeader className="text-sm font-medium">
-            Title
-          </GridListColumnHeader>
-          <GridListColumnHeader className="text-sm font-medium">
-            Amount
-          </GridListColumnHeader>
-          <GridListColumnHeader className="text-sm font-medium">
-            actions
-          </GridListColumnHeader>
+          <GridListRow>
+            <GridListColumnHeader className="text-sm font-medium">
+              Select
+            </GridListColumnHeader>
+            <GridListColumnHeader className="text-sm font-medium">
+              Title
+            </GridListColumnHeader>
+            <GridListColumnHeader className="text-sm font-medium">
+              Amount
+            </GridListColumnHeader>
+            <GridListColumnHeader className="text-sm font-medium">
+              actions
+            </GridListColumnHeader>
+          </GridListRow>
         </GridListHeader>
         <GridListBody>
           <GridListRow asChild rowId="1">
@@ -78,22 +80,24 @@ export default function ListPage() {
           </h2>
         </GridListHeader>
         <GridListHeader className="p-1 gap-x-8">
-          <GridListColumnHeader className="text-sm font-medium">
-            Select
-          </GridListColumnHeader>
-          <GridListColumnHeader className="text-sm font-medium">
-            Title
-          </GridListColumnHeader>
-          <GridListColumnHeader
-            className="text-sm font-medium"
-            sortDirection="ascending"
-            sortable
-          >
-            Amount
-          </GridListColumnHeader>
-          <GridListColumnHeader className="text-sm font-medium">
-            actions
-          </GridListColumnHeader>
+          <GridListRow>
+            <GridListColumnHeader className="text-sm font-medium px-1">
+              <CustomCheckbox />
+            </GridListColumnHeader>
+            <GridListColumnHeader className="text-sm font-medium">
+              Title
+            </GridListColumnHeader>
+            <GridListColumnHeader
+              className="text-sm font-medium"
+              sortDirection="ascending"
+              sortable
+            >
+              Amount
+            </GridListColumnHeader>
+            <GridListColumnHeader className="text-sm font-medium">
+              actions
+            </GridListColumnHeader>
+          </GridListRow>
         </GridListHeader>
         <GridListBody className="divide-y border-y">
           <GridListRow asChild rowId="4">
@@ -154,28 +158,6 @@ export default function ListPage() {
           <GridListDebugger />
         </GridListFooter>
       </GridListRoot>
-    </div>
-  );
-}
-
-function CustomRow() {
-  return (
-    <div className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8">
-      <h2 className="p-1 font-medium">row title</h2>
-
-      <span className="p-1 tabular-nums">10,000,000</span>
-
-      <div className="flex gap-x-2 items-center">
-        <Button>
-          <PlusIcon />
-          <span>Add</span>
-        </Button>
-
-        <Button variant="destructive">
-          <TrashIcon />
-          <span>Remove</span>
-        </Button>
-      </div>
     </div>
   );
 }
