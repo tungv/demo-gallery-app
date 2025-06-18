@@ -19,13 +19,14 @@ interface TypedFormData<FieldNames extends string = string> extends FormData {
 
 export interface InteractiveFormResult<FieldNames extends string = string> {
   redirect?: string;
+  refresh?: boolean;
   /*
     errors is a record of field names and their errors
     this is useful for displaying errors for specific fields
     and for clearing errors when the form is reset
   */
   errors?: {
-    [fieldName in FieldNames]?: string[];
+    [fieldName in FieldNames | "$"]?: string[];
   };
   result?: unknown;
   nextElement?: ReactNode;
@@ -163,6 +164,11 @@ function InteractiveFormImpl<FieldNames extends string>({
 
             if ("redirect" in result && typeof result.redirect === "string") {
               router.push(result.redirect);
+              return;
+            }
+
+            if ("refresh" in result && result.refresh === true) {
+              router.refresh();
               return;
             }
 
