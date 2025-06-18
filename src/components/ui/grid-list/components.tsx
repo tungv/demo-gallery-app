@@ -70,10 +70,14 @@ export function GridListRoot({
   const containerRef = useRef<HTMLDivElement>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
 
-  const onValueChangeEvent = useEffectEvent((value: string | string[]) => {
+  const onValueChangeEvent = useEffectEvent((rows: Set<string>) => {
     if (typeof onValueChange === "function") {
+      const selectedArray = Array.from(rows);
+      const valueToEmit =
+        selectionMode === "multiple" ? selectedArray : selectedArray[0] || "";
+
       // biome-ignore lint/suspicious/noExplicitAny: we know if this is a string or string[] already
-      onValueChange(value as any);
+      onValueChange(valueToEmit as any);
     }
   });
 
@@ -118,12 +122,7 @@ export function GridListRoot({
             action,
           );
 
-          const selectedArray = Array.from(state.selectedRows);
-          const valueToEmit =
-            selectionMode === "multiple"
-              ? selectedArray
-              : selectedArray[0] || "";
-          onValueChangeEvent(valueToEmit);
+          onValueChangeEvent(state.selectedRows);
 
           return;
         }
@@ -132,10 +131,7 @@ export function GridListRoot({
         dispatch(action);
         const state = getNextState(action);
 
-        const selectedArray = Array.from(state.selectedRows);
-        const valueToEmit =
-          selectionMode === "multiple" ? selectedArray : selectedArray[0] || "";
-        onValueChangeEvent(valueToEmit);
+        onValueChangeEvent(state.selectedRows);
       },
     [onValueChangeEvent, selectionMode, value],
   );
