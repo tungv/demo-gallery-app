@@ -1,4 +1,8 @@
-import { Form } from "@/components/ui/form";
+import {
+  Form,
+  FormPendingMessage,
+  FormSubmitMessage,
+} from "@/components/ui/form";
 import {
   GridListBody,
   GridListColumnHeader,
@@ -24,6 +28,8 @@ import { ReserveLayout } from "@/components/ui/reserve-layout";
 import { getPeople } from "./query";
 import AddPersonDialog from "./AddPersonDialog";
 import { FormBoundary } from "@/components/behaviors/interactive-form";
+import { deletePeopleByIds } from "./actions";
+import { revalidatePath } from "next/cache";
 
 interface Person {
   id: string;
@@ -44,10 +50,11 @@ export default async function InteractiveFormInList() {
         <GridListRoot
           className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto] h-fit"
           selectionMode="multiple"
+          name="people-list"
         >
           <GridListTitle className="p-2">People</GridListTitle>
           <GridListCaption className="px-2 pb-2">
-            Manage your people list.
+            Showing {people.length} people.
           </GridListCaption>
 
           <GridListHeader>
@@ -66,7 +73,11 @@ export default async function InteractiveFormInList() {
           </GridListHeader>
           <GridListBody className="divide-y border-y">
             {people.map((person) => (
-              <GridListRow key={person.id} className="items-center">
+              <GridListRow
+                key={person.id}
+                className="items-center gap-4"
+                rowId={person.id}
+              >
                 <GridListCell className="p-1">
                   <CheckBox />
                 </GridListCell>
@@ -74,11 +85,15 @@ export default async function InteractiveFormInList() {
                   {person.name}
                 </GridListRowHeader>
                 <GridListCell className="p-1">{person.email}</GridListCell>
-                <GridListCell className="p-1">{person.phone}</GridListCell>
+                <GridListCell className="p-1 tabular-nums">
+                  {person.phone}
+                </GridListCell>
                 <GridListCell className="p-1">{person.address}</GridListCell>
                 <GridListCell className="p-1">{person.city}</GridListCell>
                 <GridListCell className="p-1">{person.state}</GridListCell>
-                <GridListCell className="p-1">{person.zip}</GridListCell>
+                <GridListCell className="p-1 tabular-nums">
+                  {person.zip}
+                </GridListCell>
               </GridListRow>
             ))}
           </GridListBody>
@@ -89,14 +104,25 @@ export default async function InteractiveFormInList() {
               <FormBoundary>
                 <AddPersonDialog />
               </FormBoundary>
-              <ReserveLayout>
-                <NonEmptySelection minSize={2}>
-                  <Button variant="destructive" size="sm" className="gap-2">
-                    <Trash2 className="size-4" />
-                    Delete multiple
-                  </Button>
-                </NonEmptySelection>
-              </ReserveLayout>
+              <NonEmptySelection minSize={2}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-2"
+                  formAction={async (formData) => {
+                    "use server";
+                    const selected = formData.getAll("people-list") as string[];
+                    await deletePeopleByIds(selected);
+                    revalidatePath("/interactive-form-in-list");
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                  <ReserveLayout>
+                    <FormPendingMessage>Deleting...</FormPendingMessage>
+                    <FormSubmitMessage>Delete multiple</FormSubmitMessage>
+                  </ReserveLayout>
+                </Button>
+              </NonEmptySelection>
             </GridListRow>
           </GridListFooter>
         </GridListRoot>

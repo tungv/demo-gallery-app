@@ -1,127 +1,117 @@
 "use server";
 
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import {
+	addPersonToStorage,
+	deletePersonFromStorage,
+	deletePeopleFromStorage,
+	type NewPersonData,
+} from "./data-store";
 
-export interface Person {
-	id: string;
-	name: string;
-	email: string;
-	phone: string;
-	address: string;
-	city: string;
-	state: string;
-	zip: string;
-	created_at?: string;
-}
-
-export interface NewPersonData {
-	name: string;
-	email: string;
-	phone?: string;
-	address?: string;
-	city?: string;
-	state?: string;
-	zip?: string;
-}
-
-const CSV_FILE_PATH = path.join(
-	process.cwd(),
-	"src/app/interactive-form-in-list/data.csv",
-);
+// Re-export types for convenience
+export type { Person, NewPersonData } from "./data-store";
 
 /**
- * Ensure CSV file exists with headers
+ * Add a person from form data
  */
-async function ensureCsvFile(): Promise<void> {
+export async function addPerson(formData: FormData) {
 	try {
-		await fs.access(CSV_FILE_PATH);
-	} catch {
-		// File doesn't exist, create it with headers
-		const headers = "id,name,email,phone,address,city,state,zip,created_at";
-		await fs.writeFile(CSV_FILE_PATH, headers);
-	}
-}
-
-/**
- * Generate a unique ID for a new person
- */
-async function generateId(): Promise<string> {
-	try {
-		await ensureCsvFile();
-		const content = await fs.readFile(CSV_FILE_PATH, "utf-8");
-		const lines = content.trim().split("\n");
-		if (lines.length <= 1) return "1"; // Only header exists
-
-		const lastLine = lines[lines.length - 1];
-		const lastId = Number.parseInt(lastLine.split(",")[0]);
-		return (lastId + 1).toString();
-	} catch (error) {
-		console.error("Error generating ID:", error);
-		return "1";
-	}
-}
-
-/**
- * Convert a person object to CSV row string
- */
-function personToCsvRow(person: Person): string {
-	const values = [
-		person.id,
-		`"${person.name.replace(/"/g, '""')}"`,
-		person.email,
-		person.phone || "",
-		`"${(person.address || "").replace(/"/g, '""')}"`,
-		person.city || "",
-		person.state || "",
-		person.zip || "",
-		person.created_at || new Date().toISOString(),
-	];
-	return values.join(",");
-}
-
-/**
- * Add a new person to the CSV file
- */
-export async function addPerson(newPersonData: NewPersonData): Promise<Person> {
-	try {
-		const id = await generateId();
-		const created_at = new Date().toISOString();
-
-		const person: Person = {
-			id,
-			name: newPersonData.name,
-			email: newPersonData.email,
-			phone: newPersonData.phone || "",
-			address: newPersonData.address || "",
-			city: newPersonData.city || "",
-			state: newPersonData.state || "",
-			zip: newPersonData.zip || "",
-			created_at,
+		const newPersonData: NewPersonData = {
+			name: formData.get("name") as string,
+			email: formData.get("email") as string,
+			phone: (formData.get("phone") as string) || undefined,
+			address: (formData.get("address") as string) || undefined,
+			city: (formData.get("city") as string) || undefined,
+			state: (formData.get("state") as string) || undefined,
+			zip: (formData.get("zip") as string) || undefined,
 		};
 
-		const csvRow = personToCsvRow(person);
-		await fs.appendFile(CSV_FILE_PATH, `\n${csvRow}`);
-
-		return person;
+		return await addPersonToStorage(newPersonData);
 	} catch (error) {
-		console.error("Error adding person:", error);
-		throw new Error("Failed to add person to CSV file");
+		console.error("Error in addPerson action:", error);
+		throw error;
 	}
 }
 
 /**
- * Add multiple people to the CSV file
+ * Delete a single person from form data
  */
-export async function addPeople(
-	newPeopleData: NewPersonData[],
-): Promise<Person[]> {
-	const addedPeople: Person[] = [];
+export async function deletePerson(formData: FormData) {
+	try {
+		const id = formData.get("id") as string;
+		if (!id) {
+			throw new Error("Person ID is required");
+		}
 
-	for (const personData of newPeopleData) {
-		const person = await addPerson(personData);
-		addedPeople.push(person);
+		return await deletePersonFromStorage(id);
+	} catch (error) {
+		console.error("Error in deletePerson action:", error);
+		throw error;
 	}
+}
 
-	return addedPeople;
+/**
+ * Delete a single person by ID (for programmatic use)
+ */
+export async function deletePersonById(id: string) {
+	try {
+		return await deletePersonFromStorage(id);
+	} catch (error) {
+		console.error("Error in deletePersonById action:", error);
+		throw error;
+	}
+}
+
+/**
+ * Delete multiple people from form data
+ */
+export async function deleteBulk(formData: FormData) {
+	try {
+		const ids: string[] = [];
+
+		// Extract IDs from formData - could be comma-separated or multiple fields
+		const idsString = formData.get("ids") as string;
+		if (idsString) {
+			// Handle comma-separated IDs
+			ids.push(
+				...idsString
+					.split(",")
+					.map((id) => id.trim())
+					.filter((id) => id),
+			);
+		}
+
+		// Also check for individual ID fields (id_1, id_2, etc.)
+		for (const [key, value] of formData.entries()) {
+			if (key.startsWith("id_") && typeof value === "string" && value.trim()) {
+				ids.push(value.trim());
+			}
+		}
+
+		// Check for selectedIds[] array format
+		const selectedIds = formData.getAll("selectedIds") as string[];
+		if (selectedIds.length > 0) {
+			ids.push(...selectedIds.filter((id) => id.trim()));
+		}
+
+		if (ids.length === 0) {
+			throw new Error("No person IDs provided");
+		}
+
+		return await deletePeopleFromStorage(ids);
+	} catch (error) {
+		console.error("Error in deleteBulk action:", error);
+		throw error;
+	}
+}
+
+/**
+ * Delete multiple people by IDs (for programmatic use)
+ */
+export async function deletePeopleByIds(ids: string[]) {
+	try {
+		return await deletePeopleFromStorage(ids);
+	} catch (error) {
+		console.error("Error in deletePeopleByIds action:", error);
+		throw error;
+	}
 }

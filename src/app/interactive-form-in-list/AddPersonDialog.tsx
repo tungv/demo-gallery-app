@@ -12,19 +12,20 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  FormBoundary,
   InteractiveForm,
   LoadingMessage,
   SubmitMessage,
 } from "@/components/behaviors/interactive-form";
-import { Plus, Shuffle } from "lucide-react";
-import { addPerson, type NewPersonData } from "./actions";
+import { Plus } from "lucide-react";
+import type { NewPersonData } from "./actions";
+import { addPersonToStorage } from "./data-store";
 
 // Random data generator
 function generateRandomPersonData(): NewPersonData {
@@ -154,7 +155,10 @@ export default function AddPersonDialog() {
         <DialogHeader>
           <DialogTitle>Add person</DialogTitle>
         </DialogHeader>
-        <DialogDescription>Add a new person to your list.</DialogDescription>
+        <DialogDescription>
+          Data for this form is automatically generated to save time for
+          testing.
+        </DialogDescription>
         <Form asChild className="contents">
           <InteractiveForm
             fields={[
@@ -181,7 +185,7 @@ export default function AddPersonDialog() {
               };
 
               try {
-                await addPerson(newPersonData);
+                await addPersonToStorage(newPersonData);
                 return {
                   refresh: true,
                 };
@@ -265,14 +269,17 @@ export default function AddPersonDialog() {
               </FormField>
             </div>
 
-            <div className="flex gap-2 pt-4">
-              <FormSubmit className="flex-1">
-                <ReserveLayout>
-                  <SubmitMessage>Add person</SubmitMessage>
-                  <LoadingMessage>Adding…</LoadingMessage>
-                </ReserveLayout>
+            <DialogFooter className="flex gap-2 pt-4">
+              <FormSubmit asChild>
+                <Button>
+                  <Plus className="size-4" />
+                  <ReserveLayout>
+                    <SubmitMessage>Add person</SubmitMessage>
+                    <LoadingMessage>Adding…</LoadingMessage>
+                  </ReserveLayout>
+                </Button>
               </FormSubmit>
-            </div>
+            </DialogFooter>
           </InteractiveForm>
         </Form>
       </DialogContent>
