@@ -149,6 +149,9 @@ export type GridListColumnHeaderProps = {
 	asChild?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>;
 
-// export type GridListRowHeaderProps = {
-// 	children: React.ReactNode;
-// } & React.HTMLAttributes<HTMLDivElement>;
+export type GridListRowHeaderProps = {
+	children: React.ReactNode;
+	rowSpan?: number;
+	asChild?: boolean;
+	scope?: "row" | "rowgroup";
+} & React.HTMLAttributes<HTMLDivElement>;

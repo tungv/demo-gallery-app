@@ -20,6 +20,7 @@ import type {
   GridListRootProps,
   GridListRowProps,
   GridListColumnHeaderProps,
+  GridListRowHeaderProps,
 } from "./types";
 import {
   GridDataProvider,
@@ -721,6 +722,36 @@ export function GridListColumnHeader({
   // Add colspan if specified
   if (colSpan && colSpan > 1) {
     headerProps["aria-colspan"] = colSpan;
+  }
+
+  if (asChild) {
+    return <Slot {...headerProps}>{children}</Slot>;
+  }
+
+  return <div {...headerProps}>{children}</div>;
+}
+
+export function GridListRowHeader({
+  children,
+  className,
+  rowSpan,
+  scope = "row",
+  asChild,
+  ...divProps
+}: GridListRowHeaderProps) {
+  const headerProps: React.HTMLAttributes<HTMLDivElement> & {
+    "aria-rowspan"?: number;
+    scope?: "row" | "rowgroup";
+  } = {
+    ...divProps,
+    role: "rowheader",
+    scope,
+    className: cn("font-medium text-left", className),
+  };
+
+  // Add rowspan if specified
+  if (rowSpan && rowSpan > 1) {
+    headerProps["aria-rowspan"] = rowSpan;
   }
 
   if (asChild) {

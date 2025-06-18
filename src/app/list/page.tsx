@@ -11,6 +11,7 @@ import {
   GridListRoot,
   GridListRow,
   GridListColumnHeader,
+  GridListRowHeader,
 } from "@/components/ui/grid-list";
 import { cn } from "@/lib/utils";
 import {
@@ -191,7 +192,7 @@ function CustomRowWithCheckbox() {
         <CustomCheckbox />
       </div>
 
-      <h2 className="p-1 font-medium">row title</h2>
+      <GridListRowHeader>row title</GridListRowHeader>
 
       <span className="p-1 tabular-nums">10,000,000</span>
 
@@ -236,7 +237,7 @@ function CustomRowWithCheckboxAndTitle({
         <CustomCheckbox />
       </div>
 
-      <h2 className="p-1 font-medium">{title}</h2>
+      <GridListRowHeader className="p-1 font-medium">{title}</GridListRowHeader>
 
       <span className="p-1 tabular-nums">10,000,000</span>
 
@@ -274,7 +275,7 @@ function CustomRowWithTraditionalCheckbox(
         <GridListItemIndicatorRoot />
       </div>
 
-      <h2 className="p-1 font-medium">row title</h2>
+      <GridListRowHeader>row title</GridListRowHeader>
 
       <span className="p-1 tabular-nums">10,000,000</span>
 
