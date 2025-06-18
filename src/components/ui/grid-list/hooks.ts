@@ -14,6 +14,7 @@ import {
 	useSelectionDispatch,
 	useSelectionState,
 	useGridDataState,
+	SelectionIndicatorContext,
 } from "./state";
 
 export function useRegisterRow(
@@ -495,52 +496,37 @@ export function useHandleRightArrow() {
 	}, [containerRef]);
 }
 
-export function useHandleSpacebar() {
-	const { containerRef } = useGridListState();
-	const { selectionMode } = useSelectionState();
-	const { rows } = useGridDataState();
-	const dispatch = useSelectionDispatch();
+export function useHandleSpacebar(
+	rowRef: React.RefObject<HTMLDivElement | null>,
+) {
+	const { onCheckedChange, selected } = useContext(SelectionIndicatorContext);
 
 	useEffect(() => {
-		const container = containerRef?.current;
-		if (!container || selectionMode === "none") return;
+		const rowElement = rowRef?.current;
+		if (!rowElement) return;
 
 		const handleSpacebar = (event: KeyboardEvent) => {
 			if (event.key !== " " && event.key !== "Spacebar") {
 				return;
 			}
 
-			const activeElement = document.activeElement;
-			if (!activeElement) return;
-
-			const currentRowElement = activeElement.closest("[data-row-id]");
-			if (!currentRowElement) return;
-
-			const rowId = currentRowElement.getAttribute("data-row-id");
-			if (!rowId) return;
-
-			// Check if currently focused element is the row itself
-			const isRowFocused = activeElement === currentRowElement;
-			if (!isRowFocused) return;
-
-			// Find the row data to check if it's read-only or disabled
-			const rowData = rows.find((row) => row.rowId === rowId);
-			if (rowData?.disabled || rowData?.readOnly) {
+			// check if the focus is on the row element itself
+			if (document.activeElement !== rowElement) {
 				return;
 			}
 
 			event.preventDefault();
 
 			// Toggle row selection
-			dispatch({ type: "toggleRowSelection", rowId });
+			onCheckedChange?.(!selected);
 		};
 
-		container.addEventListener("keydown", handleSpacebar);
+		rowElement.addEventListener("keydown", handleSpacebar);
 
 		return () => {
-			container.removeEventListener("keydown", handleSpacebar);
+			rowElement.removeEventListener("keydown", handleSpacebar);
 		};
-	}, [containerRef, selectionMode, rows, dispatch]);
+	}, [rowRef, onCheckedChange, selected]);
 }
 
 export function useGridListTabIndexManager(children: React.ReactNode) {

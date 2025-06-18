@@ -131,7 +131,7 @@ export function GridListRoot({
         // Apply the action to get the next state
         dispatch(action);
         const state = getNextState(action);
-        console.log("not controlled", state);
+
         const selectedArray = Array.from(state.selectedRows);
         const valueToEmit =
           selectionMode === "multiple" ? selectedArray : selectedArray[0] || "";
@@ -222,7 +222,6 @@ function GridListInner({
   useHandleDownArrow();
   useHandleLeftArrow();
   useHandleRightArrow();
-  useHandleSpacebar();
 
   // Focus management for entering the grid
   useEffect(() => {
@@ -522,10 +521,10 @@ export const GridListRow = memo(function GridListRow({
     };
   }, [actualRowId]);
 
-  const rowElem = asChild ? (
-    <Slot {...rowProps}>{children}</Slot>
-  ) : (
-    <div {...rowProps}>{children}</div>
+  const rowElem = (
+    <RowInner asChild={asChild} {...rowProps}>
+      {children}
+    </RowInner>
   );
 
   const contextWrappedElem = (
@@ -542,12 +541,7 @@ export const GridListRow = memo(function GridListRow({
       selected: isRowSelected,
       onCheckedChange: () => {
         if (disabled || readOnly) return;
-        console.log(
-          "onCheckedChange #%s : %s -> %s",
-          actualRowId,
-          isRowSelected,
-          !isRowSelected,
-        );
+
         if (isRowSelected) {
           selectionDispatch({ type: "deselectRow", rowId: actualRowId });
         } else {
@@ -563,6 +557,34 @@ export const GridListRow = memo(function GridListRow({
     </SelectionIndicatorContext>
   );
 });
+
+function RowInner({
+  children,
+  asChild,
+  ...divProps
+}: {
+  children: React.ReactNode;
+  asChild?: boolean;
+} & React.HTMLAttributes<HTMLDivElement>) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  useHandleSpacebar(rowRef);
+
+  const rowProps: React.HTMLAttributes<HTMLDivElement> = {
+    ...divProps,
+  };
+
+  const rowElem = asChild ? (
+    <Slot ref={rowRef} {...rowProps}>
+      {children}
+    </Slot>
+  ) : (
+    <div ref={rowRef} {...rowProps}>
+      {children}
+    </div>
+  );
+
+  return rowElem;
+}
 
 export function GridListItemIndicatorRoot({
   children,
