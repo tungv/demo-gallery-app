@@ -1,0 +1,13 @@
+id,name,email,phone,address,city,state,zip,created_at
+19,"Taylor Davis",taylor.davis@company.com,942-555-2864,"6386 Davis Blvd",Denver,WA,68819,2025-06-18T14:57:04.153Z
+20,"Sage Johnson",sage.johnson@innovation.ai,447-555-8021,"47 Johnson Ct",Boston,CO,88041,2025-06-18T14:57:36.424Z
+21,"Blake Johnson",blake.johnson@innovation.ai,364-555-3373,"8904 Johnson Rd",Denver,CA,22132,2025-06-18T14:57:39.185Z
+22,"Alex Martinez",alex.martinez@company.com,390-555-1865,"8013 Martinez St",Atlanta,GA,13966,2025-06-18T14:58:13.212Z
+23,"Riley Garcia",riley.garcia@gmail.com,617-555-1150,"9530 Garcia Blvd",Chicago,MA,19814,2025-06-18T14:58:16.482Z
+24,"Quinn Rodriguez",quinn.rodriguez@innovation.ai,878-555-1643,"1531 Rodriguez Ln",Los Angeles,AZ,43573,2025-06-18T15:06:42.785Z
+25,"Parker Brown",parker.brown@innovation.ai,747-555-4213,"2265 Brown St",Seattle,CO,34323,2025-06-18T15:06:46.847Z
+26,"Casey Miller",casey.miller@innovation.ai,735-555-9930,"3061 Miller Blvd",New York,GA,40934,2025-06-18T15:07:48.688Z
+27,"Avery Miller",avery.miller@enterprise.org,220-555-1869,"4807 Avery Dr",San Francisco,AZ,66777,2025-06-18T15:07:51.286Z
+28,"Blake Anderson",blake.anderson@yahoo.com,405-555-3465,"5576 Anderson St",Atlanta,MA,10625,2025-06-18T15:07:54.104Z
+29,"Emery Brown",emery.brown@outlook.com,971-555-5914,"4348 Emery St",Denver,NV,36045,2025-06-18T15:11:59.619Z
+30,"Avery Rodriguez",avery.rodriguez@enterprise.org,917-555-9327,"8899 Avery Blvd",New York,NY,87878,2025-06-18T15:12:01.968Z
