@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Form, FormSubmit } from "@/components/ui/form";
 import {
   GridListDebugger,
   GridListBody,
@@ -24,107 +25,73 @@ import {
   TrashIcon,
 } from "lucide-react";
 import type { HTMLAttributes } from "react";
+import ActionRow from "./ActionRow";
 
 export default function ListPage() {
   return (
     <div className="bg-muted grid grid-cols-1 gap-12 p-12 h-dvh">
-      <a href="#single-selection">Single selection</a>
-
-      <GridListRoot
-        className="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
-        selectionMode="single"
-        name="single-selection"
-        initialValue="2"
-        cycleRowFocus
+      <Form
+        className="contents"
+        action={async (formData) => {
+          "use server";
+          console.log(formData.getAll("multiple-selection"));
+        }}
       >
-        <GridListTitle className="col-span-full p-2">
-          Single Selection Example
-        </GridListTitle>
-        <GridListCaption className="col-span-full px-2 pb-2">
-          This table demonstrates single row selection. Use arrow keys to
-          navigate and spacebar to select.
-        </GridListCaption>
-        <GridListHeader className="p-1 gap-x-8">
-          <GridListRow>
-            <GridListColumnHeader className="text-sm font-medium">
-              Select
-            </GridListColumnHeader>
-            <GridListColumnHeader className="text-sm font-medium">
-              Title
-            </GridListColumnHeader>
-            <GridListColumnHeader className="text-sm font-medium">
-              Amount
-            </GridListColumnHeader>
-            <GridListColumnHeader className="text-sm font-medium">
-              actions
-            </GridListColumnHeader>
-          </GridListRow>
-        </GridListHeader>
-        <GridListBody>
-          <GridListRow asChild rowId="1">
-            <CustomRowWithTraditionalCheckbox />
-          </GridListRow>
-          <GridListRow asChild rowId="2">
-            <CustomRowWithTraditionalCheckbox />
-          </GridListRow>
-          <GridListRow asChild rowId="3">
-            <CustomRowWithTraditionalCheckbox />
-          </GridListRow>
-        </GridListBody>
-        <GridListFooter>
-          <GridListDebugger />
-        </GridListFooter>
-      </GridListRoot>
+        <GridListRoot
+          className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
+          selectionMode="multiple"
+          name="multiple-selection"
+          initialValue={["4", "6"]}
+          required
+        >
+          <GridListTitle className=" p-2">
+            Multiple Selection Example
+          </GridListTitle>
+          <GridListCaption className=" px-2 pb-2">
+            Select multiple rows using checkboxes or spacebar. Header checkbox
+            selects/deselects all.
+          </GridListCaption>
+          <GridListHeader className="p-1 gap-x-8">
+            <GridListRow>
+              <GridListColumnHeader className="text-sm font-medium px-1">
+                <CustomCheckbox />
+              </GridListColumnHeader>
+              <GridListColumnHeader className="text-sm font-medium">
+                Title
+              </GridListColumnHeader>
+              <GridListColumnHeader
+                className="text-sm font-medium"
+                sortDirection="ascending"
+                sortable
+              >
+                Amount
+              </GridListColumnHeader>
+              <GridListColumnHeader className="text-sm font-medium">
+                actions
+              </GridListColumnHeader>
+            </GridListRow>
+          </GridListHeader>
+          <GridListBody className="divide-y border-y">
+            <GridListRow asChild rowId="4">
+              <CustomRowWithCheckbox />
+            </GridListRow>
+            <GridListRow asChild rowId="5">
+              <CustomRowWithCheckbox />
+            </GridListRow>
+            <GridListRow asChild rowId="6">
+              <CustomRowWithCheckbox />
+            </GridListRow>
+          </GridListBody>
+          <GridListFooter>
+            <ActionRow />
+          </GridListFooter>
+          <GridListFooter>
+            <GridListDebugger />
+          </GridListFooter>
+        </GridListRoot>
 
-      <GridListRoot
-        className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
-        selectionMode="multiple"
-        name="multiple-selection"
-        initialValue={["4", "6"]}
-        required
-      >
-        <GridListTitle className="col-span-full p-2">
-          Multiple Selection Example
-        </GridListTitle>
-        <GridListCaption className="col-span-full px-2 pb-2">
-          Select multiple rows using checkboxes or spacebar. Header checkbox
-          selects/deselects all.
-        </GridListCaption>
-        <GridListHeader className="p-1 gap-x-8">
-          <GridListRow>
-            <GridListColumnHeader className="text-sm font-medium px-1">
-              <CustomCheckbox />
-            </GridListColumnHeader>
-            <GridListColumnHeader className="text-sm font-medium">
-              Title
-            </GridListColumnHeader>
-            <GridListColumnHeader
-              className="text-sm font-medium"
-              sortDirection="ascending"
-              sortable
-            >
-              Amount
-            </GridListColumnHeader>
-            <GridListColumnHeader className="text-sm font-medium">
-              actions
-            </GridListColumnHeader>
-          </GridListRow>
-        </GridListHeader>
-        <GridListBody className="divide-y border-y">
-          <GridListRow asChild rowId="4">
-            <CustomRowWithCheckbox />
-          </GridListRow>
-          <GridListRow asChild rowId="5">
-            <CustomRowWithCheckbox />
-          </GridListRow>
-          <GridListRow asChild rowId="6">
-            <CustomRowWithCheckbox />
-          </GridListRow>
-        </GridListBody>
-        <GridListFooter>
-          <GridListDebugger />
-        </GridListFooter>
-      </GridListRoot>
+        <FormSubmit>Submit</FormSubmit>
+      </Form>
 
       <GridListRoot
         className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
