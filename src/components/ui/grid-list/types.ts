@@ -139,14 +139,16 @@ export type GridListRowProps = {
 // 	rowSpan?: number;
 // 	readOnly?: boolean;
 // } & React.HTMLAttributes<HTMLDivElement>;
-//
-// export type GridListColumnHeaderProps = {
-// 	children: React.ReactNode;
-// 	sortable?: boolean;
-// 	sortDirection?: "ascending" | "descending" | "none";
-// 	onSort?: () => void;
-// } & React.HTMLAttributes<HTMLDivElement>;
-//
+
+export type GridListColumnHeaderProps = {
+	children: React.ReactNode;
+	sortable?: boolean;
+	sortDirection?: "ascending" | "descending" | "none";
+	onSort?: () => void;
+	colSpan?: number;
+	asChild?: boolean;
+} & React.HTMLAttributes<HTMLDivElement>;
+
 // export type GridListRowHeaderProps = {
 // 	children: React.ReactNode;
 // } & React.HTMLAttributes<HTMLDivElement>;

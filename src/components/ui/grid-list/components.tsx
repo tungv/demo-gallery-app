@@ -16,7 +16,11 @@ import type { FormEventHandler } from "react";
 import useEffectEvent from "../use-effect-event";
 import { Checkbox } from "../checkbox";
 import type { SelectionAction, SelectionState } from "./types";
-import type { GridListRootProps, GridListRowProps } from "./types";
+import type {
+  GridListRootProps,
+  GridListRowProps,
+  GridListColumnHeaderProps,
+} from "./types";
 import {
   GridDataProvider,
   SelectionStateProvider,
@@ -643,4 +647,60 @@ export function GridListItemIndeterminateIndicator({
   children: React.ReactNode;
 }) {
   return <IndicatorState when="indeterminate">{children}</IndicatorState>;
+}
+
+export function GridListColumnHeader({
+  children,
+  className,
+  sortable = false,
+  sortDirection = "none",
+  onSort,
+  colSpan,
+  asChild,
+  ...divProps
+}: GridListColumnHeaderProps) {
+  const handleSort = useCallback(() => {
+    if (sortable && onSort) {
+      onSort();
+    }
+  }, [sortable, onSort]);
+
+  const headerProps: React.HTMLAttributes<HTMLDivElement> & {
+    "aria-sort"?: "ascending" | "descending" | "none";
+    "aria-colspan"?: number;
+    "data-sortable"?: string;
+    "data-sort-direction"?: string;
+  } = {
+    ...divProps,
+    role: "columnheader",
+    className: cn(
+      sortable && "cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50",
+      className,
+    ),
+    tabIndex: sortable ? 0 : undefined,
+    onClick: sortable ? handleSort : divProps.onClick,
+    onKeyDown: sortable
+      ? (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleSort();
+          }
+          divProps.onKeyDown?.(event);
+        }
+      : divProps.onKeyDown,
+    "aria-sort": sortable ? sortDirection : undefined,
+    "data-sortable": sortable ? "true" : undefined,
+    "data-sort-direction": sortDirection !== "none" ? sortDirection : undefined,
+  };
+
+  // Add colspan if specified
+  if (colSpan && colSpan > 1) {
+    headerProps["aria-colspan"] = colSpan;
+  }
+
+  if (asChild) {
+    return <Slot {...headerProps}>{children}</Slot>;
+  }
+
+  return <div {...headerProps}>{children}</div>;
 }

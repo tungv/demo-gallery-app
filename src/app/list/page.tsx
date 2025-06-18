@@ -10,6 +10,7 @@ import {
   GridListItemIndeterminateIndicator,
   GridListRoot,
   GridListRow,
+  GridListColumnHeader,
 } from "@/components/ui/grid-list";
 import {
   CheckSquare2,
@@ -35,10 +36,18 @@ export default function ListPage() {
           </h2>
         </GridListHeader>
         <GridListHeader className="p-1 gap-x-8">
-          <div className="text-sm font-medium">Select</div>
-          <h3 className="text-sm font-medium">Title</h3>
-          <span className="text-sm font-medium">Amount</span>
-          <div className="text-sm font-medium">actions</div>
+          <GridListColumnHeader className="text-sm font-medium">
+            Select
+          </GridListColumnHeader>
+          <GridListColumnHeader className="text-sm font-medium">
+            Title
+          </GridListColumnHeader>
+          <GridListColumnHeader className="text-sm font-medium">
+            Amount
+          </GridListColumnHeader>
+          <GridListColumnHeader className="text-sm font-medium">
+            actions
+          </GridListColumnHeader>
         </GridListHeader>
         <GridListBody>
           <GridListRow asChild rowId="1">
@@ -69,12 +78,22 @@ export default function ListPage() {
           </h2>
         </GridListHeader>
         <GridListHeader className="p-1 gap-x-8">
-          <div className="text-sm font-medium px-1">
-            <CustomCheckbox />
-          </div>
-          <h3 className="text-sm font-medium">Title</h3>
-          <span className="text-sm font-medium">Amount</span>
-          <div className="text-sm font-medium">actions</div>
+          <GridListColumnHeader className="text-sm font-medium">
+            Select
+          </GridListColumnHeader>
+          <GridListColumnHeader className="text-sm font-medium">
+            Title
+          </GridListColumnHeader>
+          <GridListColumnHeader
+            className="text-sm font-medium"
+            sortDirection="ascending"
+            sortable
+          >
+            Amount
+          </GridListColumnHeader>
+          <GridListColumnHeader className="text-sm font-medium">
+            actions
+          </GridListColumnHeader>
         </GridListHeader>
         <GridListBody className="divide-y border-y">
           <GridListRow asChild rowId="4">
@@ -104,12 +123,18 @@ export default function ListPage() {
           </h2>
         </GridListHeader>
         <GridListHeader className="p-1 gap-x-8">
-          <div className="text-sm font-medium px-1">
-            <CustomCheckbox />
-          </div>
-          <h3 className="text-sm font-medium">Title</h3>
-          <span className="text-sm font-medium">Amount</span>
-          <div className="text-sm font-medium">actions</div>
+          <GridListColumnHeader className="text-sm font-medium">
+            Select
+          </GridListColumnHeader>
+          <GridListColumnHeader className="text-sm font-medium">
+            Title
+          </GridListColumnHeader>
+          <GridListColumnHeader className="text-sm font-medium">
+            Amount
+          </GridListColumnHeader>
+          <GridListColumnHeader className="text-sm font-medium">
+            actions
+          </GridListColumnHeader>
         </GridListHeader>
         <GridListBody className="divide-y border-y">
           <GridListRow asChild rowId="7">
