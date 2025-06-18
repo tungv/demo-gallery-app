@@ -7,6 +7,7 @@ import { useEffect, useId } from "react";
 import type { ComponentProps } from "react";
 import { Label } from "./label";
 import { Hidden, Visible } from "./reserve-layout";
+import { useFormStatus } from "react-dom";
 
 interface FormContext {
   fields: Record<
@@ -578,6 +579,48 @@ export function FormSubmit({ children, asChild, ...props }: FormSubmitProps) {
   }
 
   return <button {...buttonProps}>{children}</button>;
+}
+
+export function FormSubmitMessage({
+  children,
+  ...props
+}: ComponentProps<"span">) {
+  const { pending } = useFormStatus();
+
+  if (pending) {
+    return (
+      <Hidden>
+        <span {...props}>{children}</span>
+      </Hidden>
+    );
+  }
+
+  return (
+    <Visible>
+      <span {...props}>{children}</span>
+    </Visible>
+  );
+}
+
+export function FormPendingMessage({
+  children,
+  ...props
+}: ComponentProps<"span">) {
+  const { pending } = useFormStatus();
+
+  if (!pending) {
+    return (
+      <Hidden>
+        <span {...props}>{children}</span>
+      </Hidden>
+    );
+  }
+
+  return (
+    <Visible>
+      <span {...props}>{children}</span>
+    </Visible>
+  );
 }
 
 function isHTMLElement(element: unknown): element is HTMLElement {
