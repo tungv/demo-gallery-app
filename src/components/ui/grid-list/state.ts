@@ -275,5 +275,17 @@ export const [
 export function useSelectedRows() {
 	const controlledValue = useContext(ControlledValueContext);
 	const { selectedRows } = useSelectionState();
-	return controlledValue == null ? selectedRows : new Set(controlledValue);
+	const { rows } = useGridDataState();
+
+	// Create a set of valid row IDs that currently exist in the table
+	const validRowIds = new Set(rows.map((row) => row.rowId));
+
+	// Filter selected rows to only include those that still exist in the table
+	const actualSelectedRows =
+		controlledValue == null ? selectedRows : new Set(controlledValue);
+	const filteredSelectedRows = new Set(
+		Array.from(actualSelectedRows).filter((rowId) => validRowIds.has(rowId)),
+	);
+
+	return filteredSelectedRows;
 }
