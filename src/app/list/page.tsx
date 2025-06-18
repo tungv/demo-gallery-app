@@ -23,6 +23,8 @@ import {
 export default function ListPage() {
   return (
     <div className="bg-muted grid grid-cols-1 gap-12 p-12 h-dvh">
+      <a href="#single-selection">Single selection</a>
+
       <GridListRoot
         className="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit"
         selectionMode="single"
@@ -127,18 +129,20 @@ export default function ListPage() {
           </h2>
         </GridListHeader>
         <GridListHeader className="p-1 gap-x-8">
-          <GridListColumnHeader className="text-sm font-medium">
-            Select
-          </GridListColumnHeader>
-          <GridListColumnHeader className="text-sm font-medium">
-            Title
-          </GridListColumnHeader>
-          <GridListColumnHeader className="text-sm font-medium">
-            Amount
-          </GridListColumnHeader>
-          <GridListColumnHeader className="text-sm font-medium">
-            actions
-          </GridListColumnHeader>
+          <GridListRow>
+            <GridListColumnHeader className="text-sm font-medium px-1">
+              <CustomCheckbox />
+            </GridListColumnHeader>
+            <GridListColumnHeader className="text-sm font-medium">
+              Title
+            </GridListColumnHeader>
+            <GridListColumnHeader className="text-sm font-medium">
+              Amount
+            </GridListColumnHeader>
+            <GridListColumnHeader className="text-sm font-medium">
+              actions
+            </GridListColumnHeader>
+          </GridListRow>
         </GridListHeader>
         <GridListBody className="divide-y border-y">
           <GridListRow asChild rowId="7">

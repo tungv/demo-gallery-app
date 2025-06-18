@@ -83,6 +83,7 @@ export function useFocusRow() {
 export function useFocusFirstRow() {
 	const { containerRef } = useGridListState();
 	const focusRow = useFocusRow();
+	const { rows: dataRows } = useGridDataState();
 
 	return () => {
 		const container = containerRef?.current;
@@ -91,6 +92,15 @@ export function useFocusFirstRow() {
 		// Find the first non-disabled row
 		const rows = container.querySelectorAll("[data-row-id]");
 		for (const row of rows) {
+			const dataRow = dataRows.find(
+				(r) => r.rowId === row.getAttribute("data-row-id"),
+			);
+
+			if (!dataRow) {
+				// if it is not a registered row, skip it
+				continue;
+			}
+
 			const isDisabled = row.getAttribute("data-disabled") === "true";
 			if (isDisabled) continue;
 
@@ -537,20 +547,43 @@ export function useGridListTabIndexManager(children: React.ReactNode) {
 	useLayoutEffect(() => {
 		const container = containerRef?.current;
 		if (!container) return;
-		// set tabIndex=0 for the first non-disabled row
-		const firstRow = container.querySelector(
-			"[data-row-id]:not([data-disabled='true'])",
-		);
-		if (firstRow) {
-			firstRow.setAttribute("tabindex", "0");
+
+		// Find the first registered, non-disabled row
+		const allRows = container.querySelectorAll("[data-row-id]");
+		let firstValidRow: Element | null = null;
+
+		for (const row of allRows) {
+			const rowId = row.getAttribute("data-row-id");
+			if (!rowId) continue;
+
+			const dataRow = rows.find((r) => r.rowId === rowId);
+			if (!dataRow) {
+				// if it is not a registered row, skip it
+				continue;
+			}
+
+			if (dataRow.disabled) continue;
+
+			firstValidRow = row;
+			break;
+		}
+
+		// set tabIndex=0 for the first registered, non-disabled row
+		if (firstValidRow) {
+			firstValidRow.setAttribute("tabindex", "0");
 		}
 
 		return () => {
-			const firstRow = container.querySelector(
-				"[data-row-id]:not([data-disabled='true'])",
-			);
-			if (firstRow) {
-				firstRow.setAttribute("tabindex", "-1");
+			// set all rows to tabindex=-1
+			const allRows = container.querySelectorAll("[data-row-id]");
+			for (const row of allRows) {
+				const rowId = row.getAttribute("data-row-id");
+				if (!rowId) continue;
+
+				const dataRow = rows.find((r) => r.rowId === rowId);
+				if (!dataRow) continue;
+
+				row.setAttribute("tabindex", "-1");
 			}
 		};
 	}, [children, rows]);

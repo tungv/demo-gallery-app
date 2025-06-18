@@ -238,6 +238,7 @@ function GridListInner({
       const rowElement = target.closest("[data-row-id]");
       if (rowElement) {
         const rowId = rowElement.getAttribute("data-row-id");
+
         if (rowId && rowId !== lastFocusedRowId) {
           if (focusRow(rowId)) {
             return;
