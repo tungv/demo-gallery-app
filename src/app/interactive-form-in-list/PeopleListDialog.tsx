@@ -6,7 +6,11 @@ import type { DialogContentProps } from "@radix-ui/react-dialog";
 import { Slot } from "@radix-ui/react-slot";
 import { useEffect, type HTMLAttributes } from "react";
 
-type DialogType = "delete-person" | "edit-person" | "delete-multiple-people";
+type DialogType =
+  | "delete-person"
+  | "edit-person"
+  | "delete-multiple-people"
+  | "add-person";
 
 interface PeopleListDialogState {
   openDialog: DialogType | null;

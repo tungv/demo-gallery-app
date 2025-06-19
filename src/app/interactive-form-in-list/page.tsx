@@ -22,6 +22,7 @@ import {
   Trash2,
   Edit3,
   Flag,
+  Plus,
 } from "lucide-react";
 import NonEmptySelection from "./non-empty-selection";
 import { Button } from "@/components/ui/button";
@@ -40,20 +41,11 @@ import {
   PeopleListDialogProvider,
   PeopleListDialogTrigger,
 } from "./PeopleListDialog";
-import DeleteIndividualPersonDialog from "./DeteleIndividualPersonDialog";
+import DeleteIndividualPersonDialog from "./DeleteIndividualPersonDialog";
 import EditIndividualPersonDialog from "./EditIndividualPersonDialog";
 import DeleteMultiplePeopleDialog from "./DeleteMultiplePeopleDialog";
 
-interface Person {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-}
+export const dynamic = "force-dynamic";
 
 export default async function InteractiveFormInList() {
   const people = await getPeople();
@@ -142,7 +134,12 @@ export default async function InteractiveFormInList() {
               <GridListRow className="p-2 gap-4 flex flex-row">
                 {/* FormBoundary is here to ensure the form is reset after a successful submission */}
                 <FormBoundary>
-                  <AddPersonDialog />
+                  <PeopleListDialogTrigger dialog="add-person" asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Plus className="size-4" />
+                      Add person
+                    </Button>
+                  </PeopleListDialogTrigger>
                 </FormBoundary>
                 <NonEmptySelection minSize={2}>
                   <PeopleListDialogTrigger
@@ -162,6 +159,12 @@ export default async function InteractiveFormInList() {
             </GridListFooter>
 
             <PeopleListDialog>
+              <PeopleListDialogContent
+                when="add-person"
+                className="max-h-[80vh] overflow-y-auto"
+              >
+                <AddPersonDialog />
+              </PeopleListDialogContent>
               <PeopleListDialogContent when="delete-person">
                 <DeleteIndividualPersonDialog />
               </PeopleListDialogContent>
