@@ -56,6 +56,9 @@ import {
   PeopleListDialogTrigger,
 } from "./PeopleListDialog";
 import DeleteIndividualPersonDialog from "./DeteleIndividualPersonDialog";
+import EditIndividualPersonDialog from "./EditIndividualPersonDialog";
+import DeleteMultiplePeopleDialog from "./DeleteMultiplePeopleDialog";
+import { Input } from "@/components/ui/input";
 
 interface Person {
   id: string;
@@ -71,7 +74,7 @@ interface Person {
 export default async function InteractiveFormInList() {
   const people = await getPeople();
   return (
-    <div className="bg-muted grid grid-cols-1 gap-12 p-12 h-dvh">
+    <div className="bg-muted grid grid-cols-1 auto-rows-min gap-12 p-12 h-dvh">
       <InteractiveForm className="contents">
         <PeopleListDialogProvider>
           <GridListRoot
@@ -158,63 +161,18 @@ export default async function InteractiveFormInList() {
                   <AddPersonDialog />
                 </FormBoundary>
                 <NonEmptySelection minSize={2}>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="destructive" size="sm" type="button">
-                        <Trash2 className="size-4" />
-                        <ReserveLayout>
-                          <LoadingMessage>Deleting...</LoadingMessage>
-                          <SubmitMessage>Delete multiple</SubmitMessage>
-                        </ReserveLayout>
-                      </Button>
-                    </DialogTrigger>
-
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Delete multiple people</DialogTitle>
-                      </DialogHeader>
-                      <DialogDescription>
-                        Are you sure you want to delete the selected people?
-                      </DialogDescription>
-
-                      <p>People to delete:</p>
-                      <SelectedPeopleNameList />
-
-                      <DialogFooter>
-                        <DialogClose asChild>
-                          <Button variant="outline" size="sm">
-                            Cancel
-                          </Button>
-                        </DialogClose>
-
-                        <ActionButton<"people-list">
-                          asChild
-                          formAction={async (formData) => {
-                            "use server";
-                            const selected = formData.getAll(
-                              "people-list",
-                            ) as string[];
-                            await deletePeopleByIds(selected);
-                            return {
-                              refresh: true,
-                            };
-                          }}
-                        >
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="gap-2"
-                          >
-                            <Trash2 className="size-4" />
-                            <ReserveLayout>
-                              <LoadingMessage>Deleting...</LoadingMessage>
-                              <SubmitMessage>Delete multiple</SubmitMessage>
-                            </ReserveLayout>
-                          </Button>
-                        </ActionButton>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  <PeopleListDialogTrigger
+                    dialog="delete-multiple-people"
+                    asChild
+                  >
+                    <Button variant="destructive" size="sm" type="button">
+                      <Trash2 className="size-4" />
+                      <ReserveLayout>
+                        <LoadingMessage>Deleting...</LoadingMessage>
+                        <SubmitMessage>Delete multiple</SubmitMessage>
+                      </ReserveLayout>
+                    </Button>
+                  </PeopleListDialogTrigger>
                 </NonEmptySelection>
               </GridListRow>
             </GridListFooter>
@@ -222,6 +180,12 @@ export default async function InteractiveFormInList() {
             <PeopleListDialog>
               <PeopleListDialogContent when="delete-person">
                 <DeleteIndividualPersonDialog />
+              </PeopleListDialogContent>
+              <PeopleListDialogContent when="edit-person">
+                <EditIndividualPersonDialog />
+              </PeopleListDialogContent>
+              <PeopleListDialogContent when="delete-multiple-people">
+                <DeleteMultiplePeopleDialog />
               </PeopleListDialogContent>
             </PeopleListDialog>
           </GridListRoot>
@@ -260,9 +224,11 @@ function CheckBox() {
 function ActionsCell() {
   return (
     <div className="flex items-center bg-white/90 rounded-md focus-within:shadow-sm">
-      <Button type="button" variant="ghost" title="Edit person">
-        <Edit3 className="size-4 text-muted-foreground hover:text-foreground" />
-      </Button>
+      <PeopleListDialogTrigger dialog="edit-person" asChild>
+        <Button type="button" variant="ghost" title="Edit person">
+          <Edit3 className="size-4 text-muted-foreground hover:text-foreground" />
+        </Button>
+      </PeopleListDialogTrigger>
 
       <Button type="button" variant="ghost" title="Flag person">
         <Flag className="size-4 text-muted-foreground hover:text-foreground" />

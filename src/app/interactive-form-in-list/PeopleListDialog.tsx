@@ -6,7 +6,7 @@ import type { DialogContentProps } from "@radix-ui/react-dialog";
 import { Slot } from "@radix-ui/react-slot";
 import { useEffect, type HTMLAttributes } from "react";
 
-type DialogType = "delete-person";
+type DialogType = "delete-person" | "edit-person" | "delete-multiple-people";
 
 interface PeopleListDialogState {
   openDialog: DialogType | null;
@@ -23,26 +23,29 @@ type PeopleListDialogAction =
       type: "close";
     };
 
-const [
-  PeopleListDialogProvider,
-  usePeopleListDialogState,
-  usePeopleListDialogDispatch,
-] = createReducerContext(
-  (state: PeopleListDialogState, action: PeopleListDialogAction) => {
-    switch (action.type) {
-      case "open":
-        return { ...state, openDialog: action.payload.dialog };
-      case "close":
-        return { ...state, openDialog: null };
-    }
-  },
-  {
-    openDialog: null,
-  },
-  "PeopleListDialogProvider",
-);
+const [Provider, usePeopleListDialogState, usePeopleListDialogDispatch] =
+  createReducerContext(
+    (state: PeopleListDialogState, action: PeopleListDialogAction) => {
+      switch (action.type) {
+        case "open":
+          return { ...state, openDialog: action.payload.dialog };
+        case "close":
+          return { ...state, openDialog: null };
+      }
+    },
+    {
+      openDialog: null,
+    },
+    "PeopleListDialogProvider",
+  );
 
-export { PeopleListDialogProvider };
+export function PeopleListDialogProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <Provider>{children}</Provider>;
+}
 
 export function PeopleListDialog({ children }: { children: React.ReactNode }) {
   const state = usePeopleListDialogState();

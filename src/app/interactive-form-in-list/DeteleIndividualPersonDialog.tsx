@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { ReserveLayout } from "@/components/ui/reserve-layout";
 import { AutoCloseDialog } from "./PeopleListDialog";
+import { revalidatePath } from "next/cache";
 
 export default function DeleteIndividualPersonDialog() {
   return (
@@ -27,7 +28,8 @@ export default function DeleteIndividualPersonDialog() {
         "use server";
         const selected = formData.get("deleting-id") as string;
         await deletePersonById(selected);
-        return { result: "success" };
+        revalidatePath("/interactive-form-in-list");
+        return { refresh: true };
       }}
     >
       <DialogHeader>

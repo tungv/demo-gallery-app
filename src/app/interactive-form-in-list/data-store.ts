@@ -316,3 +316,37 @@ export async function deletePeopleFromStorage(ids: string[]): Promise<number> {
 		throw new Error("Failed to delete people");
 	}
 }
+
+/**
+ * update a person by id
+ */
+export async function updatePersonByIdInStorage(
+	id: string,
+	person: Partial<Person>,
+): Promise<boolean> {
+	if (!id.trim()) {
+		throw new Error("Person ID is required");
+	}
+
+	try {
+		await ensureTable();
+
+		const result = await sql`
+			UPDATE people
+			SET
+				name = ${person.name},
+				email = ${person.email},
+				phone = ${person.phone},
+				address = ${person.address},
+				city = ${person.city},
+				state = ${person.state},
+				zip = ${person.zip}
+			WHERE id = ${Number.parseInt(id.trim())}
+		`;
+
+		return (result.rowCount ?? 0) > 0;
+	} catch (error) {
+		console.error("Error updating person:", error);
+		throw new Error("Failed to update person");
+	}
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSelectedRows } from "@/components/ui/grid-list";
+import { useSelectedRowsData } from "@/components/ui/grid-list";
 import { Hidden, Visible } from "@/components/ui/reserve-layout";
 
 export default function NonEmptySelection({
@@ -10,9 +10,9 @@ export default function NonEmptySelection({
   children: React.ReactNode;
   minSize?: number;
 }) {
-  const selection = useSelectedRows();
+  const selection = useSelectedRowsData();
 
-  if (selection.size < minSize) {
+  if (selection.length < minSize) {
     return <Hidden>{children}</Hidden>;
   }
 
