@@ -838,6 +838,12 @@ export function GridListRowHeader({
   asChild,
   ...divProps
 }: GridListRowHeaderProps) {
+  const rowContext = useContext(RowContext);
+  const selectionDispatch = useSelectionDispatch();
+  const { selectionMode } = useSelectionState();
+  const selectedRows = useSelectedRows();
+  const { rows } = useGridDataState();
+
   const headerProps: React.HTMLAttributes<HTMLDivElement> & {
     "aria-rowspan"?: number;
     scope?: "row" | "rowgroup";
@@ -846,6 +852,29 @@ export function GridListRowHeader({
     role: "rowheader",
     scope,
     className: cn("font-medium text-left", className),
+    onDoubleClick: (event: React.MouseEvent<HTMLDivElement>) => {
+      try {
+        // Only handle double-click if we have a row context and selection is enabled
+        if (!rowContext || selectionMode === "none") return;
+
+        const { rowId } = rowContext;
+
+        // Find the row data to check if it's disabled or readOnly
+        const rowData = rows.find((row) => row.rowId === rowId);
+        if (rowData?.disabled || rowData?.readOnly) return;
+
+        // Toggle selection state
+        const isCurrentlySelected = selectedRows.has(rowId);
+        if (isCurrentlySelected) {
+          selectionDispatch({ type: "deselectRow", rowId });
+        } else {
+          selectionDispatch({ type: "selectRow", rowId });
+        }
+      } finally {
+        // Call the original onDoubleClick if provided
+        divProps.onDoubleClick?.(event);
+      }
+    },
   };
 
   // Add rowspan if specified
