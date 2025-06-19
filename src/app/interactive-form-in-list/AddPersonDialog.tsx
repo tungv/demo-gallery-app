@@ -18,12 +18,14 @@ import { Input } from "@/components/ui/input";
 import {
   InteractiveForm,
   LoadingMessage,
+  Success,
   SubmitMessage,
 } from "@/components/behaviors/interactive-form";
 import { Plus } from "lucide-react";
 import type { NewPersonData } from "./actions";
 import { addPersonToStorage } from "./data-store";
 import { AutoCloseDialog } from "./PeopleListDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Random data generator
 function generateRandomPersonData(): NewPersonData {
@@ -159,6 +161,7 @@ export default function AddPersonDialogContent() {
             "new_person_city",
             "new_person_state",
             "new_person_zip",
+            "create_more",
           ]}
           className="data-[user-invalid]:border-red-500 border rounded-md shadow-sm space-y-4 p-4"
           action={async (formData) => {
@@ -174,11 +177,13 @@ export default function AddPersonDialogContent() {
               zip: formData.get("new_person_zip") as string,
             };
 
+            const shouldCreateMore = formData.has("create_more");
+
             try {
               await addPersonToStorage(newPersonData);
               return {
                 refresh: true,
-                children: <AutoCloseDialog />,
+                result: shouldCreateMore ? undefined : "success",
               };
             } catch (error) {
               console.error(error);
@@ -271,6 +276,19 @@ export default function AddPersonDialogContent() {
                 </ReserveLayout>
               </Button>
             </FormSubmit>
+
+            <FormField name="create_more" className="flex items-center gap-2">
+              <InputControl asChild>
+                <Checkbox defaultChecked />
+              </InputControl>
+              <FormLabel className="text-muted-foreground">
+                Create more
+              </FormLabel>
+            </FormField>
+
+            <Success>
+              <AutoCloseDialog />
+            </Success>
           </DialogFooter>
         </InteractiveForm>
       </Form>
