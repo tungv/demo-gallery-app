@@ -1,4 +1,3 @@
-import { Form } from "@/components/ui/form";
 import {
   GridListBody,
   GridListColumnHeader,
@@ -14,7 +13,6 @@ import {
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
   GridListTitle,
-  GridListDebugger,
 } from "@/components/ui/grid-list";
 
 import {
@@ -31,24 +29,11 @@ import { ReserveLayout } from "@/components/ui/reserve-layout";
 import { getPeople } from "./query";
 import AddPersonDialog from "./AddPersonDialog";
 import {
-  ActionButton,
   FormBoundary,
   InteractiveForm,
   LoadingMessage,
-  SubmitButton,
   SubmitMessage,
 } from "@/components/behaviors/interactive-form";
-import { deletePeopleByIds, deletePersonById } from "./actions";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { DialogClose, DialogDescription } from "@radix-ui/react-dialog";
-import SelectedPeopleNameList from "./SelectedPeopleNameList";
 import {
   PeopleListDialog,
   PeopleListDialogContent,
@@ -58,7 +43,6 @@ import {
 import DeleteIndividualPersonDialog from "./DeteleIndividualPersonDialog";
 import EditIndividualPersonDialog from "./EditIndividualPersonDialog";
 import DeleteMultiplePeopleDialog from "./DeleteMultiplePeopleDialog";
-import { Input } from "@/components/ui/input";
 
 interface Person {
   id: string;
