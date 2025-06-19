@@ -884,3 +884,13 @@ export function GridListCell({
 
   return <div {...cellProps}>{children}</div>;
 }
+
+export function GridCurrentFocusInput({ name }: { name: string }) {
+  const { lastFocusedRowId } = useGridListState();
+
+  if (!lastFocusedRowId) {
+    return null;
+  }
+
+  return <input type="hidden" name={name} value={lastFocusedRowId} />;
+}
