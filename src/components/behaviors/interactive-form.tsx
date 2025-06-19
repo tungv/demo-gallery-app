@@ -102,13 +102,15 @@ const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
 
 const PendingContext = createContext(false);
 
+type InteractiveAction<FieldNames extends string> = (
+  formData: TypedFormData<FieldNames>,
+) => Promise<InteractiveFormResult<FieldNames>>;
+
 type InteractiveFormProps<FieldNames extends string> = {
   asChild?: boolean;
   children: ReactNode;
   fields?: readonly FieldNames[];
-  action: (
-    formData: TypedFormData<FieldNames>,
-  ) => Promise<InteractiveFormResult<FieldNames>>;
+  action?: InteractiveAction<FieldNames>;
 } & Omit<ComponentProps<"form">, "action">;
 
 export function InteractiveForm<const FieldNames extends string>({
@@ -156,24 +158,26 @@ function InteractiveFormImpl<FieldNames extends string>({
         onSubmit={async (e) => {
           e.preventDefault();
 
-          const formData = new FormData(
-            e.currentTarget,
-          ) as TypedFormData<FieldNames>;
-          startTransition(async () => {
-            const result = await action(formData);
+          if (action) {
+            const formData = new FormData(
+              e.currentTarget,
+            ) as TypedFormData<FieldNames>;
+            startTransition(async () => {
+              const result = await action(formData);
 
-            if ("redirect" in result && typeof result.redirect === "string") {
-              router.push(result.redirect);
-              return;
-            }
+              if ("redirect" in result && typeof result.redirect === "string") {
+                router.push(result.redirect);
+                return;
+              }
 
-            if ("refresh" in result && result.refresh === true) {
-              router.refresh();
-              return;
-            }
+              if ("refresh" in result && result.refresh === true) {
+                router.refresh();
+                return;
+              }
 
-            dispatch({ type: "set_form_result", result });
-          });
+              dispatch({ type: "set_form_result", result });
+            });
+          }
           props.onSubmit?.(e);
         }}
         onReset={(e) => {
@@ -286,7 +290,10 @@ export function SubmitButton({
     ...buttonProps,
     type: "submit",
     inert: isPending,
-    className: cn({ "animate-pulse": isPending }, buttonProps.className),
+    className: cn(
+      { "motion-safe:animate-pulse reduced-motion:opacity-50": isPending },
+      buttonProps.className,
+    ),
   } as ComponentProps<"button">;
 
   if (asChild) {
@@ -328,4 +335,67 @@ function FormBoundaryImpl({ children }: { children: ReactNode }) {
   const { outerKey } = context;
 
   return <Fragment key={outerKey}>{children}</Fragment>;
+}
+
+export function ActionButton<FieldNames extends string = string>({
+  children,
+  formAction,
+  asChild,
+  ...btnProps
+}: Omit<ComponentProps<"button">, "type" | "formAction"> & {
+  formAction: InteractiveAction<FieldNames>;
+  asChild?: boolean;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const dispatch = useFormDispatch();
+
+  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    const form = e.currentTarget.form;
+    if (!form) {
+      return;
+    }
+    const formData = new FormData(form) as TypedFormData<FieldNames>;
+    startTransition(async () => {
+      const result = await formAction(formData);
+
+      if ("redirect" in result && typeof result.redirect === "string") {
+        router.push(result.redirect);
+        return;
+      }
+
+      if ("refresh" in result && result.refresh === true) {
+        router.refresh();
+        return;
+      }
+
+      dispatch({ type: "set_form_result", result });
+    });
+  }
+
+  const props = {
+    ...btnProps,
+    type: "button",
+    onClick: handleClick,
+    inert: isPending,
+    className: cn(
+      { "motion-safe:animate-pulse reduced-motion:opacity-50": isPending },
+      btnProps.className,
+    ),
+  } as ComponentProps<"button">;
+
+  if (asChild) {
+    return (
+      <PendingContext.Provider value={isPending}>
+        <Slot {...props}>{children}</Slot>
+      </PendingContext.Provider>
+    );
+  }
+
+  return (
+    <PendingContext.Provider value={isPending}>
+      <button {...props}>{children}</button>
+    </PendingContext.Provider>
+  );
 }
