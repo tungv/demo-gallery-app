@@ -21,7 +21,7 @@ import {
   Square,
   Trash2,
   Edit3,
-  Flag,
+  ThumbsUp,
   Plus,
 } from "lucide-react";
 import NonEmptySelection from "./non-empty-selection";
@@ -34,7 +34,9 @@ import {
   InteractiveForm,
   LoadingMessage,
   SubmitMessage,
+  ActionButton,
 } from "@/components/behaviors/interactive-form";
+import { incrementVoteCount } from "./actions";
 import {
   PeopleListDialog,
   PeopleListDialogContent,
@@ -54,7 +56,7 @@ export default async function InteractiveFormInList() {
       <InteractiveForm className="contents">
         <PeopleListDialogProvider>
           <GridListRoot
-            className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto] h-fit"
+            className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit"
             selectionMode="multiple"
             name="people-list"
           >
@@ -88,6 +90,7 @@ export default async function InteractiveFormInList() {
                     <PeopleHeaderCell>City</PeopleHeaderCell>
                     <PeopleHeaderCell>State</PeopleHeaderCell>
                     <PeopleHeaderCell>Zip</PeopleHeaderCell>
+                    <PeopleHeaderCell>Votes</PeopleHeaderCell>
                     <PeopleHeaderCell>Actions</PeopleHeaderCell>
                   </GridListRow>
                 </GridListHeader>
@@ -120,6 +123,9 @@ export default async function InteractiveFormInList() {
                       </GridListCell>
                       <GridListCell className="p-1 tabular-nums">
                         <span className="select-all">{person.zip}</span>
+                      </GridListCell>
+                      <GridListCell className="p-1 text-center tabular-nums">
+                        {person.voteCount}
                       </GridListCell>
                       <GridListCell className="p-1">
                         <ActionsCell />
@@ -217,9 +223,11 @@ function ActionsCell() {
         </Button>
       </PeopleListDialogTrigger>
 
-      <Button type="button" variant="ghost" title="Flag person">
-        <Flag className="size-4 text-muted-foreground hover:text-foreground" />
-      </Button>
+      <ActionButton formAction={incrementVoteCount} asChild>
+        <Button type="button" variant="ghost" title="Vote for person">
+          <ThumbsUp className="size-4 text-muted-foreground hover:text-foreground" />
+        </Button>
+      </ActionButton>
 
       <PeopleListDialogTrigger dialog="delete-person" asChild>
         <Button type="button" variant="ghost" title="Delete person">

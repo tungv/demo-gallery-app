@@ -4,6 +4,7 @@ import {
 	addPersonToStorage,
 	deletePersonFromStorage,
 	deletePeopleFromStorage,
+	incrementVoteCountByIdInStorage,
 	type NewPersonData,
 } from "./data-store";
 
@@ -112,6 +113,50 @@ export async function deletePeopleByIds(ids: string[]) {
 		return await deletePeopleFromStorage(ids);
 	} catch (error) {
 		console.error("Error in deletePeopleByIds action:", error);
+		throw error;
+	}
+}
+
+/**
+ * Increment vote count for a person from form data
+ */
+export async function incrementVoteCount(formData: FormData) {
+	try {
+		const id = formData.get("people-list.focused") as string;
+		if (!id) {
+			return {
+				errors: { $: ["Person ID is required"] },
+			};
+		}
+
+		const success = await incrementVoteCountByIdInStorage(id);
+
+		if (success) {
+			return {
+				refresh: true,
+				result: { success: true },
+			};
+		}
+
+		return {
+			errors: { $: ["Failed to increment vote count"] },
+		};
+	} catch (error) {
+		console.error("Error in incrementVoteCount action:", error);
+		return {
+			errors: { $: ["An error occurred while incrementing vote count"] },
+		};
+	}
+}
+
+/**
+ * Increment vote count for a person by ID (for programmatic use)
+ */
+export async function incrementVoteCountById(id: string) {
+	try {
+		return await incrementVoteCountByIdInStorage(id);
+	} catch (error) {
+		console.error("Error in incrementVoteCountById action:", error);
 		throw error;
 	}
 }

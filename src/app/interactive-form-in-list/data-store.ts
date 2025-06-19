@@ -9,6 +9,7 @@ export interface Person {
 	city: string;
 	state: string;
 	zip: string;
+	voteCount: number;
 	created_at?: string;
 }
 
@@ -27,8 +28,15 @@ async function ensureTable(): Promise<void> {
 				city VARCHAR(255),
 				state VARCHAR(100),
 				zip VARCHAR(20),
+				vote_count INTEGER DEFAULT 0,
 				created_at TIMESTAMP DEFAULT NOW()
 			)
+		`;
+
+		// Add vote_count column if it doesn't exist (for existing tables)
+		await sql`
+			ALTER TABLE people 
+			ADD COLUMN IF NOT EXISTS vote_count INTEGER DEFAULT 0
 		`;
 	} catch (error) {
 		console.error("Error creating table:", error);
@@ -68,6 +76,7 @@ export async function readAllPeople(): Promise<Person[]> {
 				city,
 				state,
 				zip,
+				vote_count,
 				created_at::text
 			FROM people 
 			ORDER BY id
@@ -82,6 +91,7 @@ export async function readAllPeople(): Promise<Person[]> {
 			city: row.city || "",
 			state: row.state || "",
 			zip: row.zip || "",
+			voteCount: row.vote_count || 0,
 			created_at: row.created_at,
 		}));
 	} catch (error) {
@@ -110,7 +120,7 @@ export async function writeAllPeople(people: Person[]): Promise<void> {
 					? person.created_at
 					: new Date().toISOString();
 				await sql`
-					INSERT INTO people (id, name, email, phone, address, city, state, zip, created_at)
+					INSERT INTO people (id, name, email, phone, address, city, state, zip, vote_count, created_at)
 					VALUES (
 						${person.id}::integer,
 						${person.name},
@@ -120,6 +130,7 @@ export async function writeAllPeople(people: Person[]): Promise<void> {
 						${person.city || ""},
 						${person.state || ""},
 						${person.zip || ""},
+						${person.voteCount || 0},
 						${createdAt}
 					)
 				`;
@@ -152,7 +163,7 @@ export async function appendPerson(person: Person): Promise<void> {
 			? person.created_at
 			: new Date().toISOString();
 		await sql`
-			INSERT INTO people (name, email, phone, address, city, state, zip, created_at)
+			INSERT INTO people (name, email, phone, address, city, state, zip, vote_count, created_at)
 			VALUES (
 				${person.name},
 				${person.email},
@@ -161,6 +172,7 @@ export async function appendPerson(person: Person): Promise<void> {
 				${person.city || ""},
 				${person.state || ""},
 				${person.zip || ""},
+				${person.voteCount || 0},
 				${createdAt}
 			)
 		`;
@@ -202,7 +214,7 @@ export async function addPersonToStorage(
 		const created_at = new Date().toISOString();
 
 		const result = await sql`
-			INSERT INTO people (name, email, phone, address, city, state, zip, created_at)
+			INSERT INTO people (name, email, phone, address, city, state, zip, vote_count, created_at)
 			VALUES (
 				${newPersonData.name.trim()},
 				${newPersonData.email.trim()},
@@ -211,6 +223,7 @@ export async function addPersonToStorage(
 				${newPersonData.city?.trim() || ""},
 				${newPersonData.state?.trim() || ""},
 				${newPersonData.zip?.trim() || ""},
+				0,
 				${created_at}
 			)
 			RETURNING 
@@ -222,6 +235,7 @@ export async function addPersonToStorage(
 				city,
 				state,
 				zip,
+				vote_count,
 				created_at::text
 		`;
 
@@ -235,6 +249,7 @@ export async function addPersonToStorage(
 			city: row.city || "",
 			state: row.state || "",
 			zip: row.zip || "",
+			voteCount: row.vote_count || 0,
 			created_at: row.created_at,
 		};
 	} catch (error) {
@@ -340,7 +355,8 @@ export async function updatePersonByIdInStorage(
 				address = ${person.address},
 				city = ${person.city},
 				state = ${person.state},
-				zip = ${person.zip}
+				zip = ${person.zip},
+				vote_count = ${person.voteCount !== undefined ? person.voteCount : 0}
 			WHERE id = ${Number.parseInt(id.trim())}
 		`;
 
@@ -348,5 +364,31 @@ export async function updatePersonByIdInStorage(
 	} catch (error) {
 		console.error("Error updating person:", error);
 		throw new Error("Failed to update person");
+	}
+}
+
+/**
+ * Increment vote count for a person by ID - business logic
+ */
+export async function incrementVoteCountByIdInStorage(
+	id: string,
+): Promise<boolean> {
+	if (!id.trim()) {
+		throw new Error("Person ID is required");
+	}
+
+	try {
+		await ensureTable();
+
+		const result = await sql`
+			UPDATE people
+			SET vote_count = vote_count + 1
+			WHERE id = ${Number.parseInt(id.trim())}
+		`;
+
+		return (result.rowCount ?? 0) > 0;
+	} catch (error) {
+		console.error("Error incrementing vote count:", error);
+		throw new Error("Failed to increment vote count");
 	}
 }
