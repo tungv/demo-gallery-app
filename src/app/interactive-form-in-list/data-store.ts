@@ -1,5 +1,4 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { sql } from "@vercel/postgres";
 
 export interface Person {
 	id: string;
@@ -13,84 +12,27 @@ export interface Person {
 	created_at?: string;
 }
 
-const CSV_FILE_PATH = path.join(
-	process.cwd(),
-	"src/app/interactive-form-in-list/data.csv",
-);
-
 /**
- * Parse CSV row to Person object
+ * Initialize the database table if it doesn't exist
  */
-function csvRowToPerson(row: string): Person {
-	// Handle quoted fields and escape sequences
-	const fields: string[] = [];
-	let current = "";
-	let inQuotes = false;
-	let i = 0;
-
-	while (i < row.length) {
-		const char = row[i];
-		const nextChar = row[i + 1];
-
-		if (char === '"' && !inQuotes) {
-			inQuotes = true;
-		} else if (char === '"' && inQuotes && nextChar === '"') {
-			// Escaped quote
-			current += '"';
-			i++; // Skip next quote
-		} else if (char === '"' && inQuotes) {
-			inQuotes = false;
-		} else if (char === "," && !inQuotes) {
-			fields.push(current);
-			current = "";
-		} else {
-			current += char;
-		}
-		i++;
-	}
-	fields.push(current); // Add last field
-
-	return {
-		id: fields[0] || "",
-		name: fields[1] || "",
-		email: fields[2] || "",
-		phone: fields[3] || "",
-		address: fields[4] || "",
-		city: fields[5] || "",
-		state: fields[6] || "",
-		zip: fields[7] || "",
-		created_at: fields[8] || "",
-	};
-}
-
-/**
- * Convert a person object to CSV row string
- */
-function personToCsvRow(person: Person): string {
-	const values = [
-		person.id,
-		`"${person.name.replace(/"/g, '""')}"`,
-		person.email,
-		person.phone || "",
-		`"${(person.address || "").replace(/"/g, '""')}"`,
-		person.city || "",
-		person.state || "",
-		person.zip || "",
-		person.created_at || new Date().toISOString(),
-	];
-	return values.join(",");
-}
-
-/**
- * Ensure CSV file exists with headers
- */
-async function ensureCsvFile(): Promise<void> {
+async function ensureTable(): Promise<void> {
 	try {
-		await fs.access(CSV_FILE_PATH);
-	} catch {
-		// File doesn't exist, create it with headers
-		const headers = "id,name,email,phone,address,city,state,zip,created_at";
-		await fs.writeFile(CSV_FILE_PATH, headers);
+		await sql`
+			CREATE TABLE IF NOT EXISTS people (
+				id SERIAL PRIMARY KEY,
+				name VARCHAR(255) NOT NULL,
+				email VARCHAR(255) NOT NULL,
+				phone VARCHAR(50),
+				address TEXT,
+				city VARCHAR(255),
+				state VARCHAR(100),
+				zip VARCHAR(20),
+				created_at TIMESTAMP DEFAULT NOW()
+			)
+		`;
+	} catch (error) {
+		console.error("Error creating table:", error);
+		throw new Error("Failed to initialize database table");
 	}
 }
 
@@ -99,14 +41,11 @@ async function ensureCsvFile(): Promise<void> {
  */
 export async function generateNextId(): Promise<string> {
 	try {
-		await ensureCsvFile();
-		const content = await fs.readFile(CSV_FILE_PATH, "utf-8");
-		const lines = content.trim().split("\n");
-		if (lines.length <= 1) return "1"; // Only header exists
-
-		const lastLine = lines[lines.length - 1];
-		const lastId = Number.parseInt(lastLine.split(",")[0]);
-		return (lastId + 1).toString();
+		await ensureTable();
+		const result = await sql`
+			SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM people
+		`;
+		return result.rows[0].next_id.toString();
 	} catch (error) {
 		console.error("Error generating ID:", error);
 		return "1";
@@ -114,52 +53,120 @@ export async function generateNextId(): Promise<string> {
 }
 
 /**
- * Read all people from CSV file
+ * Read all people from database
  */
 export async function readAllPeople(): Promise<Person[]> {
 	try {
-		await ensureCsvFile();
-		const content = await fs.readFile(CSV_FILE_PATH, "utf-8");
-		const lines = content.trim().split("\n");
+		await ensureTable();
+		const result = await sql`
+			SELECT 
+				id::text,
+				name,
+				email,
+				phone,
+				address,
+				city,
+				state,
+				zip,
+				created_at::text
+			FROM people 
+			ORDER BY id
+		`;
 
-		// Skip header row
-		if (lines.length <= 1) return [];
-
-		return lines
-			.slice(1)
-			.filter((line) => line.trim())
-			.map(csvRowToPerson);
+		return result.rows.map((row) => ({
+			id: row.id,
+			name: row.name,
+			email: row.email,
+			phone: row.phone || "",
+			address: row.address || "",
+			city: row.city || "",
+			state: row.state || "",
+			zip: row.zip || "",
+			created_at: row.created_at,
+		}));
 	} catch (error) {
 		console.error("Error reading people:", error);
-		throw new Error("Failed to read people from CSV file");
+		throw new Error("Failed to read people from database");
 	}
 }
 
 /**
- * Write all people to CSV file
+ * Write all people to database (replaces all existing data)
  */
 export async function writeAllPeople(people: Person[]): Promise<void> {
 	try {
-		const headers = "id,name,email,phone,address,city,state,zip,created_at";
-		const csvContent = [headers, ...people.map(personToCsvRow)].join("\n");
+		await ensureTable();
 
-		await fs.writeFile(CSV_FILE_PATH, csvContent);
+		// Start transaction
+		await sql`BEGIN`;
+
+		try {
+			// Clear existing data
+			await sql`DELETE FROM people`;
+
+			// Insert new data
+			for (const person of people) {
+				const createdAt = person.created_at
+					? person.created_at
+					: new Date().toISOString();
+				await sql`
+					INSERT INTO people (id, name, email, phone, address, city, state, zip, created_at)
+					VALUES (
+						${person.id}::integer,
+						${person.name},
+						${person.email},
+						${person.phone || ""},
+						${person.address || ""},
+						${person.city || ""},
+						${person.state || ""},
+						${person.zip || ""},
+						${createdAt}
+					)
+				`;
+			}
+
+			// Reset sequence to match the highest ID
+			if (people.length > 0) {
+				const maxId = Math.max(...people.map((p) => Number.parseInt(p.id)));
+				await sql`SELECT setval('people_id_seq', ${maxId})`;
+			}
+
+			await sql`COMMIT`;
+		} catch (error) {
+			await sql`ROLLBACK`;
+			throw error;
+		}
 	} catch (error) {
 		console.error("Error writing people:", error);
-		throw new Error("Failed to write people to CSV file");
+		throw new Error("Failed to write people to database");
 	}
 }
 
 /**
- * Append a single person to CSV file
+ * Add a single person to database
  */
 export async function appendPerson(person: Person): Promise<void> {
 	try {
-		const csvRow = personToCsvRow(person);
-		await fs.appendFile(CSV_FILE_PATH, `\n${csvRow}`);
+		await ensureTable();
+		const createdAt = person.created_at
+			? person.created_at
+			: new Date().toISOString();
+		await sql`
+			INSERT INTO people (name, email, phone, address, city, state, zip, created_at)
+			VALUES (
+				${person.name},
+				${person.email},
+				${person.phone || ""},
+				${person.address || ""},
+				${person.city || ""},
+				${person.state || ""},
+				${person.zip || ""},
+				${createdAt}
+			)
+		`;
 	} catch (error) {
 		console.error("Error appending person:", error);
-		throw new Error("Failed to append person to CSV file");
+		throw new Error("Failed to add person to database");
 	}
 }
 
@@ -190,23 +197,46 @@ export async function addPersonToStorage(
 			throw new Error("Email is required");
 		}
 
-		const id = await generateNextId();
+		await ensureTable();
+
 		const created_at = new Date().toISOString();
 
-		const person: Person = {
-			id,
-			name: newPersonData.name.trim(),
-			email: newPersonData.email.trim(),
-			phone: newPersonData.phone?.trim() || "",
-			address: newPersonData.address?.trim() || "",
-			city: newPersonData.city?.trim() || "",
-			state: newPersonData.state?.trim() || "",
-			zip: newPersonData.zip?.trim() || "",
-			created_at,
-		};
+		const result = await sql`
+			INSERT INTO people (name, email, phone, address, city, state, zip, created_at)
+			VALUES (
+				${newPersonData.name.trim()},
+				${newPersonData.email.trim()},
+				${newPersonData.phone?.trim() || ""},
+				${newPersonData.address?.trim() || ""},
+				${newPersonData.city?.trim() || ""},
+				${newPersonData.state?.trim() || ""},
+				${newPersonData.zip?.trim() || ""},
+				${created_at}
+			)
+			RETURNING 
+				id::text,
+				name,
+				email,
+				phone,
+				address,
+				city,
+				state,
+				zip,
+				created_at::text
+		`;
 
-		await appendPerson(person);
-		return person;
+		const row = result.rows[0];
+		return {
+			id: row.id,
+			name: row.name,
+			email: row.email,
+			phone: row.phone || "",
+			address: row.address || "",
+			city: row.city || "",
+			state: row.state || "",
+			zip: row.zip || "",
+			created_at: row.created_at,
+		};
 	} catch (error) {
 		console.error("Error adding person:", error);
 		throw new Error("Failed to add person");
@@ -238,17 +268,14 @@ export async function deletePersonFromStorage(id: string): Promise<boolean> {
 			throw new Error("Person ID is required");
 		}
 
-		const people = await readAllPeople();
-		const initialLength = people.length;
-		const filteredPeople = people.filter((person) => person.id !== id.trim());
+		await ensureTable();
 
-		if (filteredPeople.length === initialLength) {
-			// Person not found
-			return false;
-		}
+		const result = await sql`
+			DELETE FROM people 
+			WHERE id = ${Number.parseInt(id.trim())}
+		`;
 
-		await writeAllPeople(filteredPeople);
-		return true;
+		return (result.rowCount ?? 0) > 0;
 	} catch (error) {
 		console.error("Error deleting person:", error);
 		throw new Error("Failed to delete person");
@@ -269,16 +296,18 @@ export async function deletePeopleFromStorage(ids: string[]): Promise<number> {
 			return 0;
 		}
 
-		const people = await readAllPeople();
-		const initialLength = people.length;
-		const filteredPeople = people.filter(
-			(person) => !trimmedIds.includes(person.id),
-		);
+		await ensureTable();
 
-		const deletedCount = initialLength - filteredPeople.length;
+		const numericIds = trimmedIds.map((id) => Number.parseInt(id));
 
-		if (deletedCount > 0) {
-			await writeAllPeople(filteredPeople);
+		// Delete each ID individually to work around array parameter limitations
+		let deletedCount = 0;
+		for (const numericId of numericIds) {
+			const result = await sql`
+				DELETE FROM people 
+				WHERE id = ${numericId}
+			`;
+			deletedCount += result.rowCount ?? 0;
 		}
 
 		return deletedCount;
