@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { createReducerContext } from "@/utils/reducer-context";
 import type { DialogContentProps } from "@radix-ui/react-dialog";
 import { Slot } from "@radix-ui/react-slot";
-import type { HTMLAttributes } from "react";
+import { useEffect, type HTMLAttributes } from "react";
 
 type DialogType = "delete-person";
 
@@ -106,4 +106,28 @@ export function PeopleListDialogTrigger({
   }
 
   return <button {...triggerProps}>{children}</button>;
+}
+
+export function AutoCloseDialog({
+  delayMs,
+  children = null,
+}: {
+  delayMs?: number;
+  children?: React.ReactNode;
+}) {
+  const dispatch = usePeopleListDialogDispatch();
+
+  useEffect(() => {
+    if (!delayMs) {
+      dispatch({ type: "close" });
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      dispatch({ type: "close" });
+    }, delayMs);
+    return () => clearTimeout(timeout);
+  }, [delayMs, dispatch]);
+
+  return children;
 }
