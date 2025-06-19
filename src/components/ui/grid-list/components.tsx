@@ -69,9 +69,6 @@ export function GridListRoot({
   value,
   onValueChange,
   onInvalid,
-  "aria-label": ariaLabel,
-  "aria-labelledby": ariaLabelledby,
-  "aria-describedby": ariaDescribedby,
   ...divProps
 }: GridListRootProps) {
   const isControlled = typeof value !== "undefined";
@@ -153,13 +150,7 @@ export function GridListRoot({
   }, [value]);
 
   const listInner = (
-    <GridListInner
-      className={className}
-      ariaLabel={ariaLabel}
-      ariaLabelledby={ariaLabelledby}
-      ariaDescribedby={ariaDescribedby}
-      {...divProps}
-    >
+    <GridListInner className={className} {...divProps}>
       <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
       {children}
       <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
@@ -200,15 +191,9 @@ export function GridListRoot({
 function GridListInner({
   children,
   className,
-  ariaLabel,
-  ariaLabelledby,
-  ariaDescribedby,
   ...divProps
 }: {
   children: React.ReactNode;
-  ariaLabel?: string;
-  ariaLabelledby?: string;
-  ariaDescribedby?: string;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const { containerRef, isFocusWithinContainer } = useGridListState();
   const dispatch = useGridListDispatch();
@@ -314,12 +299,22 @@ function GridListInner({
 
   // Combine manual ARIA props with registered label/caption IDs
   const combinedLabelledBy =
-    [...(ariaLabelledby ? ariaLabelledby.split(/\s+/) : []), ...labelIds]
+    [
+      ...(divProps["aria-labelledby"]
+        ? divProps["aria-labelledby"].split(/\s+/)
+        : []),
+      ...labelIds,
+    ]
       .filter(Boolean)
       .join(" ") || undefined;
 
   const combinedDescribedBy =
-    [...(ariaDescribedby ? ariaDescribedby.split(/\s+/) : []), ...captionIds]
+    [
+      ...(divProps["aria-describedby"]
+        ? divProps["aria-describedby"].split(/\s+/)
+        : []),
+      ...captionIds,
+    ]
       .filter(Boolean)
       .join(" ") || undefined;
 
@@ -329,7 +324,6 @@ function GridListInner({
     role: "grid",
     tabIndex: -1,
     "data-focused": isFocusWithinContainer ? "true" : undefined,
-    "aria-label": ariaLabel,
     "aria-labelledby": combinedLabelledBy,
     "aria-describedby": combinedDescribedBy,
   };
