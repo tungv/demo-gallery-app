@@ -1,8 +1,4 @@
-import {
-  Form,
-  FormPendingMessage,
-  FormSubmitMessage,
-} from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import {
   GridListBody,
   GridListColumnHeader,
@@ -10,8 +6,6 @@ import {
   GridListRoot,
   GridListRow,
   GridListRowHeader,
-} from "@/components/ui/grid-list";
-import {
   GridListCaption,
   GridListCell,
   GridListFooter,
@@ -20,7 +14,9 @@ import {
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
   GridListTitle,
-} from "@/components/ui/grid-list/components";
+  GridListDebugger,
+} from "@/components/ui/grid-list";
+
 import {
   CheckSquare2,
   MinusSquare,
@@ -42,7 +38,16 @@ import {
   SubmitMessage,
 } from "@/components/behaviors/interactive-form";
 import { deletePeopleByIds, deletePersonById } from "./actions";
-import { Debugger } from "@/components/ui/grid-list/debug";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { DialogClose, DialogDescription } from "@radix-ui/react-dialog";
+import SelectedPeopleNameList from "./SelectedPeopleNameList";
 
 interface Person {
   id: string;
@@ -92,6 +97,7 @@ export default async function InteractiveFormInList() {
                   key={person.id}
                   className="items-center gap-4 focus-visible:outline-2 outline-primary rounded-md focus-within:bg-secondary hover:bg-accent group"
                   rowId={person.id}
+                  rowData={person}
                 >
                   <GridListCell className="p-1">
                     <CheckBox />
@@ -112,14 +118,14 @@ export default async function InteractiveFormInList() {
                     <span className="select-all">{person.zip}</span>
                   </GridListCell>
                   <GridListCell className="p-1">
-                    <ActionsCell personId={person.id} />
+                    <ActionsCell />
                   </GridListCell>
                 </GridListRow>
               ))}
             </GridListBody>
 
             <GridListFooter>
-              <Debugger />
+              <GridListDebugger />
 
               <GridListRow className="p-2 gap-4 flex flex-row">
                 {/* FormBoundary is here to ensure the form is reset after a successful submission */}
@@ -127,28 +133,63 @@ export default async function InteractiveFormInList() {
                   <AddPersonDialog />
                 </FormBoundary>
                 <NonEmptySelection minSize={2}>
-                  <ActionButton<"people-list">
-                    asChild
-                    formAction={async (formData) => {
-                      "use server";
-                      const selected = formData.getAll(
-                        "people-list",
-                      ) as string[];
-                      await deletePeopleByIds(selected);
-                      // revalidatePath("/interactive-form-in-list");
-                      return {
-                        refresh: true,
-                      };
-                    }}
-                  >
-                    <Button variant="destructive" size="sm" className="gap-2">
-                      <Trash2 className="size-4" />
-                      <ReserveLayout>
-                        <LoadingMessage>Deleting...</LoadingMessage>
-                        <SubmitMessage>Delete multiple</SubmitMessage>
-                      </ReserveLayout>
-                    </Button>
-                  </ActionButton>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="destructive" size="sm" type="button">
+                        <Trash2 className="size-4" />
+                        <ReserveLayout>
+                          <LoadingMessage>Deleting...</LoadingMessage>
+                          <SubmitMessage>Delete multiple</SubmitMessage>
+                        </ReserveLayout>
+                      </Button>
+                    </DialogTrigger>
+
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Delete multiple people</DialogTitle>
+                      </DialogHeader>
+                      <DialogDescription>
+                        Are you sure you want to delete the selected people?
+                      </DialogDescription>
+
+                      <p>People to delete:</p>
+                      <SelectedPeopleNameList />
+
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline" size="sm">
+                            Cancel
+                          </Button>
+                        </DialogClose>
+
+                        <ActionButton<"people-list">
+                          asChild
+                          formAction={async (formData) => {
+                            "use server";
+                            const selected = formData.getAll(
+                              "people-list",
+                            ) as string[];
+                            await deletePeopleByIds(selected);
+                            return {
+                              refresh: true,
+                            };
+                          }}
+                        >
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="gap-2"
+                          >
+                            <Trash2 className="size-4" />
+                            <ReserveLayout>
+                              <LoadingMessage>Deleting...</LoadingMessage>
+                              <SubmitMessage>Delete multiple</SubmitMessage>
+                            </ReserveLayout>
+                          </Button>
+                        </ActionButton>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </NonEmptySelection>
               </GridListRow>
             </GridListFooter>
@@ -185,7 +226,7 @@ function CheckBox() {
   );
 }
 
-function ActionsCell({ personId }: { personId: string }) {
+function ActionsCell() {
   return (
     <div className="flex items-center bg-white/90 rounded-md focus-within:shadow-sm">
       <Button type="button" variant="ghost" title="Edit person">
