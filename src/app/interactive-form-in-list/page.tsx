@@ -72,61 +72,78 @@ export default async function InteractiveFormInList() {
             name="people-list"
           >
             <GridListTitle className="p-2">People</GridListTitle>
-            <GridListCaption className="px-2 pb-2">
-              Showing {people.length} people.
-            </GridListCaption>
 
-            <GridListHeader>
-              <GridListRow>
-                <PeopleHeaderCell>
-                  <CheckBox />
-                </PeopleHeaderCell>
-                <PeopleHeaderCell>Name</PeopleHeaderCell>
-                <PeopleHeaderCell>Email</PeopleHeaderCell>
-                <PeopleHeaderCell>Phone</PeopleHeaderCell>
-                <PeopleHeaderCell>Address</PeopleHeaderCell>
-                <PeopleHeaderCell>City</PeopleHeaderCell>
-                <PeopleHeaderCell>State</PeopleHeaderCell>
-                <PeopleHeaderCell>Zip</PeopleHeaderCell>
-                <PeopleHeaderCell>Actions</PeopleHeaderCell>
-              </GridListRow>
-            </GridListHeader>
-            <GridListBody className="divide-y border-y">
-              {people.map((person) => (
-                <GridListRow
-                  key={person.id}
-                  className="items-center gap-4 focus-visible:outline-2 outline-primary rounded-md focus-within:bg-secondary hover:bg-accent group"
-                  rowId={person.id}
-                  rowData={person}
-                >
-                  <GridListCell className="p-1">
-                    <CheckBox />
-                  </GridListCell>
-                  <GridListRowHeader className="font-medium text-left p-1">
-                    {person.name}
-                  </GridListRowHeader>
-                  <GridListCell className="p-1">
-                    <span className="select-all">{person.email}</span>
-                  </GridListCell>
-                  <GridListCell className="p-1 tabular-nums">
-                    <span className="select-all">{person.phone}</span>
-                  </GridListCell>
-                  <GridListCell className="p-1">{person.address}</GridListCell>
-                  <GridListCell className="p-1">{person.city}</GridListCell>
-                  <GridListCell className="p-1">{person.state}</GridListCell>
-                  <GridListCell className="p-1 tabular-nums">
-                    <span className="select-all">{person.zip}</span>
-                  </GridListCell>
-                  <GridListCell className="p-1">
-                    <ActionsCell />
-                  </GridListCell>
-                </GridListRow>
-              ))}
-            </GridListBody>
+            {people.length === 0 ? (
+              <>
+                <GridListCaption className="px-2 pb-2">
+                  This list is empty.
+                </GridListCaption>
+                <div className="p-12 text-center col-span-full bg-muted">
+                  <p className="text-muted-foreground italic">
+                    No people found.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <GridListCaption className="px-2 pb-2">
+                  Showing {people.length} people.
+                </GridListCaption>
+                <GridListHeader>
+                  <GridListRow>
+                    <PeopleHeaderCell>
+                      <CheckBox />
+                    </PeopleHeaderCell>
+                    <PeopleHeaderCell>Name</PeopleHeaderCell>
+                    <PeopleHeaderCell>Email</PeopleHeaderCell>
+                    <PeopleHeaderCell>Phone</PeopleHeaderCell>
+                    <PeopleHeaderCell>Address</PeopleHeaderCell>
+                    <PeopleHeaderCell>City</PeopleHeaderCell>
+                    <PeopleHeaderCell>State</PeopleHeaderCell>
+                    <PeopleHeaderCell>Zip</PeopleHeaderCell>
+                    <PeopleHeaderCell>Actions</PeopleHeaderCell>
+                  </GridListRow>
+                </GridListHeader>
+                <GridListBody className="divide-y border-y">
+                  {people.map((person) => (
+                    <GridListRow
+                      key={person.id}
+                      className="items-center gap-4 focus-visible:outline-2 outline-primary rounded-md focus-within:bg-secondary hover:bg-accent group"
+                      rowId={person.id}
+                      rowData={person}
+                    >
+                      <GridListCell className="p-1">
+                        <CheckBox />
+                      </GridListCell>
+                      <GridListRowHeader className="font-medium text-left p-1">
+                        {person.name}
+                      </GridListRowHeader>
+                      <GridListCell className="p-1">
+                        <span className="select-all">{person.email}</span>
+                      </GridListCell>
+                      <GridListCell className="p-1 tabular-nums">
+                        <span className="select-all">{person.phone}</span>
+                      </GridListCell>
+                      <GridListCell className="p-1">
+                        {person.address}
+                      </GridListCell>
+                      <GridListCell className="p-1">{person.city}</GridListCell>
+                      <GridListCell className="p-1">
+                        {person.state}
+                      </GridListCell>
+                      <GridListCell className="p-1 tabular-nums">
+                        <span className="select-all">{person.zip}</span>
+                      </GridListCell>
+                      <GridListCell className="p-1">
+                        <ActionsCell />
+                      </GridListCell>
+                    </GridListRow>
+                  ))}
+                </GridListBody>
+              </>
+            )}
 
             <GridListFooter>
-              <GridListDebugger />
-
               <GridListRow className="p-2 gap-4 flex flex-row">
                 {/* FormBoundary is here to ensure the form is reset after a successful submission */}
                 <FormBoundary>
