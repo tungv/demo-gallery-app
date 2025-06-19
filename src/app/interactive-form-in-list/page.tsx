@@ -254,19 +254,48 @@ function ActionsCell() {
         <Flag className="size-4 text-muted-foreground hover:text-foreground" />
       </Button>
 
-      <ActionButton<"people-list.focused">
-        asChild
-        formAction={async (formData) => {
-          "use server";
-          const selected = formData.get("people-list.focused") as string;
-          await deletePersonById(selected);
-          return { refresh: true };
-        }}
-      >
-        <Button type="button" variant="ghost" title="Delete person">
-          <Trash2 className="size-4 text-destructive hover:text-destructive/80" />
-        </Button>
-      </ActionButton>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button type="button" variant="ghost" title="Delete person">
+            <Trash2 className="size-4 text-destructive hover:text-destructive/80" />
+          </Button>
+        </DialogTrigger>
+
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete person?</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            Are you sure you want to delete this person?
+          </DialogDescription>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">
+                Cancel
+              </Button>
+            </DialogClose>
+
+            <ActionButton<"people-list.focused">
+              asChild
+              formAction={async (formData) => {
+                "use server";
+                const selected = formData.get("people-list.focused") as string;
+                await deletePersonById(selected);
+                return { refresh: true };
+              }}
+            >
+              <Button type="button" variant="destructive" size="sm">
+                <Trash2 className="size-4" />
+                <ReserveLayout>
+                  <LoadingMessage>Deleting...</LoadingMessage>
+                  <SubmitMessage>Delete person</SubmitMessage>
+                </ReserveLayout>
+              </Button>
+            </ActionButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
