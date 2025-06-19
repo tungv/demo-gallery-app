@@ -307,3 +307,14 @@ export function useSelectedRowsData<T>(): ReadonlyArray<
 		GridDataState["rows"][number] & { data: T }
 	>;
 }
+
+export function useFocusedRowData<T>(): T | undefined {
+	const { lastFocusedRowId } = useGridListState();
+	const { rows } = useGridDataState();
+
+	if (lastFocusedRowId == null) {
+		return undefined;
+	}
+
+	return rows.find((row) => row.rowId === lastFocusedRowId)?.data as T;
+}
