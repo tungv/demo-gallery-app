@@ -2,7 +2,13 @@
 
 import { Slot } from "@radix-ui/react-slot";
 import { useRouter } from "next/navigation";
-import { createContext, Fragment, useContext, useTransition } from "react";
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useRef,
+  useTransition,
+} from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { createReducerContext } from "@/utils/reducer-context";
 import { cn } from "@/lib/utils";
@@ -39,6 +45,7 @@ type LocalState<FieldNames extends string = string> = {
   counter: number;
   hasOuterBoundary: boolean;
   outerKey: number;
+  formRef?: React.RefObject<HTMLFormElement | null>;
 };
 
 const NO_RESULT = Symbol("NO_RESULT");
@@ -121,15 +128,19 @@ export function InteractiveForm<const FieldNames extends string>({
   ...props
 }: InteractiveFormProps<FieldNames>) {
   const context = useFormState();
+
+  const tempRef = useRef<HTMLFormElement>(null);
+
   if (!context.hasOuterBoundary) {
     return (
-      <FormStateProvider>
+      <FormStateProvider formRef={tempRef}>
         <InteractiveFormImpl action={action} {...props}>
           {children}
         </InteractiveFormImpl>
       </FormStateProvider>
     );
   }
+
   return (
     <InteractiveFormImpl action={action} {...props}>
       {children}
@@ -146,6 +157,7 @@ function InteractiveFormImpl<FieldNames extends string>({
   const dispatch = useFormDispatch();
   const state = useFormState();
   const router = useRouter();
+  const formRef = state.formRef;
 
   if ("nextElement" in state && state.nextElement) {
     return state.nextElement;
@@ -153,8 +165,9 @@ function InteractiveFormImpl<FieldNames extends string>({
   return (
     <PendingContext.Provider value={isPending}>
       <form
-        key={state.counter}
         {...props}
+        ref={formRef}
+        key={state.counter}
         onSubmit={async (e) => {
           e.preventDefault();
 
@@ -323,8 +336,10 @@ export function LoadingMessage({ children }: ComponentProps<"span">) {
 }
 
 export function FormBoundary({ children }: { children: ReactNode }) {
+  // create formRef but don't mount it
+  const formRef = useRef<HTMLFormElement>(null);
   return (
-    <FormStateProvider hasOuterBoundary>
+    <FormStateProvider hasOuterBoundary formRef={formRef}>
       <FormBoundaryImpl>{children}</FormBoundaryImpl>
     </FormStateProvider>
   );
@@ -349,10 +364,11 @@ export function ActionButton<FieldNames extends string = string>({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const dispatch = useFormDispatch();
+  const formRef = useFormState().formRef;
 
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
-    const form = e.currentTarget.form;
+    const form = formRef?.current;
     if (!form) {
       return;
     }
