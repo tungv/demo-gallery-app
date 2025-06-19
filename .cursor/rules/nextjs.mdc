@@ -17,5 +17,6 @@ alwaysApply: true
 - use client components only for interactions: event handlers, local state, browser APIs, browser state (mouse position, scroll position, screen size)
 - client components should never include dynamic or static content as described above
 
-## Forms
+## react 19
 
+- avoid using forwardRef, ref is a part of props already
