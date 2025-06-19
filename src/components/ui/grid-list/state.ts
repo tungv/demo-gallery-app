@@ -53,6 +53,7 @@ function gridDataReducer(
 						rowId: action.rowId,
 						readOnly: action.readOnly,
 						disabled: action.disabled,
+						data: action.data,
 					},
 				],
 			};
@@ -66,7 +67,12 @@ function gridDataReducer(
 		case "updateRow": {
 			const newRows = state.rows.map((row) =>
 				row.rowId === action.rowId
-					? { ...row, readOnly: action.readOnly, disabled: action.disabled }
+					? {
+							...row,
+							readOnly: action.readOnly,
+							disabled: action.disabled,
+							data: action.data,
+						}
 					: row,
 			);
 			return {
@@ -250,6 +256,7 @@ export const ControlledValueContext = createContext<Set<string> | null>(null);
 
 export const RowContext = createContext<{
 	rowId: string;
+	data?: unknown;
 }>({
 	rowId: "",
 });
@@ -288,4 +295,15 @@ export function useSelectedRows() {
 	);
 
 	return filteredSelectedRows;
+}
+
+export function useSelectedRowsData<T>(): ReadonlyArray<
+	GridDataState["rows"][number] & { data: T }
+> {
+	const selectedRows = useSelectedRows();
+	const { rows } = useGridDataState();
+
+	return rows.filter((row) => selectedRows.has(row.rowId)) as ReadonlyArray<
+		GridDataState["rows"][number] & { data: T }
+	>;
 }

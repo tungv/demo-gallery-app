@@ -511,6 +511,7 @@ export const GridListRow = memo(function GridListRow({
   rowId,
   readOnly,
   disabled,
+  rowData,
   ...divProps
 }: GridListRowProps) {
   const state = useGridListState();
@@ -561,13 +562,14 @@ export const GridListRow = memo(function GridListRow({
     "data-disabled": disabled ? "true" : undefined,
   };
 
-  useRegisterRow(actualRowId, readOnly, disabled);
+  useRegisterRow(actualRowId, readOnly, disabled, rowData);
 
   const rowContextValue = useMemo(() => {
     return {
       rowId: actualRowId,
+      data: rowData,
     };
-  }, [actualRowId]);
+  }, [actualRowId, rowData]);
 
   const rowElem = (
     <RowInner asChild={asChild} {...rowProps}>

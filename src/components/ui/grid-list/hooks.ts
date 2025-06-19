@@ -11,16 +11,16 @@ import {
 	useGridListState,
 	useGridListDispatch,
 	GridListBodyContext,
-	useSelectionDispatch,
-	useSelectionState,
 	useGridDataState,
 	SelectionIndicatorContext,
+	RowContext,
 } from "./state";
 
 export function useRegisterRow(
 	rowId: string,
 	readOnly?: boolean,
 	disabled?: boolean,
+	data?: unknown,
 ) {
 	const dispatch = useGridDataDispatch();
 	const isInsideBody = useContext(GridListBodyContext);
@@ -29,18 +29,19 @@ export function useRegisterRow(
 		// Only register rows that are inside GridListBody
 		if (!isInsideBody) return;
 
-		dispatch({ type: "addRow", rowId, readOnly, disabled });
+		dispatch({ type: "addRow", rowId, readOnly, disabled, data });
 
 		return () => {
 			dispatch({ type: "removeRow", rowId });
 		};
-	}, [dispatch, rowId, readOnly, disabled, isInsideBody]);
+	}, [dispatch, rowId, readOnly, disabled, isInsideBody, data]);
 
+	// FIXME: check if this is needed
 	useEffect(() => {
 		if (!isInsideBody) return;
 
-		dispatch({ type: "updateRow", rowId, readOnly, disabled });
-	}, [dispatch, rowId, readOnly, disabled, isInsideBody]);
+		dispatch({ type: "updateRow", rowId, readOnly, disabled, data });
+	}, [dispatch, rowId, readOnly, disabled, isInsideBody, data]);
 }
 
 export function useFocusRow() {
@@ -587,4 +588,9 @@ export function useGridListTabIndexManager(children: React.ReactNode) {
 			}
 		};
 	}, [children, rows]);
+}
+
+export function useRowData<T>(): T | undefined {
+	const { data } = useContext(RowContext);
+	return data as T | undefined;
 }

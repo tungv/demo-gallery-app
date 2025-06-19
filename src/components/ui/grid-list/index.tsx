@@ -31,6 +31,7 @@ export {
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
   GridListItemIndeterminateIndicator,
+  GridListCell,
 } from "./components";
 
 // Types that consumers might need
@@ -47,7 +48,7 @@ export type {
 // export type { GridListCellProps, GridListRowHeaderProps } from "./types";
 
 // State hooks that might be useful for consumers
-export { useSelectedRows } from "./state";
+export { useSelectedRows, useSelectedRowsData } from "./state";
 
 // Debug component for development
 export { Debugger as GridListDebugger } from "./debug";

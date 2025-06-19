@@ -2,7 +2,12 @@ import type { FormEventHandler } from "react";
 
 // Grid Data Types - for managing row data
 export type GridDataState = {
-	rows: Array<{ rowId: string; readOnly?: boolean; disabled?: boolean }>;
+	rows: Array<{
+		rowId: string;
+		readOnly?: boolean;
+		disabled?: boolean;
+		data?: unknown;
+	}>;
 };
 
 export type GridDataAction =
@@ -11,6 +16,7 @@ export type GridDataAction =
 			rowId: string;
 			readOnly?: boolean;
 			disabled?: boolean;
+			data?: unknown;
 	  }
 	| {
 			type: "removeRow";
@@ -21,6 +27,7 @@ export type GridDataAction =
 			rowId: string;
 			readOnly?: boolean;
 			disabled?: boolean;
+			data?: unknown;
 	  };
 
 // Selection State Types - for managing selection
@@ -152,6 +159,7 @@ export type GridListRowProps = {
 	rowId?: string;
 	readOnly?: boolean;
 	disabled?: boolean;
+	rowData?: unknown;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 // FIXME: HIGH PRIORITY - Add cell component types for proper WAI-ARIA grid structure
