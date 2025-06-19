@@ -415,3 +415,12 @@ export function ActionButton<FieldNames extends string = string>({
     </PendingContext.Provider>
   );
 }
+
+export function Success({ children }: ComponentProps<"span">) {
+  const result = useFormResult();
+
+  if (result === NO_RESULT) {
+    return null;
+  }
+  return children;
+}
