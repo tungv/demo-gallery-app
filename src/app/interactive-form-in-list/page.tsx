@@ -41,7 +41,7 @@ import {
   LoadingMessage,
   SubmitMessage,
 } from "@/components/behaviors/interactive-form";
-import { deletePeopleByIds } from "./actions";
+import { deletePeopleByIds, deletePersonById } from "./actions";
 import { Debugger } from "@/components/ui/grid-list/debug";
 
 interface Person {
@@ -196,9 +196,19 @@ function ActionsCell({ personId }: { personId: string }) {
         <Flag className="size-4 text-muted-foreground hover:text-foreground" />
       </Button>
 
-      <Button type="button" variant="ghost" title="Delete person">
-        <Trash2 className="size-4 text-destructive hover:text-destructive/80" />
-      </Button>
+      <ActionButton<"people-list.focused">
+        asChild
+        formAction={async (formData) => {
+          "use server";
+          const selected = formData.get("people-list.focused") as string;
+          await deletePersonById(selected);
+          return { refresh: true };
+        }}
+      >
+        <Button type="button" variant="ghost" title="Delete person">
+          <Trash2 className="size-4 text-destructive hover:text-destructive/80" />
+        </Button>
+      </ActionButton>
     </div>
   );
 }
