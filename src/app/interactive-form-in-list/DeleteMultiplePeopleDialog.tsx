@@ -3,6 +3,7 @@ import {
   LoadingMessage,
   SubmitButton,
   SubmitMessage,
+  Success,
 } from "@/components/behaviors/interactive-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import { Trash2 } from "lucide-react";
 import SelectedPeopleNameList from "./SelectedPeopleNameList";
 import { deletePeopleByIds } from "./actions";
 import { GridCurrentSelectedRowsInput } from "@/components/ui/grid-list";
+import { AutoCloseDialog } from "./PeopleListDialog";
 
 export default function DeleteMultiplePeopleDialog() {
   return (
@@ -28,6 +30,7 @@ export default function DeleteMultiplePeopleDialog() {
         await deletePeopleByIds(selected);
         return {
           refresh: true,
+          result: "success",
         };
       }}
     >
@@ -42,6 +45,9 @@ export default function DeleteMultiplePeopleDialog() {
       <SelectedPeopleNameList />
 
       <GridCurrentSelectedRowsInput name="deleting-id-array" />
+      <Success>
+        <AutoCloseDialog />
+      </Success>
 
       <DialogFooter>
         <DialogClose asChild>

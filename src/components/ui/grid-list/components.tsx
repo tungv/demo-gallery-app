@@ -893,7 +893,13 @@ export function GridCurrentSelectedRowsInput({ name }: { name: string }) {
   const { selectedRows } = useSelectionState();
 
   return (
-    <select name={name} hidden>
+    <select
+      name={name}
+      hidden
+      multiple
+      value={Array.from(selectedRows)}
+      onChange={() => {}}
+    >
       {Array.from(selectedRows).map((rowId) => (
         <option key={rowId} value={rowId}>
           {rowId}
