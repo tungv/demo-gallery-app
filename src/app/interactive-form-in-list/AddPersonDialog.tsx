@@ -190,6 +190,7 @@ export default function AddPersonDialog() {
                   refresh: true,
                 };
               } catch (error) {
+                console.error(error);
                 return {
                   errors: {
                     $: ["Failed to add person"],
