@@ -894,3 +894,17 @@ export function GridCurrentFocusInput({ name }: { name: string }) {
 
   return <input type="hidden" name={name} value={lastFocusedRowId} />;
 }
+
+export function GridCurrentSelectedRowsInput({ name }: { name: string }) {
+  const { selectedRows } = useSelectionState();
+
+  return (
+    <select name={name} hidden>
+      {Array.from(selectedRows).map((rowId) => (
+        <option key={rowId} value={rowId}>
+          {rowId}
+        </option>
+      ))}
+    </select>
+  );
+}
