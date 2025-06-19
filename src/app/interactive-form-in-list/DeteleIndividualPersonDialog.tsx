@@ -29,7 +29,7 @@ export default function DeleteIndividualPersonDialog() {
         const selected = formData.get("deleting-id") as string;
         await deletePersonById(selected);
         revalidatePath("/interactive-form-in-list");
-        return { refresh: true };
+        return { refresh: true, result: "success" };
       }}
     >
       <DialogHeader>

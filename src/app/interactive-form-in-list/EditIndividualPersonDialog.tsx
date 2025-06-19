@@ -3,6 +3,7 @@ import {
   LoadingMessage,
   SubmitButton,
   SubmitMessage,
+  Success,
 } from "@/components/behaviors/interactive-form";
 import {
   DialogDescription,
@@ -18,6 +19,7 @@ import { updatePersonByIdInStorage } from "./data-store";
 import { Form, FormField, FormLabel, InputControl } from "@/components/ui/form";
 import EditPersonFormInput from "./EditPersonFormInput";
 import { revalidatePath } from "next/cache";
+import { AutoCloseDialog } from "./PeopleListDialog";
 
 export default function EditIndividualPersonDialog() {
   return (
@@ -45,7 +47,11 @@ export default function EditIndividualPersonDialog() {
           });
 
           if (success) {
-            return { refresh: true };
+            revalidatePath("/interactive-form-in-list");
+            return {
+              refresh: true,
+              result: "success",
+            };
           }
 
           return {
@@ -60,6 +66,10 @@ export default function EditIndividualPersonDialog() {
           <DialogDescription>Edit the person's information.</DialogDescription>
           <GridCurrentFocusInput name="person-id" />
         </DialogHeader>
+
+        <Success>
+          <AutoCloseDialog />
+        </Success>
 
         <FormField name="name">
           <FormLabel>Name</FormLabel>

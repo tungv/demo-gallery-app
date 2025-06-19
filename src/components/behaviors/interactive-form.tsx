@@ -166,6 +166,7 @@ function InteractiveFormImpl<FieldNames extends string>({
     <PendingContext.Provider value={isPending}>
       <form
         {...props}
+        inert={isPending}
         ref={formRef}
         key={state.counter}
         onSubmit={async (e) => {
@@ -185,10 +186,11 @@ function InteractiveFormImpl<FieldNames extends string>({
 
               if ("refresh" in result && result.refresh === true) {
                 router.refresh();
-                return;
               }
 
-              dispatch({ type: "set_form_result", result });
+              startTransition(() => {
+                dispatch({ type: "set_form_result", result });
+              });
             });
           }
           props.onSubmit?.(e);
@@ -383,7 +385,6 @@ export function ActionButton<FieldNames extends string = string>({
 
       if ("refresh" in result && result.refresh === true) {
         router.refresh();
-        return;
       }
 
       dispatch({ type: "set_form_result", result });
