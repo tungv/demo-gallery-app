@@ -633,9 +633,13 @@ function RowInner({
 export function GridListItemIndicatorRoot({
   children,
   className,
+  selectLabel = "Select",
+  deselectLabel = "Deselect",
   ...buttonProps
 }: {
   children?: React.ReactNode;
+  selectLabel?: string;
+  deselectLabel?: string;
   onCheckedChange?: (checked: boolean) => void;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const rowContext = useContext(RowContext);
@@ -645,12 +649,29 @@ export function GridListItemIndicatorRoot({
       "GridListItemIndicatorRoot must be used within a GridListRow",
     );
   }
-
   const { selected, onCheckedChange } = useContext(SelectionIndicatorContext);
+
+  const labelText =
+    selected === "indeterminate" || selected === true
+      ? deselectLabel
+      : selectLabel;
+
+  const btnProps = {
+    ...buttonProps,
+    "aria-label": labelText,
+  };
+
+  const srOnly = <span className="sr-only">{labelText}</span>;
 
   if (!children) {
     // render default checkbox
-    return <Checkbox checked={selected} onCheckedChange={onCheckedChange} />;
+    return (
+      <Checkbox
+        checked={selected}
+        onCheckedChange={onCheckedChange}
+        {...btnProps}
+      />
+    );
   }
 
   return (
@@ -664,9 +685,10 @@ export function GridListItemIndicatorRoot({
         onCheckedChange(selected === "indeterminate" ? false : !selected);
         buttonProps.onClick?.(event);
       }}
-      {...buttonProps}
+      {...btnProps}
     >
       {children}
+      {srOnly}
     </button>
   );
 }

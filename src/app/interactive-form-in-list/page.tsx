@@ -36,7 +36,7 @@ import {
   SubmitMessage,
   ActionButton,
 } from "@/components/behaviors/interactive-form";
-import { incrementVoteCount } from "./actions";
+import { deletePerson, incrementVoteCount } from "./actions";
 import {
   PeopleListDialog,
   PeopleListDialogContent,
@@ -81,7 +81,10 @@ export default async function InteractiveFormInList() {
                 <GridListHeader>
                   <GridListRow>
                     <PeopleHeaderCell>
-                      <CheckBox />
+                      <CheckBox
+                        selectLabel="Select all people"
+                        deselectLabel="Deselect all people"
+                      />
                     </PeopleHeaderCell>
                     <PeopleHeaderCell>Name</PeopleHeaderCell>
                     <PeopleHeaderCell>Email</PeopleHeaderCell>
@@ -103,7 +106,10 @@ export default async function InteractiveFormInList() {
                       rowData={person}
                     >
                       <GridListCell className="p-1">
-                        <CheckBox />
+                        <CheckBox
+                          selectLabel={`Select ${person.name}`}
+                          deselectLabel={`Deselect ${person.name}`}
+                        />
                       </GridListCell>
                       <GridListRowHeader className="font-medium text-left p-1">
                         {person.name}
@@ -196,9 +202,19 @@ function PeopleHeaderCell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function CheckBox() {
+function CheckBox({
+  selectLabel,
+  deselectLabel,
+}: {
+  selectLabel: string;
+  deselectLabel: string;
+}) {
   return (
-    <GridListItemIndicatorRoot className="flex place-items-center">
+    <GridListItemIndicatorRoot
+      className="flex place-items-center"
+      selectLabel={selectLabel}
+      deselectLabel={deselectLabel}
+    >
       <GridListItemSelectedIndicator>
         <CheckSquare2 className="size-4" />
       </GridListItemSelectedIndicator>
