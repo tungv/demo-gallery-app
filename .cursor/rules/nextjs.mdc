@@ -18,5 +18,9 @@ alwaysApply: true
 - client components should never include dynamic or static content as described above
 
 ## react 19
+- client components should be used for styling as well (eg. responsive styling)
+
+
+## Forms
 
 - avoid using forwardRef, ref is a part of props already
