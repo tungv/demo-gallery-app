@@ -24,60 +24,60 @@ const ReserveLayoutContext = createContext(false);
  */
 
 export function ReserveLayout({
-  children,
-  className,
-  placeItems = "center",
-  ...divProps
+	children,
+	className,
+	placeItems = "center",
+	...divProps
 }: ComponentProps<"div"> & {
-  placeItems?: "start" | "center" | "end" | "stretch" | "baseline";
+	placeItems?: "start" | "center" | "end" | "stretch" | "baseline";
 }) {
-  return (
-    <ReserveLayoutContext.Provider value={true}>
-      <div
-        {...divProps}
-        className={cn(className, "pile", {
-          "place-items-baseline": placeItems === "baseline",
-          "place-items-start": placeItems === "start",
-          "place-items-center": placeItems === "center",
-          "place-items-end": placeItems === "end",
-          "place-items-stretch": placeItems === "stretch",
-        })}
-      >
-        {children}
-      </div>
-    </ReserveLayoutContext.Provider>
-  );
+	return (
+		<ReserveLayoutContext.Provider value={true}>
+			<div
+				{...divProps}
+				className={cn(className, "pile", {
+					"place-items-baseline": placeItems === "baseline",
+					"place-items-start": placeItems === "start",
+					"place-items-center": placeItems === "center",
+					"place-items-end": placeItems === "end",
+					"place-items-stretch": placeItems === "stretch",
+				})}
+			>
+				{children}
+			</div>
+		</ReserveLayoutContext.Provider>
+	);
 }
 
 export function Hidden({
-  children,
-  className,
-  ...spanProps
+	children,
+	className,
+	...spanProps
 }: ComponentProps<"span">) {
-  const isReserveLayout = useContext(ReserveLayoutContext);
-  return isReserveLayout ? (
-    <span
-      {...spanProps}
-      className={cn(className, "invisible")}
-      aria-hidden
-      tabIndex={-1}
-    >
-      {children}
-    </span>
-  ) : null;
+	const isReserveLayout = useContext(ReserveLayoutContext);
+	return isReserveLayout ? (
+		<span
+			{...spanProps}
+			className={cn(className, "invisible")}
+			aria-hidden
+			tabIndex={-1}
+		>
+			{children}
+		</span>
+	) : null;
 }
 
 export function Visible({
-  children,
-  className,
-  ...spanProps
+	children,
+	className,
+	...spanProps
 }: ComponentProps<"span">) {
-  const isReserveLayout = useContext(ReserveLayoutContext);
-  return isReserveLayout ? (
-    <span {...spanProps} className={cn(className, "visible")}>
-      {children}
-    </span>
-  ) : (
-    children
-  );
+	const isReserveLayout = useContext(ReserveLayoutContext);
+	return isReserveLayout ? (
+		<span {...spanProps} className={cn(className, "visible")}>
+			{children}
+		</span>
+	) : (
+		children
+	);
 }

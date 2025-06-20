@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+import { createReducerContext } from "@/utils/reducer-context";
 import { Slot } from "@radix-ui/react-slot";
 import { useRouter } from "next/navigation";
 import {
@@ -10,17 +12,15 @@ import {
   useTransition,
 } from "react";
 import type { ComponentProps, ReactNode } from "react";
-import { createReducerContext } from "@/utils/reducer-context";
-import { cn } from "@/lib/utils";
 import { Hidden, Visible } from "../ui/reserve-layout";
 
 interface TypedFormData<FieldNames extends string = string> extends FormData {
-  get(name: FieldNames): string | null;
-  getAll(name: FieldNames): string[];
-  has(name: FieldNames): boolean;
-  append(name: FieldNames, value: string | Blob, fileName?: string): void;
-  set(name: FieldNames, value: string | Blob, fileName?: string): void;
-  delete(name: FieldNames): void;
+	get(name: FieldNames): string | null;
+	getAll(name: FieldNames): string[];
+	has(name: FieldNames): boolean;
+	append(name: FieldNames, value: string | Blob, fileName?: string): void;
+	set(name: FieldNames, value: string | Blob, fileName?: string): void;
+	delete(name: FieldNames): void;
 }
 
 export interface InteractiveFormResult<FieldNames extends string = string> {
@@ -59,16 +59,16 @@ const initialState: LocalState<string> = {
 };
 
 type FormAction<FieldNames extends string = string> =
-  | {
-      type: "set_form_result";
-      result: InteractiveFormResult<FieldNames>;
-    }
-  | { type: "clear_field_error"; fieldName: FieldNames }
-  | { type: "reset_form" };
+	| {
+			type: "set_form_result";
+			result: InteractiveFormResult<FieldNames>;
+	  }
+	| { type: "clear_field_error"; fieldName: FieldNames }
+	| { type: "reset_form" };
 
 const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
-  FormAction<string>,
-  LocalState<string>
+	FormAction<string>,
+	LocalState<string>
 >((state, action) => {
   switch (action.type) {
     case "set_form_result":
@@ -121,11 +121,11 @@ type InteractiveFormProps<FieldNames extends string> = {
 } & Omit<ComponentProps<"form">, "action">;
 
 export function InteractiveForm<const FieldNames extends string>({
-  asChild,
-  children,
-  action,
-  fields: _fields, // We don't actually use this at runtime, just for type inference
-  ...props
+	asChild,
+	children,
+	action,
+	fields: _fields, // We don't actually use this at runtime, just for type inference
+	...props
 }: InteractiveFormProps<FieldNames>) {
   const context = useFormState();
 
@@ -149,9 +149,9 @@ export function InteractiveForm<const FieldNames extends string>({
 }
 
 function InteractiveFormImpl<FieldNames extends string>({
-  children,
-  action,
-  ...props
+	children,
+	action,
+	...props
 }: Omit<InteractiveFormProps<FieldNames>, "fields">) {
   const [isPending, startTransition] = useTransition();
   const dispatch = useFormDispatch();
@@ -215,90 +215,90 @@ function InteractiveFormImpl<FieldNames extends string>({
 }
 
 export function useFormResult() {
-  const state = useFormState();
-  return state.result as unknown;
+	const state = useFormState();
+	return state.result as unknown;
 }
 
 export function useFormPending() {
-  return useContext(PendingContext);
+	return useContext(PendingContext);
 }
 
 export function PrintResult() {
-  const result = useFormState();
+	const result = useFormState();
 
-  return <pre>{JSON.stringify(result, null, 2)}</pre>;
+	return <pre>{JSON.stringify(result, null, 2)}</pre>;
 }
 
 export function FormErrorMessage({
-  children,
-  match,
-  name,
-  ...props
+	children,
+	match,
+	name,
+	...props
 }: ComponentProps<"span"> & { match?: string; name?: string }) {
-  if (!name) {
-    return <GlobalError {...props}>{children}</GlobalError>;
-  }
+	if (!name) {
+		return <GlobalError {...props}>{children}</GlobalError>;
+	}
 
-  return (
-    <FieldError {...props} name={name} match={match}>
-      {children}
-    </FieldError>
-  );
+	return (
+		<FieldError {...props} name={name} match={match}>
+			{children}
+		</FieldError>
+	);
 }
 
 function GlobalError({ children, ...props }: ComponentProps<"span">) {
-  const state = useFormState();
-  const errors = state.errors || {};
+	const state = useFormState();
+	const errors = state.errors || {};
 
-  if (Object.keys(errors).length > 0) {
-    return (
-      <span className="text-destructive text-sm" {...props}>
-        {children}
-      </span>
-    );
-  }
+	if (Object.keys(errors).length > 0) {
+		return (
+			<span className="text-destructive text-sm" {...props}>
+				{children}
+			</span>
+		);
+	}
 
-  return null;
+	return null;
 }
 
 function FieldError({
-  children,
-  name,
-  match,
-  ...props
+	children,
+	name,
+	match,
+	...props
 }: ComponentProps<"span"> & { name: string; match?: string }) {
-  const state = useFormState();
-  const errors = state.errors || {};
+	const state = useFormState();
+	const errors = state.errors || {};
 
-  if (!errors[name]) {
-    return null;
-  }
+	if (!errors[name]) {
+		return null;
+	}
 
-  if (!match) {
-    return (
-      <span className="text-destructive text-sm" {...props}>
-        {children}
-      </span>
-    );
-  }
+	if (!match) {
+		return (
+			<span className="text-destructive text-sm" {...props}>
+				{children}
+			</span>
+		);
+	}
 
-  if (errors[name].includes(match)) {
-    return (
-      <span className="text-destructive text-sm" {...props}>
-        {children}
-      </span>
-    );
-  }
+	if (errors[name].includes(match)) {
+		return (
+			<span className="text-destructive text-sm" {...props}>
+				{children}
+			</span>
+		);
+	}
 
-  return null;
+	return null;
 }
 
 export function SubmitButton({
-  children,
-  asChild,
-  ...buttonProps
+	children,
+	asChild,
+	...buttonProps
 }: Omit<ComponentProps<"button">, "type"> & {
-  asChild?: boolean;
+	asChild?: boolean;
 }) {
   const isPending = useFormPending();
   const props = {
@@ -311,30 +311,30 @@ export function SubmitButton({
     ),
   } as ComponentProps<"button">;
 
-  if (asChild) {
-    return <Slot {...props}>{children}</Slot>;
-  }
+	if (asChild) {
+		return <Slot {...props}>{children}</Slot>;
+	}
 
-  return <button {...props}>{children}</button>;
+	return <button {...props}>{children}</button>;
 }
 
 export function SubmitMessage({ children }: ComponentProps<"span">) {
-  const isPending = useFormPending();
+	const isPending = useFormPending();
 
-  if (isPending) {
-    return <Hidden>{children}</Hidden>;
-  }
+	if (isPending) {
+		return <Hidden>{children}</Hidden>;
+	}
 
-  return <Visible>{children}</Visible>;
+	return <Visible>{children}</Visible>;
 }
 
 export function LoadingMessage({ children }: ComponentProps<"span">) {
-  const isPending = useFormPending();
-  if (!isPending) {
-    return <Hidden>{children}</Hidden>;
-  }
+	const isPending = useFormPending();
+	if (!isPending) {
+		return <Hidden>{children}</Hidden>;
+	}
 
-  return <Visible>{children}</Visible>;
+	return <Visible>{children}</Visible>;
 }
 
 export function FormBoundary({ children }: { children: ReactNode }) {

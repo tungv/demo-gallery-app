@@ -7,32 +7,32 @@ import { XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function Dialog({
-  ...props
+	...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
 function DialogTrigger({
-  ...props
+	...props
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
 function DialogPortal({
-  ...props
+	...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
 
 function DialogClose({
-  ...props
+	...props
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
 function DialogOverlay({
-  className,
-  ...props
+	className,
+	...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
@@ -47,9 +47,9 @@ function DialogOverlay({
 }
 
 function DialogContent({
-  className,
-  children,
-  ...props
+	className,
+	children,
+	...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -96,8 +96,8 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function DialogTitle({
-  className,
-  ...props
+	className,
+	...props
 }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
@@ -109,8 +109,8 @@ function DialogTitle({
 }
 
 function DialogDescription({
-  className,
-  ...props
+	className,
+	...props
 }: React.ComponentProps<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description

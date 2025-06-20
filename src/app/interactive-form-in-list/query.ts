@@ -1,5 +1,5 @@
-import { readAllPeople } from "./data-store";
 import type { Person } from "./actions";
+import { readAllPeople } from "./data-store";
 
 /**
  * Get people with optional limit, sorted by newest first - business logic

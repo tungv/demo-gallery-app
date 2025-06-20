@@ -1,13 +1,13 @@
 "use client";
 import {
-  type Dispatch,
-  type PropsWithChildren,
-  type Reducer,
-  createContext,
-  memo,
-  useContext,
-  useMemo,
-  useReducer,
+	type Dispatch,
+	type PropsWithChildren,
+	type Reducer,
+	createContext,
+	memo,
+	useContext,
+	useMemo,
+	useReducer,
 } from "react";
 
 export function createReducerContext<Action, State>(
@@ -15,41 +15,41 @@ export function createReducerContext<Action, State>(
   initialState: State,
   displayName = "ReducerContext",
 ) {
-  const stateCtx = createContext<State>(initialState);
-  const dispatchCtx = createContext<Dispatch<Action>>(() => {});
+	const stateCtx = createContext<State>(initialState);
+	const dispatchCtx = createContext<Dispatch<Action>>(() => {});
 
-  function Provider({
-    children,
-    middleware,
-    ...values
-  }: PropsWithChildren<Partial<State>> & {
-    middleware?: (
-      dispatch: Dispatch<Action>,
-      getNextState: (action: Action) => State,
-    ) => Dispatch<Action>;
-  }) {
-    const [state, dispatch] = useReducer(
-      reducer,
-      initialState,
-      (defaultState) => ({ ...defaultState, ...values }),
-    );
+	function Provider({
+		children,
+		middleware,
+		...values
+	}: PropsWithChildren<Partial<State>> & {
+		middleware?: (
+			dispatch: Dispatch<Action>,
+			getNextState: (action: Action) => State,
+		) => Dispatch<Action>;
+	}) {
+		const [state, dispatch] = useReducer(
+			reducer,
+			initialState,
+			(defaultState) => ({ ...defaultState, ...values }),
+		);
 
-    const wrapped = useMemo(() => {
-      return middleware
-        ? middleware(dispatch, (action) => reducer(state, action))
-        : dispatch;
-    }, [middleware, state, reducer]);
+		const wrapped = useMemo(() => {
+			return middleware
+				? middleware(dispatch, (action) => reducer(state, action))
+				: dispatch;
+		}, [middleware, state, reducer]);
 
-    return (
-      <stateCtx.Provider value={state}>
-        <dispatchCtx.Provider value={wrapped}>{children}</dispatchCtx.Provider>
-      </stateCtx.Provider>
-    );
-  }
+		return (
+			<stateCtx.Provider value={state}>
+				<dispatchCtx.Provider value={wrapped}>{children}</dispatchCtx.Provider>
+			</stateCtx.Provider>
+		);
+	}
 
-  function useDispatch() {
-    return useContext(dispatchCtx);
-  }
+	function useDispatch() {
+		return useContext(dispatchCtx);
+	}
 
   function useStateContext() {
     return useContext(stateCtx);
@@ -57,5 +57,5 @@ export function createReducerContext<Action, State>(
 
   Provider.displayName = displayName;
 
-  return [memo(Provider), useStateContext, useDispatch] as const;
+	return [memo(Provider), useStateContext, useDispatch] as const;
 }

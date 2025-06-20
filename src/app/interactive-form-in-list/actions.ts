@@ -1,11 +1,11 @@
 "use server";
 
 import {
-	addPersonToStorage,
-	deletePersonFromStorage,
-	deletePeopleFromStorage,
-	incrementVoteCountByIdInStorage,
 	type NewPersonData,
+	addPersonToStorage,
+	deletePeopleFromStorage,
+	deletePersonFromStorage,
+	incrementVoteCountByIdInStorage,
 } from "./data-store";
 
 // Re-export types for convenience
