@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { createReducerContext } from "@/utils/reducer-context";
 import type { DialogContentProps } from "@radix-ui/react-dialog";
 import { Slot } from "@radix-ui/react-slot";
-import { useEffect, type HTMLAttributes } from "react";
+import { useEffect, useRef, useState, type HTMLAttributes } from "react";
 
 type DialogType =
   | "delete-person"
@@ -98,10 +98,12 @@ export function PeopleListDialogTrigger({
   asChild?: boolean;
 } & HTMLAttributes<HTMLButtonElement>) {
   const dispatch = usePeopleListDialogDispatch();
+  const [triggerRef, registerClick] = useRestoreFocus(dialog);
 
   const triggerProps = {
     ...btnProps,
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+      registerClick(e);
       dispatch({ type: "open", payload: { dialog } });
       onClick?.(e);
     },
@@ -109,10 +111,42 @@ export function PeopleListDialogTrigger({
   };
 
   if (asChild) {
-    return <Slot {...triggerProps}>{children}</Slot>;
+    return (
+      <Slot ref={triggerRef} {...triggerProps}>
+        {children}
+      </Slot>
+    );
   }
 
-  return <button {...triggerProps}>{children}</button>;
+  return (
+    <button ref={triggerRef} {...triggerProps}>
+      {children}
+    </button>
+  );
+}
+
+function useRestoreFocus(dialog: DialogType) {
+  const state = usePeopleListDialogState();
+  const isOpen = state.openDialog === dialog;
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(isOpen);
+  const clickedRef = useRef(false);
+
+  useEffect(() => {
+    if (wasOpenRef.current && !isOpen) {
+      if (clickedRef.current) {
+        buttonRef.current?.focus();
+      }
+      clickedRef.current = false;
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  function onClick(e: React.MouseEvent<HTMLButtonElement>) {
+    clickedRef.current = true;
+  }
+
+  return [buttonRef, onClick] as const;
 }
 
 export function AutoCloseDialog({
