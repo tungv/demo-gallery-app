@@ -11,8 +11,9 @@ import {
   useMemo,
   useState,
   useRef,
+  use,
 } from "react";
-import type { FormEventHandler } from "react";
+import type { FormEventHandler, HTMLAttributes } from "react";
 import useEffectEvent from "../use-effect-event";
 import { Checkbox } from "../checkbox";
 import type {
@@ -269,83 +270,6 @@ function GridListContentInner({
   useHandleLeftArrow();
   useHandleRightArrow();
 
-  // Focus management for entering the grid
-  useEffect(() => {
-    const container = containerRef?.current;
-    if (!container) return;
-
-    const handleFocusIn = (event: FocusEvent) => {
-      const target = event.target as Element;
-      if (!target || !container.contains(target)) return;
-
-      // Set focus within container to true
-      dispatch({
-        type: "setFocusWithinContainer",
-        isFocusWithinContainer: true,
-      });
-
-      // check if the focus is from outside first.
-      // if it is, we will try to restore focus to the last focused row.
-      // if there is no last focused row, we will focus the first row.
-      const relatedTarget = event.relatedTarget as Element;
-      const focusComingFromOutside =
-        !relatedTarget || !container.contains(relatedTarget);
-
-      if (focusComingFromOutside) {
-        // Try to restore focus to the previously focused row
-        if (lastFocusedRowId && focusRow(lastFocusedRowId)) {
-          return;
-        }
-
-        // If no previously focused row or it doesn't exist, focus the first row
-        focusFirstRow();
-        return;
-      }
-
-      // at this point, we know the focus is coming from inside the grid.
-      // we need to check if the focus is on a row.
-      // if it is, we need to focus it.
-      // if it is not, we need to focus the first row.
-
-      // Track which row is currently focused
-      const rowElement = target.closest("[data-row-id]");
-      if (rowElement) {
-        const rowId = rowElement.getAttribute("data-row-id");
-
-        if (rowId && rowId !== lastFocusedRowId) {
-          if (focusRow(rowId)) {
-            return;
-          }
-        }
-      }
-    };
-
-    const handleFocusOut = (event: FocusEvent) => {
-      const target = event.target as Element;
-      const relatedTarget = event.relatedTarget as Element;
-
-      // Check if focus is leaving the container
-      if (
-        target &&
-        container.contains(target) &&
-        (!relatedTarget || !container.contains(relatedTarget))
-      ) {
-        dispatch({
-          type: "setFocusWithinContainer",
-          isFocusWithinContainer: false,
-        });
-      }
-    };
-
-    container.addEventListener("focusin", handleFocusIn);
-    container.addEventListener("focusout", handleFocusOut);
-
-    return () => {
-      container.removeEventListener("focusin", handleFocusIn);
-      container.removeEventListener("focusout", handleFocusOut);
-    };
-  }, [lastFocusedRowId, focusRow, focusFirstRow, dispatch, containerRef]);
-
   const { labelIds, captionIds } = useGridLabelingState();
 
   // Combine manual ARIA props with registered label/caption IDs
@@ -369,7 +293,9 @@ function GridListContentInner({
       .filter(Boolean)
       .join(" ") || undefined;
 
-  const innerProps = {
+  const innerProps: HTMLAttributes<HTMLDivElement> & {
+    "data-focused"?: string;
+  } = {
     ...divProps,
     id,
     className: cn("grid", className),
@@ -378,6 +304,48 @@ function GridListContentInner({
     "data-focused": isFocusWithinContainer ? "true" : undefined,
     "aria-labelledby": combinedLabelledBy,
     "aria-describedby": combinedDescribedBy,
+
+    onFocusCapture: (event) => {
+      const origin = event.relatedTarget as Element;
+
+      const isEnteringGrid =
+        !origin || !containerRef?.current?.contains(origin);
+
+      if (isEnteringGrid) {
+        // console.log("entering grid");
+        event.stopPropagation();
+
+        // find the row to focus
+        // 1. if the lastFocusedRowId is not null, focus it
+        // 2. if the first row is not focused, focus it
+        if (lastFocusedRowId) {
+          // console.log("redirect focus to", lastFocusedRowId);
+
+          if (focusRow(lastFocusedRowId)) {
+            return;
+          }
+        }
+        // console.log("redirect focus to first row");
+        focusFirstRow();
+      }
+    },
+    onBlurCapture: (event) => {
+      const destination = event.relatedTarget as Element;
+
+      const isLeavingGrid =
+        !destination || !containerRef?.current?.contains(destination);
+
+      if (isLeavingGrid) {
+        // console.log("leaving grid from %s", lastFocusedRowId);
+      }
+
+      // const rowId = target
+      //   .closest("[data-row-id]")
+      //   ?.getAttribute("data-row-id");
+      // if (rowId) {
+      //   dispatch({ type: "setLastFocusedRow", rowId: null });
+      // }
+    },
   };
 
   useGridListTabIndexManager(children);
@@ -807,10 +775,33 @@ function RowInner({
   asChild?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>) {
   const rowRef = useRef<HTMLDivElement>(null);
+  const dispatch = useGridListDispatch();
+  const { rowId } = use(RowContext);
   useHandleSpacebar(rowRef);
 
   const rowProps: React.HTMLAttributes<HTMLDivElement> = {
     ...divProps,
+    onFocusCapture: (event) => {
+      const origin = event.relatedTarget as Element;
+
+      const isEnteringRow = !origin || !rowRef.current?.contains(origin);
+
+      if (isEnteringRow) {
+        // console.log("entering row %s", rowId);
+        // set lastFocusedRowId to the rowId
+        dispatch({ type: "setLastFocusedRow", rowId: rowId });
+      }
+    },
+    onBlurCapture: (event) => {
+      const destination = event.relatedTarget as Element;
+
+      const isLeavingRow =
+        !destination || !rowRef.current?.contains(destination);
+
+      if (isLeavingRow) {
+        // console.log("leaving row %s", rowId);
+      }
+    },
   };
 
   const rowElem = asChild ? (
