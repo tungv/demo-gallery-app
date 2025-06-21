@@ -16,6 +16,7 @@ import {
   GridListRow,
   GridListColumnHeader,
   GridListRowHeader,
+  GridListCell,
 } from "@/components/ui/grid-list";
 import { cn } from "@/lib/utils";
 import {
@@ -25,7 +26,6 @@ import {
   Square,
   TrashIcon,
 } from "lucide-react";
-import type { HTMLAttributes } from "react";
 import ActionRow from "./ActionRow";
 
 export default function ListPage() {
@@ -39,24 +39,24 @@ export default function ListPage() {
         }}
       >
         <div>
-          <GridListTitle className="p-2">
-            Multiple Selection Example
-          </GridListTitle>
-          <GridListCaption className="px-2 pb-2">
-            Select multiple rows using checkboxes or spacebar. Header checkbox
-            selects/deselects all.
-          </GridListCaption>
           <GridListContainer
             selectionMode="multiple"
             name="multiple-selection"
             initialValue={["4", "6"]}
             required
           >
+            <GridListTitle className="p-2">
+              Multiple Selection Example
+            </GridListTitle>
+            <GridListCaption className="px-2 pb-2">
+              Select multiple rows using checkboxes or spacebar. Header checkbox
+              selects/deselects all.
+            </GridListCaption>
             <GridListContent className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
               <GridHeader className="p-1 gap-x-8">
                 <GridListRow>
                   <GridListColumnHeader className="text-sm font-medium px-1">
-                    <CustomCheckbox />
+                    <SelectionCheckbox />
                   </GridListColumnHeader>
                   <GridListColumnHeader className="text-sm font-medium">
                     Title
@@ -69,19 +69,55 @@ export default function ListPage() {
                     Amount
                   </GridListColumnHeader>
                   <GridListColumnHeader className="text-sm font-medium">
-                    actions
+                    Actions
                   </GridListColumnHeader>
                 </GridListRow>
               </GridHeader>
               <GridBody className="divide-y border-y">
-                <GridListRow asChild rowId="4">
-                  <CustomRowWithCheckbox />
+                <GridListRow
+                  rowId="4"
+                  className="items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md"
+                >
+                  <GridListCell className="p-1">
+                    <SelectionCheckbox />
+                  </GridListCell>
+                  <GridListRowHeader>Row 1 Title</GridListRowHeader>
+                  <GridListCell className="p-1 tabular-nums">
+                    10,000,000
+                  </GridListCell>
+                  <GridListCell>
+                    <ActionButtons />
+                  </GridListCell>
                 </GridListRow>
-                <GridListRow asChild rowId="5">
-                  <CustomRowWithCheckbox />
+                <GridListRow
+                  rowId="5"
+                  className="items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md"
+                >
+                  <GridListCell className="p-1">
+                    <SelectionCheckbox />
+                  </GridListCell>
+                  <GridListRowHeader>Row 2 Title</GridListRowHeader>
+                  <GridListCell className="p-1 tabular-nums">
+                    5,500,000
+                  </GridListCell>
+                  <GridListCell>
+                    <ActionButtons />
+                  </GridListCell>
                 </GridListRow>
-                <GridListRow asChild rowId="6">
-                  <CustomRowWithCheckbox />
+                <GridListRow
+                  rowId="6"
+                  className="items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md"
+                >
+                  <GridListCell className="p-1">
+                    <SelectionCheckbox />
+                  </GridListCell>
+                  <GridListRowHeader>Row 3 Title</GridListRowHeader>
+                  <GridListCell className="p-1 tabular-nums">
+                    2,750,000
+                  </GridListCell>
+                  <GridListCell>
+                    <ActionButtons />
+                  </GridListCell>
                 </GridListRow>
               </GridBody>
               <GridFooter>
@@ -91,30 +127,31 @@ export default function ListPage() {
                 <GridListDebugger />
               </GridFooter>
             </GridListContent>
+            <FormSubmit asChild>
+              <Button>Submit</Button>
+            </FormSubmit>
           </GridListContainer>
         </div>
-
-        <FormSubmit>Submit</FormSubmit>
       </Form>
 
       <div>
-        <GridListTitle className="p-2">
-          Disabled and Read-only Rows
-        </GridListTitle>
-        <GridListCaption className="px-2 pb-2">
-          This example shows disabled and read-only rows. Try using spacebar to
-          toggle selection on different row types.
-        </GridListCaption>
         <GridListContainer
           selectionMode="multiple"
           name="disabled-readonly-example"
           initialValue={["8", "10"]}
         >
+          <GridListTitle className="p-2">
+            Disabled and Read-only Rows
+          </GridListTitle>
+          <GridListCaption className="px-2 pb-2">
+            This example shows disabled and read-only rows. Try using spacebar
+            to toggle selection on different row types.
+          </GridListCaption>
           <GridListContent className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
             <GridHeader className="p-1 gap-x-8">
               <GridListRow>
                 <GridListColumnHeader className="text-sm font-medium px-1">
-                  <CustomCheckbox />
+                  <SelectionCheckbox />
                 </GridListColumnHeader>
                 <GridListColumnHeader className="text-sm font-medium">
                   Title
@@ -123,22 +160,86 @@ export default function ListPage() {
                   Amount
                 </GridListColumnHeader>
                 <GridListColumnHeader className="text-sm font-medium">
-                  actions
+                  Actions
                 </GridListColumnHeader>
               </GridListRow>
             </GridHeader>
             <GridBody className="divide-y border-y">
-              <GridListRow asChild rowId="7">
-                <CustomRowWithCheckboxAndTitle title="Normal row" />
+              <GridListRow
+                rowId="7"
+                className="items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md"
+              >
+                <GridListCell className="p-1">
+                  <SelectionCheckbox />
+                </GridListCell>
+                <GridListRowHeader className="p-1 font-medium">
+                  Normal row
+                </GridListRowHeader>
+                <GridListCell className="p-1 tabular-nums">
+                  10,000,000
+                </GridListCell>
+                <GridListCell>
+                  <ActionButtons />
+                </GridListCell>
               </GridListRow>
-              <GridListRow asChild rowId="8" readOnly>
-                <CustomRowWithCheckboxAndTitle title="Read-only row" readOnly />
+              <GridListRow
+                rowId="8"
+                readOnly
+                className={cn(
+                  "items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md",
+                  "bg-gray-50",
+                )}
+              >
+                <GridListCell className="p-1">
+                  <SelectionCheckbox />
+                </GridListCell>
+                <GridListRowHeader className="p-1 font-medium">
+                  Read-only row
+                </GridListRowHeader>
+                <GridListCell className="p-1 tabular-nums">
+                  7,500,000
+                </GridListCell>
+                <GridListCell>
+                  <ActionButtons />
+                </GridListCell>
               </GridListRow>
-              <GridListRow asChild rowId="9" disabled>
-                <CustomRowWithCheckboxAndTitle title="Disabled row" disabled />
+              <GridListRow
+                rowId="9"
+                disabled
+                className={cn(
+                  "items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md",
+                  "opacity-50 cursor-not-allowed",
+                )}
+              >
+                <GridListCell className="p-1">
+                  <SelectionCheckbox />
+                </GridListCell>
+                <GridListRowHeader className="p-1 font-medium">
+                  Disabled row
+                </GridListRowHeader>
+                <GridListCell className="p-1 tabular-nums">
+                  3,250,000
+                </GridListCell>
+                <GridListCell>
+                  <ActionButtons disabled />
+                </GridListCell>
               </GridListRow>
-              <GridListRow asChild rowId="10">
-                <CustomRowWithCheckboxAndTitle title="Another normal row" />
+              <GridListRow
+                rowId="10"
+                className="items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md"
+              >
+                <GridListCell className="p-1">
+                  <SelectionCheckbox />
+                </GridListCell>
+                <GridListRowHeader className="p-1 font-medium">
+                  Another normal row
+                </GridListRowHeader>
+                <GridListCell className="p-1 tabular-nums">
+                  12,750,000
+                </GridListCell>
+                <GridListCell>
+                  <ActionButtons />
+                </GridListCell>
               </GridListRow>
             </GridBody>
             <GridFooter>
@@ -151,7 +252,7 @@ export default function ListPage() {
   );
 }
 
-function CustomCheckbox() {
+function SelectionCheckbox() {
   return (
     <GridListItemIndicatorRoot>
       <GridListItemSelectedIndicator>
@@ -167,114 +268,24 @@ function CustomCheckbox() {
   );
 }
 
-function CustomRowWithCheckbox() {
+function ActionButtons({ disabled = false }: { disabled?: boolean }) {
   return (
-    <div className="items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md">
-      <div className="p-1">
-        <CustomCheckbox />
-      </div>
-
-      <GridListRowHeader>row title</GridListRowHeader>
-
-      <span className="p-1 tabular-nums">10,000,000</span>
-
-      <div className="flex gap-x-2 items-center">
-        <Button className="focus-visible:outline-2 outline-primary">
-          <PlusIcon />
-          <span>Add</span>
-        </Button>
-
-        <Button
-          variant="destructive"
-          className="focus-visible:outline-2 outline-primary"
-        >
-          <TrashIcon />
-          <span>Remove</span>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function CustomRowWithCheckboxAndTitle({
-  title = "row title",
-  readOnly = false,
-  disabled = false,
-  ...divProps
-}: {
-  title?: string;
-  readOnly?: boolean;
-  disabled?: boolean;
-} & HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn(
-        "items-center focus-visible:outline-2 outline-primary p-1 gap-x-8 data-[selected=true]:bg-primary/10 first:rounded-t-md last:rounded-b-md",
-        disabled ? "opacity-50 cursor-not-allowed" : "",
-        readOnly ? "bg-gray-50" : "",
-      )}
-      {...divProps}
-    >
-      <div className="p-1">
-        <CustomCheckbox />
-      </div>
-
-      <GridListRowHeader className="p-1 font-medium">{title}</GridListRowHeader>
-
-      <span className="p-1 tabular-nums">10,000,000</span>
-
-      <div className="flex gap-x-2 items-center">
-        <Button
-          className="focus-visible:outline-2 outline-primary"
-          disabled={disabled}
-        >
-          <PlusIcon />
-          <span>Add</span>
-        </Button>
-
-        <Button
-          variant="destructive"
-          className="focus-visible:outline-2 outline-primary"
-          disabled={disabled}
-        >
-          <TrashIcon />
-          <span>Remove</span>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function CustomRowWithTraditionalCheckbox(
-  divProps: HTMLAttributes<HTMLDivElement>,
-) {
-  return (
-    <div
-      className="items-center focus-visible:outline-2 outline-primary rounded-md p-1 gap-x-8 data-[selected=true]:bg-primary/10"
-      {...divProps}
-    >
-      <div className="p-1">
-        <GridListItemIndicatorRoot />
-      </div>
-
-      <GridListRowHeader>row title</GridListRowHeader>
-
-      <span className="p-1 tabular-nums">10,000,000</span>
-
-      <div className="flex gap-x-2 items-center">
-        <Button className="focus-visible:outline-2 outline-primary">
-          <PlusIcon />
-          <span>Add</span>
-        </Button>
-
-        <Button
-          variant="destructive"
-          className="focus-visible:outline-2 outline-primary"
-        >
-          <TrashIcon />
-          <span>Remove</span>
-        </Button>
-      </div>
+    <div className="flex gap-x-2 items-center">
+      <Button
+        className="focus-visible:outline-2 outline-primary"
+        disabled={disabled}
+      >
+        <PlusIcon />
+        <span>Add</span>
+      </Button>
+      <Button
+        variant="destructive"
+        className="focus-visible:outline-2 outline-primary"
+        disabled={disabled}
+      >
+        <TrashIcon />
+        <span>Remove</span>
+      </Button>
     </div>
   );
 }
