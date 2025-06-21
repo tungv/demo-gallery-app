@@ -1,10 +1,13 @@
-import { readAllPeople } from "./data-store";
+import { readAllPeople, countAllPeople } from "./data-store";
 import type { Person } from "./actions";
+import { cache } from "react";
 
 /**
  * Get people with optional limit, sorted by newest first - business logic
  */
-export async function getPeople(size = 10): Promise<Person[]> {
+export const getPeople = cache(async function getPeople(
+	size = 10,
+): Promise<Person[]> {
 	try {
 		const allPeople = await readAllPeople();
 
@@ -21,7 +24,7 @@ export async function getPeople(size = 10): Promise<Person[]> {
 		console.error("Error getting people:", error);
 		throw new Error("Failed to get people");
 	}
-}
+});
 
 /**
  * Get all people - business logic
@@ -84,6 +87,18 @@ export async function getPeopleCount(): Promise<number> {
 		return allPeople.length;
 	} catch (error) {
 		console.error("Error getting people count:", error);
+		return 0;
+	}
+}
+
+/**
+ * Count people - business logic
+ */
+export async function countPeople(): Promise<number> {
+	try {
+		return await countAllPeople();
+	} catch (error) {
+		console.error("Error counting people:", error);
 		return 0;
 	}
 }

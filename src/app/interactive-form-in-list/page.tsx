@@ -1,18 +1,19 @@
 import {
-  GridListBody,
+  GridBody,
   GridListColumnHeader,
-  GridListHeader,
-  GridListRoot,
+  GridHeader,
   GridListRow,
   GridListRowHeader,
   GridListCaption,
   GridListCell,
-  GridListFooter,
+  GridFooter,
   GridListItemIndeterminateIndicator,
   GridListItemIndicatorRoot,
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
   GridListTitle,
+  GridList,
+  GridListContainer,
 } from "@/components/ui/grid-list";
 
 import {
@@ -46,129 +47,45 @@ import {
 import DeleteIndividualPersonDialog from "./DeleteIndividualPersonDialog";
 import EditIndividualPersonDialog from "./EditIndividualPersonDialog";
 import DeleteMultiplePeopleDialog from "./DeleteMultiplePeopleDialog";
+import { Suspense } from "react";
+import { countAllPeople } from "./data-store";
 
 export const dynamic = "force-dynamic";
 
 export default async function InteractiveFormInList() {
-  const people = await getPeople();
+  const count = await countAllPeople();
+
   return (
     <div className="bg-muted grid grid-cols-1 auto-rows-min gap-12 p-12 h-dvh">
       <InteractiveForm className="contents">
         <PeopleListDialogProvider>
-          <GridListRoot
-            className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit"
+          <GridListContainer
             selectionMode="multiple"
             name="people-list"
+            className="bg-white rounded-lg grid grid-cols-1 h-min gap-8 p-4"
           >
-            <GridListTitle className="p-2">People</GridListTitle>
+            <header className="grid grid-cols-[1fr_auto]">
+              <GridListTitle>People</GridListTitle>
+              <GridListCaption className="text-sm text-muted-foreground">
+                {count} people
+              </GridListCaption>
+              <PeopleListDialogTrigger dialog="add-person" asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 col-start-2 row-start-1"
+                >
+                  <Plus className="size-4" />
+                  Add person
+                </Button>
+              </PeopleListDialogTrigger>
+            </header>
 
-            {people.length === 0 ? (
-              <>
-                <GridListCaption className="px-2 pb-2">
-                  This list is empty.
-                </GridListCaption>
-                <div className="p-12 text-center col-span-full bg-muted">
-                  <p className="text-muted-foreground italic">
-                    No people found.
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <GridListCaption className="px-2 pb-2">
-                  Showing {people.length} people.
-                </GridListCaption>
-                <GridListHeader>
-                  <GridListRow>
-                    <PeopleHeaderCell>
-                      <CheckBox
-                        selectLabel="Select all people"
-                        deselectLabel="Deselect all people"
-                      />
-                    </PeopleHeaderCell>
-                    <PeopleHeaderCell>Name</PeopleHeaderCell>
-                    <PeopleHeaderCell>Email</PeopleHeaderCell>
-                    <PeopleHeaderCell>Phone</PeopleHeaderCell>
-                    <PeopleHeaderCell>Address</PeopleHeaderCell>
-                    <PeopleHeaderCell>City</PeopleHeaderCell>
-                    <PeopleHeaderCell>State</PeopleHeaderCell>
-                    <PeopleHeaderCell>Zip</PeopleHeaderCell>
-                    <PeopleHeaderCell>Votes</PeopleHeaderCell>
-                    <PeopleHeaderCell>Actions</PeopleHeaderCell>
-                  </GridListRow>
-                </GridListHeader>
-                <GridListBody className="divide-y border-y">
-                  {people.map((person) => (
-                    <GridListRow
-                      key={person.id}
-                      className="items-center gap-4 focus-visible:outline-2 outline-primary rounded-md focus-within:bg-secondary hover:bg-accent group"
-                      rowId={person.id}
-                      rowData={person}
-                    >
-                      <GridListCell className="p-1">
-                        <CheckBox
-                          selectLabel={`Select ${person.name}`}
-                          deselectLabel={`Deselect ${person.name}`}
-                        />
-                      </GridListCell>
-                      <GridListRowHeader className="font-medium text-left p-1">
-                        {person.name}
-                      </GridListRowHeader>
-                      <GridListCell className="p-1">
-                        <span className="select-all">{person.email}</span>
-                      </GridListCell>
-                      <GridListCell className="p-1 tabular-nums">
-                        <span className="select-all">{person.phone}</span>
-                      </GridListCell>
-                      <GridListCell className="p-1">
-                        {person.address}
-                      </GridListCell>
-                      <GridListCell className="p-1">{person.city}</GridListCell>
-                      <GridListCell className="p-1">
-                        {person.state}
-                      </GridListCell>
-                      <GridListCell className="p-1 tabular-nums">
-                        <span className="select-all">{person.zip}</span>
-                      </GridListCell>
-                      <GridListCell className="p-1 text-center tabular-nums">
-                        {person.voteCount}
-                      </GridListCell>
-                      <GridListCell className="p-1">
-                        <ActionsCell />
-                      </GridListCell>
-                    </GridListRow>
-                  ))}
-                </GridListBody>
-              </>
-            )}
-
-            <GridListFooter>
-              <GridListRow className="p-2 gap-4 flex flex-row">
-                {/* FormBoundary is here to ensure the form is reset after a successful submission */}
-                <FormBoundary>
-                  <PeopleListDialogTrigger dialog="add-person" asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Plus className="size-4" />
-                      Add person
-                    </Button>
-                  </PeopleListDialogTrigger>
-                </FormBoundary>
-                <NonEmptySelection minSize={2}>
-                  <PeopleListDialogTrigger
-                    dialog="delete-multiple-people"
-                    asChild
-                  >
-                    <Button variant="destructive" size="sm" type="button">
-                      <Trash2 className="size-4" />
-                      <ReserveLayout>
-                        <LoadingMessage>Deleting...</LoadingMessage>
-                        <SubmitMessage>Delete multiple</SubmitMessage>
-                      </ReserveLayout>
-                    </Button>
-                  </PeopleListDialogTrigger>
-                </NonEmptySelection>
-              </GridListRow>
-            </GridListFooter>
+            <Suspense
+              fallback={<FallbackGridContent size={Math.min(count, 10)} />}
+            >
+              <PeopleList />
+            </Suspense>
 
             <PeopleListDialog>
               <PeopleListDialogContent
@@ -187,7 +104,7 @@ export default async function InteractiveFormInList() {
                 <DeleteMultiplePeopleDialog />
               </PeopleListDialogContent>
             </PeopleListDialog>
-          </GridListRoot>
+          </GridListContainer>
         </PeopleListDialogProvider>
       </InteractiveForm>
     </div>
@@ -250,6 +167,130 @@ function ActionsCell() {
           <Trash2 className="size-4 text-destructive hover:text-destructive" />
         </Button>
       </PeopleListDialogTrigger>
+    </div>
+  );
+}
+
+function PeopleHeader() {
+  return (
+    <GridHeader>
+      <GridListRow className="p-2">
+        <PeopleHeaderCell>
+          <CheckBox
+            selectLabel="Select all people"
+            deselectLabel="Deselect all people"
+          />
+        </PeopleHeaderCell>
+        <PeopleHeaderCell>Name</PeopleHeaderCell>
+        <PeopleHeaderCell>Email</PeopleHeaderCell>
+        <PeopleHeaderCell>Phone</PeopleHeaderCell>
+        <PeopleHeaderCell>Address</PeopleHeaderCell>
+        <PeopleHeaderCell>City</PeopleHeaderCell>
+        <PeopleHeaderCell>State</PeopleHeaderCell>
+        <PeopleHeaderCell>Zip</PeopleHeaderCell>
+        <PeopleHeaderCell>Votes</PeopleHeaderCell>
+        <PeopleHeaderCell>Actions</PeopleHeaderCell>
+      </GridListRow>
+    </GridHeader>
+  );
+}
+
+async function PeopleList() {
+  const people = await getPeople();
+
+  return (
+    <GridList className="grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm">
+      <PeopleHeader />
+      <GridBody className="divide-y border-y">
+        {people.map((person) => (
+          <GridListRow
+            key={person.id}
+            className="items-center gap-4 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 hover:shadow-sm"
+            rowId={person.id}
+            rowData={person}
+          >
+            <GridListCell className="p-1">
+              <CheckBox
+                selectLabel={`Select ${person.name}`}
+                deselectLabel={`Deselect ${person.name}`}
+              />
+            </GridListCell>
+            <GridListRowHeader className="font-medium text-left p-1">
+              {person.name}
+            </GridListRowHeader>
+            <GridListCell className="p-1">
+              <span className="select-all">{person.email}</span>
+            </GridListCell>
+            <GridListCell className="p-1 tabular-nums">
+              <span className="select-all">{person.phone}</span>
+            </GridListCell>
+            <GridListCell className="p-1">{person.address}</GridListCell>
+            <GridListCell className="p-1">{person.city}</GridListCell>
+            <GridListCell className="p-1">{person.state}</GridListCell>
+            <GridListCell className="p-1 tabular-nums">
+              <span className="select-all">{person.zip}</span>
+            </GridListCell>
+            <GridListCell className="p-1 text-center tabular-nums">
+              {person.voteCount}
+            </GridListCell>
+            <GridListCell className="p-1">
+              <ActionsCell />
+            </GridListCell>
+          </GridListRow>
+        ))}
+      </GridBody>
+
+      <NonEmptySelection minSize={2}>
+        <GridFooter>
+          <GridListRow className="p-2 gap-4 flex flex-row">
+            <PeopleListDialogTrigger dialog="delete-multiple-people" asChild>
+              <Button variant="destructive" size="sm" type="button">
+                <Trash2 className="size-4" />
+                <ReserveLayout>
+                  <LoadingMessage>Deleting...</LoadingMessage>
+                  <SubmitMessage>Delete multiple</SubmitMessage>
+                </ReserveLayout>
+              </Button>
+            </PeopleListDialogTrigger>
+          </GridListRow>
+        </GridFooter>
+      </NonEmptySelection>
+    </GridList>
+  );
+}
+
+function FallbackGridContent({ size }: { size: number }) {
+  return (
+    <GridList className="grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm">
+      <PeopleHeader />
+      <GridBody className="divide-y border-y">
+        {Array.from({ length: size }).map((_, index) => (
+          <GridListRow
+            inert
+            // biome-ignore lint/suspicious/noArrayIndexKey: there is no data
+            key={index}
+            className="items-center gap-4 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 hover:shadow-sm"
+          >
+            <GridListCell className="p-1">
+              <CheckBox selectLabel="Select" deselectLabel="Deselect" />
+            </GridListCell>
+            <GridListCell className="p-1 col-span-8">
+              <Skeleton />
+            </GridListCell>
+            <GridListCell className="p-1">
+              <ActionsCell />
+            </GridListCell>
+          </GridListRow>
+        ))}
+      </GridBody>
+    </GridList>
+  );
+}
+
+function Skeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="h-4 bg-muted rounded w-3/4" />
     </div>
   );
 }

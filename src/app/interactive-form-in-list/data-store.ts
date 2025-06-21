@@ -101,6 +101,22 @@ export async function readAllPeople(): Promise<Person[]> {
 }
 
 /**
+ * Count all people in database - efficient count using SQL
+ */
+export async function countAllPeople(): Promise<number> {
+	try {
+		await ensureTable();
+		const result = await sql`
+			SELECT COUNT(*) as count FROM people
+		`;
+		return Number(result.rows[0].count);
+	} catch (error) {
+		console.error("Error counting people:", error);
+		throw new Error("Failed to count people in database");
+	}
+}
+
+/**
  * Write all people to database (replaces all existing data)
  */
 export async function writeAllPeople(people: Person[]): Promise<void> {
