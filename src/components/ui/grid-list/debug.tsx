@@ -13,7 +13,14 @@ export const Debugger = memo(function Debugger() {
 
   return (
     <GridListRow disabled>
-      <dl className="text-sm bg-muted/50 p-1 rounded-md text-muted-foreground flex flex-row gap-8 col-span-full">
+      <dl
+        className="text-sm bg-muted/50 p-1 rounded-md text-muted-foreground flex flex-row gap-8 col-span-full"
+        // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <explanation>
+        // biome-ignore lint/a11y/useSemanticElements: <explanation>
+        role="gridcell"
+        tabIndex={-1}
+        aria-readonly
+      >
         <h3 className="text-sm font-bold tracking-tight">debugger</h3>
         <BooleanValue label="cycleRowFocus" value={cycleRowFocus} />
         <TextValue label="lastFocusedRowId" value={lastFocusedRowId} />

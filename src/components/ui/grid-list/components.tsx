@@ -547,6 +547,36 @@ export function GridFooter({
   );
 }
 
+// Dev-mode warning component
+function DevModeWarning({
+  componentName,
+  issue,
+}: {
+  componentName: string;
+  issue: string;
+}) {
+  if (process.env.NODE_ENV !== "development") {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        border: "2px solid #ef4444",
+        backgroundColor: "#fef2f2",
+        color: "#dc2626",
+        padding: "8px",
+        margin: "4px 0",
+        borderRadius: "4px",
+        fontSize: "12px",
+        fontFamily: "monospace",
+      }}
+    >
+      <strong>⚠️ {componentName} Usage Warning:</strong> {issue}
+    </div>
+  );
+}
+
 export function GridListTitle({
   children,
   className,
@@ -556,14 +586,9 @@ export function GridListTitle({
   const dispatch = useGridLabelingDispatch();
 
   // Try to get gridId from context, otherwise use a fallback
-  let gridId: string;
-  try {
-    const gridListState = useGridListState();
-    gridId = gridListState?.gridId || useId();
-  } catch {
-    // Not inside a grid context, use fallback
-    gridId = useId();
-  }
+  const gridId = useGridListState().gridId;
+  const isInGridListContainer = gridId != null;
+  const isInGridListContent = useContext(GridContentContext)._default !== true;
 
   const titleId = `${gridId}-title`;
 
@@ -581,11 +606,29 @@ export function GridListTitle({
     className: cn("text-lg font-semibold", className),
   };
 
-  if (asChild) {
-    return <Slot {...titleProps}>{children}</Slot>;
-  }
+  const titleElement = asChild ? (
+    <Slot {...titleProps}>{children}</Slot>
+  ) : (
+    <h2 {...titleProps}>{children}</h2>
+  );
 
-  return <h2 {...titleProps}>{children}</h2>;
+  return (
+    <>
+      {!isInGridListContainer && (
+        <DevModeWarning
+          componentName="GridListTitle"
+          issue="GridListTitle must be inside a GridListContainer to work properly with accessibility features."
+        />
+      )}
+      {isInGridListContent && (
+        <DevModeWarning
+          componentName="GridListTitle"
+          issue="GridListTitle should not be inside GridListContent. Place it outside the GridListContent but inside the GridListContainer."
+        />
+      )}
+      {titleElement}
+    </>
+  );
 }
 
 export function GridListCaption({
@@ -598,12 +641,16 @@ export function GridListCaption({
 
   // Try to get gridId from context, otherwise use a fallback
   let gridId: string;
+  let isInGridListContainer = true;
+  const isInGridListContent = useContext(GridContentContext)._default !== true;
+
   try {
     const gridListState = useGridListState();
     gridId = gridListState?.gridId || useId();
   } catch {
     // Not inside a grid context, use fallback
     gridId = useId();
+    isInGridListContainer = false;
   }
 
   const captionId = `${gridId}-caption`;
@@ -622,11 +669,29 @@ export function GridListCaption({
     className: cn("text-sm text-muted-foreground", className),
   };
 
-  if (asChild) {
-    return <Slot {...captionProps}>{children}</Slot>;
-  }
+  const captionElement = asChild ? (
+    <Slot {...captionProps}>{children}</Slot>
+  ) : (
+    <p {...captionProps}>{children}</p>
+  );
 
-  return <p {...captionProps}>{children}</p>;
+  return (
+    <>
+      {!isInGridListContainer && (
+        <DevModeWarning
+          componentName="GridListCaption"
+          issue="GridListCaption must be inside a GridListContainer to work properly with accessibility features."
+        />
+      )}
+      {isInGridListContent && (
+        <DevModeWarning
+          componentName="GridListCaption"
+          issue="GridListCaption should not be inside GridListContent. Place it outside the GridListContent but inside the GridListContainer."
+        />
+      )}
+      {captionElement}
+    </>
+  );
 }
 
 export const GridListRow = memo(function GridListRow({

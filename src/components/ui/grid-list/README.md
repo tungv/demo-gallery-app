@@ -27,7 +27,7 @@ Import all parts and piece them together:
 ```tsx
 import {
   GridListContainer,
-  GridList,
+  GridListContent,
   GridHeader,
   GridBody,
   GridFooter,
@@ -45,9 +45,9 @@ import {
 
 export default () => (
   <GridListContainer>
-    <GridList>
-      <GridListTitle />
-      <GridListCaption />
+    <GridListTitle />
+    <GridListCaption />
+    <GridListContent>
       <GridHeader>
         <GridListRow>
           <GridListColumnHeader />
@@ -68,7 +68,7 @@ export default () => (
         </GridListRow>
       </GridBody>
       <GridFooter>{/* Footer content */}</GridFooter>
-    </GridList>
+    </GridListContent>
   </GridListContainer>
 );
 ```
@@ -90,7 +90,7 @@ The root container that manages state and provides context for all grid componen
 | `cycleRowFocus` | `boolean`                             | `false`     | Whether focus should cycle at list boundaries     |
 | `onInvalid`     | `FormEventHandler<HTMLSelectElement>` | `undefined` | Called when form validation fails                 |
 
-### GridList
+### GridListContent
 
 The main grid container that renders the visual grid structure.
 
@@ -229,7 +229,7 @@ Visual indicator shown when selection is indeterminate (for header checkboxes).
 import { Form, FormSubmit } from "@/components/ui/form";
 import {
   GridListContainer,
-  GridList,
+  GridListContent,
   GridHeader,
   GridBody,
   GridFooter,
@@ -257,12 +257,9 @@ export default function BasicGrid() {
         name="selection"
         initialValue={["1", "3"]}
       >
-        <GridList className="border rounded-lg">
-          <GridListTitle>Users</GridListTitle>
-          <GridListCaption>
-            Select users to perform bulk actions
-          </GridListCaption>
-
+        <GridListTitle>Users</GridListTitle>
+        <GridListCaption>Select users to perform bulk actions</GridListCaption>
+        <GridListContent className="border rounded-lg">
           <GridHeader>
             <GridListRow>
               <GridListColumnHeader>
@@ -311,7 +308,7 @@ export default function BasicGrid() {
               <GridListCell>jane@example.com</GridListCell>
             </GridListRow>
           </GridBody>
-        </GridList>
+        </GridListContent>
       </GridListContainer>
 
       <FormSubmit>Submit</FormSubmit>
@@ -326,7 +323,7 @@ export default function BasicGrid() {
 import { useState } from "react";
 import {
   GridListContainer,
-  GridList,
+  GridListContent,
   GridBody,
   GridListRow,
 } from "@/components/ui/grid-list";
@@ -340,13 +337,13 @@ export default function ControlledGrid() {
       value={selectedRows}
       onValueChange={setSelectedRows}
     >
-      <GridList>
+      <GridListContent>
         <GridBody>
           <GridListRow rowId="1">Row 1</GridListRow>
           <GridListRow rowId="2">Row 2</GridListRow>
           <GridListRow rowId="3">Row 3</GridListRow>
         </GridBody>
-      </GridList>
+      </GridListContent>
     </GridListContainer>
   );
 }
@@ -357,7 +354,7 @@ export default function ControlledGrid() {
 ```tsx
 import {
   GridListContainer,
-  GridList,
+  GridListContent,
   GridBody,
   GridListRow,
 } from "@/components/ui/grid-list";
@@ -365,7 +362,7 @@ import {
 export default function DisabledGrid() {
   return (
     <GridListContainer selectionMode="multiple">
-      <GridList>
+      <GridListContent>
         <GridBody>
           <GridListRow rowId="1">Normal row</GridListRow>
           <GridListRow rowId="2" readOnly>
@@ -375,7 +372,7 @@ export default function DisabledGrid() {
             Disabled row
           </GridListRow>
         </GridBody>
-      </GridList>
+      </GridListContent>
     </GridListContainer>
   );
 }
@@ -387,7 +384,7 @@ export default function DisabledGrid() {
 import { useState } from "react";
 import {
   GridListContainer,
-  GridList,
+  GridListContent,
   GridHeader,
   GridListRow,
   GridListColumnHeader,
@@ -410,7 +407,7 @@ export default function SortableGrid() {
 
   return (
     <GridListContainer>
-      <GridList>
+      <GridListContent>
         <GridHeader>
           <GridListRow>
             <GridListColumnHeader
@@ -422,7 +419,7 @@ export default function SortableGrid() {
             </GridListColumnHeader>
           </GridListRow>
         </GridHeader>
-      </GridList>
+      </GridListContent>
     </GridListContainer>
   );
 }

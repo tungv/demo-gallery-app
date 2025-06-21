@@ -324,6 +324,8 @@ export const GridContentContext = createContext<{
 	startRef?: React.RefObject<HTMLSpanElement | null>;
 	endRef?: React.RefObject<HTMLSpanElement | null>;
 	containerRef?: React.RefObject<HTMLDivElement | null>;
+	_default?: true;
 }>({
+	_default: true,
 	gridId: "",
 });

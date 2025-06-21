@@ -20,7 +20,7 @@
 export {
   // New structured components
   GridListContainer,
-  GridListContent as GridList,
+  GridListContent,
   GridHeader,
   GridBody,
   GridFooter,
