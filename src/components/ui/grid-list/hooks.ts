@@ -14,6 +14,7 @@ import {
 	useGridDataState,
 	SelectionIndicatorContext,
 	RowContext,
+	GridContentContext,
 } from "./state";
 
 export function useRegisterRow(
@@ -45,7 +46,7 @@ export function useRegisterRow(
 }
 
 export function useFocusRow() {
-	const { containerRef } = useGridListState();
+	const { containerRef } = useContext(GridContentContext);
 	const dispatch = useGridListDispatch();
 
 	return (rowId: string): boolean => {
@@ -82,7 +83,7 @@ export function useFocusRow() {
 }
 
 export function useFocusFirstRow() {
-	const { containerRef } = useGridListState();
+	const containerRef = useContainerRef();
 	const focusRow = useFocusRow();
 	const { rows: dataRows } = useGridDataState();
 
@@ -116,7 +117,8 @@ export function useFocusFirstRow() {
 }
 
 export function useHandleTab() {
-	const { endRef, containerRef } = useGridListState();
+	const endRef = useEndRef();
+	const containerRef = useContainerRef();
 	useEffect(() => {
 		const sentinelEnd = endRef?.current;
 		if (!sentinelEnd) {
@@ -190,7 +192,8 @@ export function useHandleTab() {
 }
 
 export function useHandleShiftTab() {
-	const { startRef, containerRef } = useGridListState();
+	const startRef = useStartRef();
+	const containerRef = useContainerRef();
 	useEffect(() => {
 		const sentinelStart = startRef?.current;
 		if (!sentinelStart) {
@@ -259,7 +262,8 @@ export function useHandleShiftTab() {
 }
 
 export function useHandleUpArrow() {
-	const { containerRef, cycleRowFocus } = useGridListState();
+	const { cycleRowFocus } = useGridListState();
+	const containerRef = useContainerRef();
 	const focusRow = useFocusRow();
 
 	useEffect(() => {
@@ -319,8 +323,9 @@ export function useHandleUpArrow() {
 }
 
 export function useHandleDownArrow() {
-	const { containerRef, cycleRowFocus } = useGridListState();
+	const { cycleRowFocus } = useGridListState();
 	const focusRow = useFocusRow();
+	const containerRef = useContainerRef();
 
 	useEffect(() => {
 		const container = containerRef?.current;
@@ -376,7 +381,7 @@ export function useHandleDownArrow() {
 }
 
 export function useHandleLeftArrow() {
-	const { containerRef } = useGridListState();
+	const containerRef = useContainerRef();
 
 	useEffect(() => {
 		const container = containerRef?.current;
@@ -442,7 +447,7 @@ export function useHandleLeftArrow() {
 }
 
 export function useHandleRightArrow() {
-	const { containerRef } = useGridListState();
+	const containerRef = useContainerRef();
 
 	useEffect(() => {
 		const container = containerRef?.current;
@@ -541,7 +546,7 @@ export function useHandleSpacebar(
 }
 
 export function useGridListTabIndexManager(children: React.ReactNode) {
-	const { containerRef } = useGridListState();
+	const containerRef = useContainerRef();
 	const { rows } = useGridDataState();
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: we need to re-run this effect when the children change
@@ -593,4 +598,19 @@ export function useGridListTabIndexManager(children: React.ReactNode) {
 export function useRowData<T>(): T | undefined {
 	const { data } = useContext(RowContext);
 	return data as T | undefined;
+}
+
+function useContainerRef() {
+	const { containerRef } = useContext(GridContentContext);
+	return containerRef;
+}
+
+function useEndRef() {
+	const { endRef } = useContext(GridContentContext);
+	return endRef;
+}
+
+function useStartRef() {
+	const { startRef } = useContext(GridContentContext);
+	return startRef;
 }

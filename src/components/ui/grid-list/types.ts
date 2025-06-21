@@ -70,12 +70,10 @@ export type SelectionAction =
 export type GridState = {
 	lastFocusedRowId: string | null;
 	isFocusWithinContainer: boolean;
-	containerRef?: React.RefObject<HTMLDivElement | null>;
-	startRef?: React.RefObject<HTMLSpanElement | null>;
-	endRef?: React.RefObject<HTMLSpanElement | null>;
 	cycleRowFocus: boolean;
 	name?: string;
 	required?: boolean;
+	gridId?: string;
 };
 
 export type GridAction =
@@ -131,6 +129,10 @@ export type ValueOnChangeMode =
 			value?: undefined;
 			onValueChange?: undefined;
 	  };
+
+export type GridListContentProps = {
+	children: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>;
 
 export type GridListRootProps = {
 	children: React.ReactNode;
@@ -196,7 +198,7 @@ export type GridListTitleProps = {
 export type GridListCaptionProps = {
 	children: React.ReactNode;
 	asChild?: boolean;
-} & React.HTMLAttributes<HTMLDivElement>;
+} & React.HTMLAttributes<HTMLParagraphElement>;
 
 export type GridListCellProps = {
 	children: React.ReactNode;

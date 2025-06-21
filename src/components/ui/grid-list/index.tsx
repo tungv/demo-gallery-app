@@ -18,10 +18,13 @@
 // See WAI-ARIA Grid Pattern: https://www.w3.org/WAI/ARIA/apg/patterns/grid/
 
 export {
-  GridListRoot,
-  GridListHeader,
-  GridListBody,
-  GridListFooter,
+  // New structured components
+  GridListContainer,
+  GridListContent as GridList,
+  GridHeader,
+  GridBody,
+  GridFooter,
+  // Existing components
   GridListRow,
   GridListColumnHeader,
   GridListRowHeader,
@@ -44,6 +47,7 @@ export type {
   GridListRowHeaderProps,
   GridListTitleProps,
   GridListCaptionProps,
+  GridListCellProps,
 } from "./types";
 
 // FIXME: HIGH PRIORITY - Export new cell component types when created

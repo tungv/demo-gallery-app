@@ -318,3 +318,12 @@ export function useFocusedRowData<T>(): T | undefined {
 
 	return rows.find((row) => row.rowId === lastFocusedRowId)?.data as T;
 }
+
+export const GridContentContext = createContext<{
+	gridId: string;
+	startRef?: React.RefObject<HTMLSpanElement | null>;
+	endRef?: React.RefObject<HTMLSpanElement | null>;
+	containerRef?: React.RefObject<HTMLDivElement | null>;
+}>({
+	gridId: "",
+});
