@@ -14,6 +14,7 @@ import {
   GridListTitle,
   GridList,
   GridListContainer,
+  GridListDebugger,
 } from "@/components/ui/grid-list";
 
 import {
@@ -63,6 +64,7 @@ export default async function InteractiveFormInList() {
             selectionMode="multiple"
             name="people-list"
             className="bg-white rounded-lg grid grid-cols-1 h-min gap-8 p-4"
+            cycleRowFocus
           >
             <header className="grid grid-cols-[1fr_auto]">
               <GridListTitle>People</GridListTitle>
@@ -239,6 +241,9 @@ async function PeopleList() {
           </GridListRow>
         ))}
       </GridBody>
+      <GridFooter>
+        <GridListDebugger />
+      </GridFooter>
 
       <NonEmptySelection minSize={2}>
         <GridFooter>
@@ -283,6 +288,9 @@ function FallbackGridContent({ size }: { size: number }) {
           </GridListRow>
         ))}
       </GridBody>
+      <GridFooter>
+        <GridListDebugger />
+      </GridFooter>
     </GridList>
   );
 }
