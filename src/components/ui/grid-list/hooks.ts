@@ -2,8 +2,8 @@
 
 import { useContext, useEffect, useLayoutEffect } from "react";
 import {
-	getAllTabbableElements,
 	getTabbableElements,
+	getTabbableElementsAsync,
 	safelyFocusElement,
 } from "./utils";
 import {
@@ -130,7 +130,7 @@ export function useHandleTab() {
 			return;
 		}
 
-		const handleTab = (event: KeyboardEvent) => {
+		const handleTab = async (event: KeyboardEvent) => {
 			if (event.key !== "Tab") {
 				return;
 			}
@@ -140,7 +140,7 @@ export function useHandleTab() {
 			}
 
 			event.preventDefault();
-			const allTabbableElements = getAllTabbableElements();
+			const allTabbableElements = await getTabbableElementsAsync(document.body);
 
 			if (!sentinelEnd) {
 				console.error("sentinel end is not defined");
@@ -205,7 +205,7 @@ export function useHandleShiftTab() {
 			return;
 		}
 
-		const handleShiftTab = (event: KeyboardEvent) => {
+		const handleShiftTab = async (event: KeyboardEvent) => {
 			if (event.key !== "Tab") {
 				return;
 			}
@@ -215,7 +215,7 @@ export function useHandleShiftTab() {
 			}
 
 			event.preventDefault();
-			const allTabbableElements = getAllTabbableElements();
+			const allTabbableElements = await getTabbableElementsAsync(document.body);
 
 			const sentinelStartIndex = allTabbableElements.indexOf(sentinelStart);
 			const lookupIndex = sentinelStartIndex - 1;
