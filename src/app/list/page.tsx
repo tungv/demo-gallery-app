@@ -12,7 +12,7 @@ import {
   GridListItemUnselectedIndicator,
   GridListItemIndeterminateIndicator,
   GridListContainer,
-  GridList,
+  GridListContent,
   GridListRow,
   GridListColumnHeader,
   GridListRowHeader,
@@ -38,20 +38,79 @@ export default function ListPage() {
           console.log(formData.getAll("multiple-selection"));
         }}
       >
+        <div>
+          <GridListTitle className="p-2">
+            Multiple Selection Example
+          </GridListTitle>
+          <GridListCaption className="px-2 pb-2">
+            Select multiple rows using checkboxes or spacebar. Header checkbox
+            selects/deselects all.
+          </GridListCaption>
+          <GridListContainer
+            selectionMode="multiple"
+            name="multiple-selection"
+            initialValue={["4", "6"]}
+            required
+          >
+            <GridListContent className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
+              <GridHeader className="p-1 gap-x-8">
+                <GridListRow>
+                  <GridListColumnHeader className="text-sm font-medium px-1">
+                    <CustomCheckbox />
+                  </GridListColumnHeader>
+                  <GridListColumnHeader className="text-sm font-medium">
+                    Title
+                  </GridListColumnHeader>
+                  <GridListColumnHeader
+                    className="text-sm font-medium"
+                    sortDirection="ascending"
+                    sortable
+                  >
+                    Amount
+                  </GridListColumnHeader>
+                  <GridListColumnHeader className="text-sm font-medium">
+                    actions
+                  </GridListColumnHeader>
+                </GridListRow>
+              </GridHeader>
+              <GridBody className="divide-y border-y">
+                <GridListRow asChild rowId="4">
+                  <CustomRowWithCheckbox />
+                </GridListRow>
+                <GridListRow asChild rowId="5">
+                  <CustomRowWithCheckbox />
+                </GridListRow>
+                <GridListRow asChild rowId="6">
+                  <CustomRowWithCheckbox />
+                </GridListRow>
+              </GridBody>
+              <GridFooter>
+                <ActionRow />
+              </GridFooter>
+              <GridFooter>
+                <GridListDebugger />
+              </GridFooter>
+            </GridListContent>
+          </GridListContainer>
+        </div>
+
+        <FormSubmit>Submit</FormSubmit>
+      </Form>
+
+      <div>
+        <GridListTitle className="p-2">
+          Disabled and Read-only Rows
+        </GridListTitle>
+        <GridListCaption className="px-2 pb-2">
+          This example shows disabled and read-only rows. Try using spacebar to
+          toggle selection on different row types.
+        </GridListCaption>
         <GridListContainer
           selectionMode="multiple"
-          name="multiple-selection"
-          initialValue={["4", "6"]}
-          required
+          name="disabled-readonly-example"
+          initialValue={["8", "10"]}
         >
-          <GridList className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
-            <GridListTitle className=" p-2">
-              Multiple Selection Example
-            </GridListTitle>
-            <GridListCaption className=" px-2 pb-2">
-              Select multiple rows using checkboxes or spacebar. Header checkbox
-              selects/deselects all.
-            </GridListCaption>
+          <GridListContent className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
             <GridHeader className="p-1 gap-x-8">
               <GridListRow>
                 <GridListColumnHeader className="text-sm font-medium px-1">
@@ -60,11 +119,7 @@ export default function ListPage() {
                 <GridListColumnHeader className="text-sm font-medium">
                   Title
                 </GridListColumnHeader>
-                <GridListColumnHeader
-                  className="text-sm font-medium"
-                  sortDirection="ascending"
-                  sortable
-                >
+                <GridListColumnHeader className="text-sm font-medium">
                   Amount
                 </GridListColumnHeader>
                 <GridListColumnHeader className="text-sm font-medium">
@@ -73,76 +128,25 @@ export default function ListPage() {
               </GridListRow>
             </GridHeader>
             <GridBody className="divide-y border-y">
-              <GridListRow asChild rowId="4">
-                <CustomRowWithCheckbox />
+              <GridListRow asChild rowId="7">
+                <CustomRowWithCheckboxAndTitle title="Normal row" />
               </GridListRow>
-              <GridListRow asChild rowId="5">
-                <CustomRowWithCheckbox />
+              <GridListRow asChild rowId="8" readOnly>
+                <CustomRowWithCheckboxAndTitle title="Read-only row" readOnly />
               </GridListRow>
-              <GridListRow asChild rowId="6">
-                <CustomRowWithCheckbox />
+              <GridListRow asChild rowId="9" disabled>
+                <CustomRowWithCheckboxAndTitle title="Disabled row" disabled />
+              </GridListRow>
+              <GridListRow asChild rowId="10">
+                <CustomRowWithCheckboxAndTitle title="Another normal row" />
               </GridListRow>
             </GridBody>
             <GridFooter>
-              <ActionRow />
-            </GridFooter>
-            <GridFooter>
               <GridListDebugger />
             </GridFooter>
-          </GridList>
+          </GridListContent>
         </GridListContainer>
-
-        <FormSubmit>Submit</FormSubmit>
-      </Form>
-
-      <GridListContainer
-        selectionMode="multiple"
-        name="disabled-readonly-example"
-        initialValue={["8", "10"]}
-      >
-        <GridList className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
-          <GridListTitle className="col-span-full p-2">
-            Disabled and Read-only Rows
-          </GridListTitle>
-          <GridListCaption className="col-span-full px-2 pb-2">
-            This example shows disabled and read-only rows. Try using spacebar
-            to toggle selection on different row types.
-          </GridListCaption>
-          <GridHeader className="p-1 gap-x-8">
-            <GridListRow>
-              <GridListColumnHeader className="text-sm font-medium px-1">
-                <CustomCheckbox />
-              </GridListColumnHeader>
-              <GridListColumnHeader className="text-sm font-medium">
-                Title
-              </GridListColumnHeader>
-              <GridListColumnHeader className="text-sm font-medium">
-                Amount
-              </GridListColumnHeader>
-              <GridListColumnHeader className="text-sm font-medium">
-                actions
-              </GridListColumnHeader>
-            </GridListRow>
-          </GridHeader>
-          <GridBody className="divide-y border-y">
-            <GridListRow asChild rowId="7">
-              <CustomRowWithCheckboxAndTitle title="Normal row" />
-            </GridListRow>
-            <GridListRow asChild rowId="8" readOnly>
-              <CustomRowWithCheckboxAndTitle title="Read-only row" readOnly />
-            </GridListRow>
-            <GridListRow asChild rowId="9" disabled>
-              <CustomRowWithCheckboxAndTitle title="Disabled row" disabled />
-            </GridListRow>
-            <GridListRow asChild rowId="10">
-              <CustomRowWithCheckboxAndTitle title="Another normal row" />
-            </GridListRow>
-          </GridBody>
-          <GridFooter>
-            <GridListDebugger />
-          </GridFooter>
-        </GridList>
-      </GridListContainer>
+      </div>
     </div>
   );
 }

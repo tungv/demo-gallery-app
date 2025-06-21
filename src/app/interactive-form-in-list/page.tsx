@@ -12,9 +12,8 @@ import {
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
   GridListTitle,
-  GridList,
+  GridListContent,
   GridListContainer,
-  GridListDebugger,
 } from "@/components/ui/grid-list";
 
 import {
@@ -201,7 +200,7 @@ async function PeopleList() {
   const people = await getPeople();
 
   return (
-    <GridList className="grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm">
+    <GridListContent className="grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm">
       <PeopleHeader />
       <GridBody className="divide-y border-y">
         {people.map((person) => (
@@ -241,9 +240,6 @@ async function PeopleList() {
           </GridListRow>
         ))}
       </GridBody>
-      <GridFooter>
-        <GridListDebugger />
-      </GridFooter>
 
       <NonEmptySelection minSize={2}>
         <GridFooter>
@@ -260,13 +256,13 @@ async function PeopleList() {
           </GridListRow>
         </GridFooter>
       </NonEmptySelection>
-    </GridList>
+    </GridListContent>
   );
 }
 
 function FallbackGridContent({ size }: { size: number }) {
   return (
-    <GridList className="grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm">
+    <GridListContent className="grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm">
       <PeopleHeader />
       <GridBody className="divide-y border-y">
         {Array.from({ length: size }).map((_, index) => (
@@ -288,10 +284,7 @@ function FallbackGridContent({ size }: { size: number }) {
           </GridListRow>
         ))}
       </GridBody>
-      <GridFooter>
-        <GridListDebugger />
-      </GridFooter>
-    </GridList>
+    </GridListContent>
   );
 }
 

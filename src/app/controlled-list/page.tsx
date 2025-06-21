@@ -6,12 +6,14 @@ import {
   GridBody,
   GridFooter,
   GridHeader,
+  GridListTitle,
+  GridListCaption,
   GridListItemIndeterminateIndicator,
   GridListItemIndicatorRoot,
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
   GridListContainer,
-  GridList,
+  GridListContent,
   GridListRow,
 } from "@/components/ui/grid-list";
 import {
@@ -43,35 +45,44 @@ export default function ControlledListPage() {
 
       <Button onClick={shuffle}>Shuffle</Button>
 
-      <GridListContainer
-        selectionMode="multiple"
-        value={value}
-        onValueChange={(newValue: string[]) => setValue(newValue)}
-      >
-        <GridList className="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
-          <GridHeader>
-            <div className="text-sm font-medium px-1">
-              <CustomCheckbox />
-            </div>
-            <h3 className="text-sm font-medium">Title</h3>
-            <span className="text-sm font-medium">Amount</span>
-            <div className="text-sm font-medium">actions</div>
-          </GridHeader>
+      <div>
+        <GridListTitle className="p-2">
+          Controlled Multiple Selection
+        </GridListTitle>
+        <GridListCaption className="px-2 pb-2">
+          This list demonstrates controlled selection state with external state
+          management.
+        </GridListCaption>
+        <GridListContainer
+          selectionMode="multiple"
+          value={value}
+          onValueChange={(newValue: string[]) => setValue(newValue)}
+        >
+          <GridListContent className="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
+            <GridHeader>
+              <div className="text-sm font-medium px-1">
+                <CustomCheckbox />
+              </div>
+              <h3 className="text-sm font-medium">Title</h3>
+              <span className="text-sm font-medium">Amount</span>
+              <div className="text-sm font-medium">actions</div>
+            </GridHeader>
 
-          <GridBody>
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"].map(
-              (rowId) => (
-                <GridListRow key={rowId} rowId={rowId} asChild>
-                  <MyRow />
-                </GridListRow>
-              ),
-            )}
-          </GridBody>
-          <GridFooter>
-            <GridListDebugger />
-          </GridFooter>
-        </GridList>
-      </GridListContainer>
+            <GridBody>
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"].map(
+                (rowId) => (
+                  <GridListRow key={rowId} rowId={rowId} asChild>
+                    <MyRow />
+                  </GridListRow>
+                ),
+              )}
+            </GridBody>
+            <GridFooter>
+              <GridListDebugger />
+            </GridFooter>
+          </GridListContent>
+        </GridListContainer>
+      </div>
 
       <div>
         <pre>{JSON.stringify(value, null, 2)}</pre>
