@@ -12,8 +12,9 @@ export const Debugger = memo(function Debugger() {
   const selectedRows = useSelectedRows();
 
   return (
-    <GridListRow>
+    <GridListRow disabled>
       <dl className="text-sm bg-muted/50 p-1 rounded-md text-muted-foreground flex flex-row gap-8 col-span-full">
+        <h3 className="text-sm font-bold tracking-tight">debugger</h3>
         <BooleanValue label="cycleRowFocus" value={cycleRowFocus} />
         <TextValue label="lastFocusedRowId" value={lastFocusedRowId} />
         <BooleanValue
@@ -40,7 +41,7 @@ function TextValue({
   if (value == null) {
     return (
       <div className="flex flex-row gap-2 bg-muted items-center">
-        <dt className="tracking-tight font-semibold">{label}</dt>
+        <dt className="tracking-tighter font-semibold">{label}</dt>
         <dd className="italic font-mono">NULL</dd>
       </div>
     );
@@ -48,7 +49,7 @@ function TextValue({
 
   return (
     <div className="flex flex-row gap-2 bg-muted items-center">
-      <dt className="tracking-tight font-semibold">{label}</dt>
+      <dt className="tracking-tighter font-semibold">{label}</dt>
       <dd className="font-mono">{JSON.stringify(value)}</dd>
     </div>
   );
@@ -57,7 +58,7 @@ function TextValue({
 function BooleanValue({ label, value }: { label: string; value: boolean }) {
   return (
     <div className="flex flex-row gap-2 bg-muted items-center">
-      <dt className="tracking-tight font-semibold">{label}</dt>
+      <dt className="tracking-tighter font-semibold">{label}</dt>
       <dd>
         <div
           className={cn(
