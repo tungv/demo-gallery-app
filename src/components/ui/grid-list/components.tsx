@@ -54,14 +54,10 @@ import {
   useRegisterRow,
   useFocusRow,
   useFocusFirstRow,
-  useHandleTab,
-  useHandleShiftTab,
-  useHandleUpArrow,
-  useHandleDownArrow,
-  useHandleLeftArrow,
-  useHandleRightArrow,
   useHandleSpacebar,
   useGridListTabIndexManager,
+  useGridListKeyboardHandlers,
+  useRowData,
 } from "./hooks";
 
 export function GridListContainer({
@@ -273,12 +269,7 @@ function GridListContentInner({
     }
   }, [lastFocusedRowId, containerRef, dispatch]);
 
-  useHandleTab();
-  useHandleShiftTab();
-  useHandleUpArrow();
-  useHandleDownArrow();
-  useHandleLeftArrow();
-  useHandleRightArrow();
+  const handleKeyDown = useGridListKeyboardHandlers();
 
   const { labelIds, captionIds } = useGridLabelingState();
 
@@ -314,6 +305,7 @@ function GridListContentInner({
     "data-focused": isFocusWithinContainer ? "true" : undefined,
     "aria-labelledby": combinedLabelledBy,
     "aria-describedby": combinedDescribedBy,
+    onKeyDown: handleKeyDown,
 
     onFocusCapture: (event) => {
       const origin = event.relatedTarget as Element;
