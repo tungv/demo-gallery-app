@@ -789,7 +789,7 @@ function RowInner({
       const isEnteringRow = !origin || !rowRef.current?.contains(origin);
 
       if (isEnteringRow) {
-        // console.log("entering row %s", rowId);
+        console.log("entering row %s", rowId);
         // set lastFocusedRowId to the rowId
         dispatch({ type: "setLastFocusedRow", rowId: rowId });
       }
@@ -801,7 +801,7 @@ function RowInner({
         !destination || !rowRef.current?.contains(destination);
 
       if (isLeavingRow) {
-        // console.log("leaving row %s", rowId);
+        console.log("leaving row %s", rowId);
       }
     },
   };
@@ -1059,7 +1059,7 @@ export function GridListCell({
   return <div {...cellProps}>{children}</div>;
 }
 
-export function GridCurrentFocusInput({ name }: { name: string }) {
+export function GridCurrentFocusFormField({ name }: { name: string }) {
   const { lastFocusedRowId } = useGridListState();
 
   if (!lastFocusedRowId) {
@@ -1069,7 +1069,7 @@ export function GridCurrentFocusInput({ name }: { name: string }) {
   return <input type="hidden" name={name} value={lastFocusedRowId} />;
 }
 
-export function GridCurrentSelectedRowsInput({ name }: { name: string }) {
+export function GridCurrentSelectedRowsFormField({ name }: { name: string }) {
   const { selectedRows } = useSelectionState();
 
   return (
@@ -1087,4 +1087,16 @@ export function GridCurrentSelectedRowsInput({ name }: { name: string }) {
       ))}
     </select>
   );
+}
+
+export function CurrentRowIdFormField({ name }: { name: string }) {
+  const rowContext = useContext(RowContext);
+
+  if (!rowContext) {
+    throw new Error("CurrentRowIdFormField must be used within a GridListRow");
+  }
+
+  const { rowId } = rowContext;
+
+  return <input type="hidden" name={name} value={rowId} />;
 }

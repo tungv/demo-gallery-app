@@ -14,6 +14,7 @@ import {
   GridListTitle,
   GridListContent,
   GridListContainer,
+  CurrentRowIdFormField,
 } from "@/components/ui/grid-list";
 
 import {
@@ -34,9 +35,9 @@ import {
   InteractiveForm,
   LoadingMessage,
   SubmitMessage,
-  ActionButton,
+  SubmitButton,
 } from "@/components/behaviors/interactive-form";
-import { deletePerson, incrementVoteCount } from "./actions";
+import { incrementVoteCount } from "./actions";
 import {
   PeopleListDialog,
   PeopleListDialogContent,
@@ -56,57 +57,54 @@ export default async function InteractiveFormInList() {
 
   return (
     <div className="bg-muted grid grid-cols-1 auto-rows-min gap-12 p-12 h-dvh">
-      <InteractiveForm className="contents">
-        <PeopleListDialogProvider>
-          <GridListContainer
-            selectionMode="multiple"
-            name="people-list"
-            className="@container bg-white rounded-lg grid grid-cols-1 h-min gap-8 p-4 max-w-full"
-            cycleRowFocus
-          >
-            <header className="grid grid-cols-[1fr_auto]">
-              <GridListTitle>People</GridListTitle>
-              <GridListCaption className="text-sm text-muted-foreground">
-                {count} people
-              </GridListCaption>
-              <PeopleListDialogTrigger dialog="add-person" asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 col-start-2 row-start-1"
-                >
-                  <Plus className="size-4" />
-                  Add person
-                </Button>
-              </PeopleListDialogTrigger>
-            </header>
-
-            <Suspense
-              fallback={<FallbackGridContent size={Math.min(count, 10)} />}
-            >
-              <PeopleList />
-            </Suspense>
-
-            <PeopleListDialog>
-              <PeopleListDialogContent
-                when="add-person"
-                className="max-h-[80vh] overflow-y-auto"
+      <PeopleListDialogProvider>
+        <GridListContainer
+          selectionMode="multiple"
+          className="@container bg-white rounded-lg grid grid-cols-1 h-min gap-8 p-4 max-w-full"
+          cycleRowFocus
+        >
+          <header className="grid grid-cols-[1fr_auto]">
+            <GridListTitle>People</GridListTitle>
+            <GridListCaption className="text-sm text-muted-foreground">
+              {count} people
+            </GridListCaption>
+            <PeopleListDialogTrigger dialog="add-person" asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 col-start-2 row-start-1"
               >
-                <AddPersonDialog />
-              </PeopleListDialogContent>
-              <PeopleListDialogContent when="delete-person">
-                <DeleteIndividualPersonDialog />
-              </PeopleListDialogContent>
-              <PeopleListDialogContent when="edit-person">
-                <EditIndividualPersonDialog />
-              </PeopleListDialogContent>
-              <PeopleListDialogContent when="delete-multiple-people">
-                <DeleteMultiplePeopleDialog />
-              </PeopleListDialogContent>
-            </PeopleListDialog>
-          </GridListContainer>
-        </PeopleListDialogProvider>
-      </InteractiveForm>
+                <Plus className="size-4" />
+                Add person
+              </Button>
+            </PeopleListDialogTrigger>
+          </header>
+
+          <Suspense
+            fallback={<FallbackGridContent size={Math.min(count, 10)} />}
+          >
+            <PeopleList />
+          </Suspense>
+
+          <PeopleListDialog>
+            <PeopleListDialogContent
+              when="add-person"
+              className="max-h-[80vh] overflow-y-auto"
+            >
+              <AddPersonDialog />
+            </PeopleListDialogContent>
+            <PeopleListDialogContent when="delete-person">
+              <DeleteIndividualPersonDialog />
+            </PeopleListDialogContent>
+            <PeopleListDialogContent when="edit-person">
+              <EditIndividualPersonDialog />
+            </PeopleListDialogContent>
+            <PeopleListDialogContent when="delete-multiple-people">
+              <DeleteMultiplePeopleDialog />
+            </PeopleListDialogContent>
+          </PeopleListDialog>
+        </GridListContainer>
+      </PeopleListDialogProvider>
     </div>
   );
 }
@@ -164,11 +162,14 @@ function ActionsCell() {
         </Button>
       </PeopleListDialogTrigger>
 
-      <ActionButton formAction={incrementVoteCount} asChild>
-        <Button type="button" variant="ghost" title="Vote for person">
-          <ThumbsUp className="size-4 text-muted-foreground hover:text-foreground" />
-        </Button>
-      </ActionButton>
+      <InteractiveForm action={incrementVoteCount}>
+        <CurrentRowIdFormField name="voting-for" />
+        <SubmitButton asChild>
+          <Button variant="ghost" title="Vote for person">
+            <ThumbsUp className="size-4 text-muted-foreground hover:text-foreground" />
+          </Button>
+        </SubmitButton>
+      </InteractiveForm>
 
       <PeopleListDialogTrigger dialog="delete-person" asChild>
         <Button type="button" variant="ghost" title="Delete person">
@@ -232,7 +233,7 @@ async function PeopleList() {
         @7xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto_auto_auto]
         h-fit
       "
-      scrollableContainerClassName="border shadow-md rounded-sm"
+      scrollableContainerClassName="border shadow-md rounded-sm p-1"
       scrollable
     >
       <PeopleHeader />

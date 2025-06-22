@@ -35,8 +35,9 @@ export {
   GridListItemUnselectedIndicator,
   GridListItemIndeterminateIndicator,
   GridListCell,
-  GridCurrentFocusInput,
-  GridCurrentSelectedRowsInput,
+  GridCurrentFocusFormField,
+  GridCurrentSelectedRowsFormField,
+  CurrentRowIdFormField,
 } from "./components";
 
 // Types that consumers might need

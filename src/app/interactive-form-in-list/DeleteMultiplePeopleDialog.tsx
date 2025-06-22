@@ -17,7 +17,7 @@ import { ReserveLayout } from "@/components/ui/reserve-layout";
 import { Trash2 } from "lucide-react";
 import SelectedPeopleNameList from "./SelectedPeopleNameList";
 import { deletePeopleByIds } from "./actions";
-import { GridCurrentSelectedRowsInput } from "@/components/ui/grid-list";
+import { GridCurrentSelectedRowsFormField } from "@/components/ui/grid-list";
 import { AutoCloseDialog } from "./PeopleListDialog";
 
 export default function DeleteMultiplePeopleDialog() {
@@ -44,7 +44,7 @@ export default function DeleteMultiplePeopleDialog() {
       <p>People to delete:</p>
       <SelectedPeopleNameList />
 
-      <GridCurrentSelectedRowsInput name="deleting-id-array" />
+      <GridCurrentSelectedRowsFormField name="deleting-id-array" />
       <Success>
         <AutoCloseDialog />
       </Success>

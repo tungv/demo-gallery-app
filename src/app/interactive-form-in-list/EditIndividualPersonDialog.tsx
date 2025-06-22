@@ -14,7 +14,7 @@ import {
 import { ReserveLayout } from "@/components/ui/reserve-layout";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
-import { GridCurrentFocusInput } from "@/components/ui/grid-list";
+import { GridCurrentFocusFormField } from "@/components/ui/grid-list";
 import { updatePersonByIdInStorage } from "./data-store";
 import { Form, FormField, FormLabel, InputControl } from "@/components/ui/form";
 import EditPersonFormInput from "./EditPersonFormInput";
@@ -64,7 +64,7 @@ export default function EditIndividualPersonDialog() {
         <DialogHeader>
           <DialogTitle>Edit person</DialogTitle>
           <DialogDescription>Edit the person's information.</DialogDescription>
-          <GridCurrentFocusInput name="person-id" />
+          <GridCurrentFocusFormField name="person-id" />
         </DialogHeader>
 
         <Success>

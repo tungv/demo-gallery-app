@@ -41,6 +41,7 @@ import {
   GridListItemSelectedIndicator,
   GridListItemUnselectedIndicator,
   GridListItemIndeterminateIndicator,
+  CurrentRowIdFormField,
 } from "@/components/ui/grid-list";
 
 export default () => (
@@ -221,6 +222,53 @@ Visual indicator shown when selection is indeterminate (for header checkboxes).
 | Prop       | Type        | Default     | Description                |
 | ---------- | ----------- | ----------- | -------------------------- |
 | `children` | `ReactNode` | `undefined` | Icon or content to display |
+
+## Form Integration Components
+
+### CurrentRowIdFormField
+
+A hidden input that captures the current row ID. Must be used within a `GridListRow`.
+
+**Important:** This is different from `GridCurrentFocusFormField` because:
+
+- `CurrentRowIdFormField` captures the **predetermined row ID** of the row it's placed in
+- `GridCurrentFocusFormField` captures the **currently focused row ID** which changes as user navigates
+- `CurrentRowIdFormField` is more useful for form submissions where each row contains its own form
+
+| Prop   | Type     | Default | Description                   |
+| ------ | -------- | ------- | ----------------------------- |
+| `name` | `string` | -       | Form field name for the input |
+
+```tsx
+// Example: Individual row forms
+<GridListRow rowId="user-123">
+  <GridListCell>
+    <form action="/delete-user">
+      <CurrentRowIdFormField name="userId" />
+      {/* Will render: <input type="hidden" name="userId" value="user-123" /> */}
+      <button type="submit">Delete</button>
+    </form>
+  </GridListCell>
+</GridListRow>
+```
+
+### GridCurrentFocusFormField
+
+A hidden input that captures the ID of the currently focused row. Must be used within a `GridListContainer`.
+
+**Use this when:** You need to know which row has focus for form submissions at the container level.
+
+| Prop   | Type     | Default | Description                   |
+| ------ | -------- | ------- | ----------------------------- |
+| `name` | `string` | -       | Form field name for the input |
+
+### GridCurrentSelectedRowsFormField
+
+A hidden select input that captures all currently selected row IDs. Must be used within a `GridListContainer`.
+
+| Prop   | Type     | Default | Description                   |
+| ------ | -------- | ------- | ----------------------------- |
+| `name` | `string` | -       | Form field name for the input |
 
 ## Examples
 
@@ -482,6 +530,63 @@ The GridList automatically generates hidden form inputs when a `name` prop is pr
   {/* <input type="hidden" name="selected-users" value="1" /> */}
   {/* <input type="hidden" name="selected-users" value="3" /> */}
 </GridListContainer>
+```
+
+### Individual Row Forms vs Container-Level Forms
+
+```tsx
+import {
+  GridListContainer,
+  GridListContent,
+  GridBody,
+  GridListRow,
+  GridListCell,
+  CurrentRowIdFormField,
+  GridCurrentFocusFormField,
+} from "@/components/ui/grid-list";
+
+export default function FormIntegrationExample() {
+  return (
+    <div>
+      {/* Container-level form: captures focused/selected rows */}
+      <form action="/bulk-action">
+        <GridListContainer name="selected-users" selectionMode="multiple">
+          <GridCurrentFocusFormField name="focusedRow" />
+
+          <GridListContent>
+            <GridBody>
+              <GridListRow rowId="user-1">
+                <GridListCell>User 1</GridListCell>
+                <GridListCell>
+                  {/* Individual row form: captures specific row ID */}
+                  <form action="/delete-user">
+                    <CurrentRowIdFormField name="userId" />
+                    {/* Always renders: <input type="hidden" name="userId" value="user-1" /> */}
+                    <button type="submit">Delete</button>
+                  </form>
+                </GridListCell>
+              </GridListRow>
+
+              <GridListRow rowId="user-2">
+                <GridListCell>User 2</GridListCell>
+                <GridListCell>
+                  <form action="/delete-user">
+                    <CurrentRowIdFormField name="userId" />
+                    {/* Always renders: <input type="hidden" name="userId" value="user-2" /> */}
+                    <button type="submit">Delete</button>
+                  </form>
+                </GridListCell>
+              </GridListRow>
+            </GridBody>
+          </GridListContent>
+        </GridListContainer>
+
+        <button type="submit">Bulk Action on Selected</button>
+        {/* This will capture selected rows + currently focused row */}
+      </form>
+    </div>
+  );
+}
 ```
 
 ### Debug Mode

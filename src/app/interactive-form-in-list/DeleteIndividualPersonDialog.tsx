@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { GridCurrentFocusInput } from "@/components/ui/grid-list";
+import { GridCurrentFocusFormField } from "@/components/ui/grid-list";
 import { deletePersonById } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
@@ -38,7 +38,7 @@ export default function DeleteIndividualPersonDialog() {
           Are you sure you want to delete this person?
         </DialogDescription>
 
-        <GridCurrentFocusInput name="deleting-id" />
+        <GridCurrentFocusFormField name="deleting-id" />
 
         <Success>
           <AutoCloseDialog />
