@@ -61,7 +61,7 @@ export default async function InteractiveFormInList() {
           <GridListContainer
             selectionMode="multiple"
             name="people-list"
-            className="@container bg-white rounded-lg grid grid-cols-1 h-min gap-8 p-4 min-w-2xl"
+            className="@container bg-white rounded-lg grid grid-cols-1 h-min gap-8 p-4 max-w-full"
             cycleRowFocus
           >
             <header className="grid grid-cols-[1fr_auto]">
@@ -183,7 +183,7 @@ function PeopleHeader() {
   return (
     <GridHeader>
       <GridListRow className="p-2">
-        <PeopleHeaderCell>
+        <PeopleHeaderCell className="sticky left-0 bg-background">
           <CheckBox
             selectLabel="Select all people"
             deselectLabel="Deselect all people"
@@ -221,7 +221,20 @@ async function PeopleList() {
   const people = await getPeople();
 
   return (
-    <GridListContent className="@container grid-cols-[auto_1fr_auto] @2xl:grid-cols-[auto_1fr_auto_auto] @3xl:grid-cols-[auto_1fr_auto_auto_auto] @4xl:grid-cols-[auto_1fr_auto_auto_auto_auto] @5xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto] @6xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto] @7xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm min-w-2xl">
+    <GridListContent
+      gridClassName="
+        grid-cols-[auto_1fr_auto]
+        @2xl:grid-cols-[auto_1fr_auto_auto]
+        @3xl:grid-cols-[auto_1fr_auto_auto_auto]
+        @4xl:grid-cols-[auto_1fr_auto_auto_auto_auto]
+        @5xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto]
+        @6xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto]
+        @7xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto_auto_auto]
+        h-fit
+      "
+      scrollableContainerClassName="border shadow-md rounded-sm"
+      scrollable
+    >
       <PeopleHeader />
       <GridBody className="divide-y border-y">
         {people.map((person) => (
@@ -231,7 +244,7 @@ async function PeopleList() {
             rowId={person.id}
             rowData={person}
           >
-            <GridListCell className="p-1">
+            <GridListCell className="p-1 sticky left-0 bg-background">
               <CheckBox
                 selectLabel={`Select ${person.name}`}
                 deselectLabel={`Deselect ${person.name}`}
@@ -297,7 +310,18 @@ async function PeopleList() {
 
 function FallbackGridContent({ size }: { size: number }) {
   return (
-    <GridListContent className="@container grid-cols-[auto_1fr_auto] @2xl:grid-cols-[auto_1fr_auto_auto] @3xl:grid-cols-[auto_1fr_auto_auto_auto] @4xl:grid-cols-[auto_1fr_auto_auto_auto_auto] @5xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto] @6xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto] @7xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm py-1">
+    <GridListContent
+      gridClassName="
+    grid-cols-[auto_1fr_auto]
+    @2xl:grid-cols-[auto_1fr_auto_auto]
+    @3xl:grid-cols-[auto_1fr_auto_auto_auto]
+    @4xl:grid-cols-[auto_1fr_auto_auto_auto_auto]
+    @5xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto]
+    @6xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto]
+    @7xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto_auto_auto]
+    h-fit"
+      scrollableContainerClassName="border shadow-md rounded-sm"
+    >
       <PeopleHeader />
       <GridBody className="divide-y border-y">
         {Array.from({ length: size }).map((_, index) => (
@@ -305,7 +329,7 @@ function FallbackGridContent({ size }: { size: number }) {
             inert
             // biome-ignore lint/suspicious/noArrayIndexKey: there is no data
             key={index}
-            className="items-center gap-x-4 gap-y-1 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 hover:shadow-sm"
+            className="items-center gap-x-4 gap-y-1 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 py-1 hover:shadow-sm"
           >
             <GridListCell className="p-1">
               <CheckBox selectLabel="Select" deselectLabel="Deselect" />

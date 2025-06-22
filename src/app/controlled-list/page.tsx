@@ -58,7 +58,7 @@ export default function ControlledListPage() {
           value={value}
           onValueChange={(newValue: string[]) => setValue(newValue)}
         >
-          <GridListContent className="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
+          <GridListContent gridClassName="bg-white p-2 rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
             <GridHeader>
               <div className="text-sm font-medium px-1">
                 <CustomCheckbox />

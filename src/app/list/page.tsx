@@ -52,7 +52,7 @@ export default function ListPage() {
               Select multiple rows using checkboxes or spacebar. Header checkbox
               selects/deselects all.
             </GridListCaption>
-            <GridListContent className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
+            <GridListContent gridClassName="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
               <GridHeader className="p-1 gap-x-8">
                 <GridListRow>
                   <GridListColumnHeader className="text-sm font-medium px-1">
@@ -147,7 +147,7 @@ export default function ListPage() {
             This example shows disabled and read-only rows. Try using spacebar
             to toggle selection on different row types.
           </GridListCaption>
-          <GridListContent className="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
+          <GridListContent gridClassName="bg-white rounded-lg grid-cols-[auto_auto_1fr_auto] h-fit">
             <GridHeader className="p-1 gap-x-8">
               <GridListRow>
                 <GridListColumnHeader className="text-sm font-medium px-1">
