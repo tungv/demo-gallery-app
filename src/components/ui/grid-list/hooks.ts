@@ -538,32 +538,139 @@ export function useGridListKeyboardHandlers() {
 		if (event.key !== "Home") {
 			return;
 		}
-		// TODO: Implement Home key navigation
-		// event.preventDefault();
+
+		event.preventDefault();
+
+		const container = containerRef?.current;
+		if (!container) return;
+
+		// Find the first non-disabled row
+		const allRows = container.querySelectorAll(
+			"[data-row-id]:not([data-disabled='true'])",
+		);
+
+		if (allRows.length === 0) return;
+
+		const firstRow = allRows[0];
+		const id = firstRow.getAttribute("data-row-id");
+		if (id) {
+			focusRow(id);
+		}
 	};
 
 	const handleEnd = (event: React.KeyboardEvent<HTMLDivElement>) => {
 		if (event.key !== "End") {
 			return;
 		}
-		// TODO: Implement End key navigation
-		// event.preventDefault();
+
+		event.preventDefault();
+
+		const container = containerRef?.current;
+		if (!container) return;
+
+		// Find the last non-disabled row
+		const allRows = container.querySelectorAll(
+			"[data-row-id]:not([data-disabled='true'])",
+		);
+
+		if (allRows.length === 0) return;
+
+		const lastRow = allRows[allRows.length - 1];
+		const id = lastRow.getAttribute("data-row-id");
+		if (id) {
+			focusRow(id);
+		}
 	};
 
 	const handlePageUp = (event: React.KeyboardEvent<HTMLDivElement>) => {
 		if (event.key !== "PageUp") {
 			return;
 		}
+
+		event.preventDefault();
+
 		// TODO: Implement PageUp key navigation
-		// event.preventDefault();
+		// Best practice: Move focus up by approximately 10-20 items or based on visible viewport
+		// Example implementation approach:
+		// 1. Get current focused row index
+		// 2. Calculate page size (e.g., Math.floor(containerHeight / averageRowHeight) or fixed number like 10)
+		// 3. Move focus to (currentIndex - pageSize), clamped to 0
+		// 4. If already at top and cycleRowFocus is enabled, optionally go to bottom
+
+		const container = containerRef?.current;
+		if (!container) return;
+
+		const activeElement = document.activeElement;
+		if (!activeElement) return;
+
+		const currentRowElement = activeElement.closest("[data-row-id]");
+		if (!currentRowElement) return;
+
+		const allRows = container.querySelectorAll(
+			"[data-row-id]:not([data-disabled='true'])",
+		);
+
+		const currentRowIndex = Array.from(allRows).findIndex(
+			(row) => row === currentRowElement,
+		);
+		if (currentRowIndex === -1) return;
+
+		// Use a reasonable page size (can be made configurable)
+		const pageSize = 10;
+		const targetRowIndex = Math.max(0, currentRowIndex - pageSize);
+
+		const targetRow = allRows[targetRowIndex];
+		const id = targetRow.getAttribute("data-row-id");
+		if (id) {
+			focusRow(id);
+		}
 	};
 
 	const handlePageDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
 		if (event.key !== "PageDown") {
 			return;
 		}
+
+		event.preventDefault();
+
 		// TODO: Implement PageDown key navigation
-		// event.preventDefault();
+		// Best practice: Move focus down by approximately 10-20 items or based on visible viewport
+		// Example implementation approach:
+		// 1. Get current focused row index
+		// 2. Calculate page size (e.g., Math.floor(containerHeight / averageRowHeight) or fixed number like 10)
+		// 3. Move focus to (currentIndex + pageSize), clamped to last item
+		// 4. If already at bottom and cycleRowFocus is enabled, optionally go to top
+
+		const container = containerRef?.current;
+		if (!container) return;
+
+		const activeElement = document.activeElement;
+		if (!activeElement) return;
+
+		const currentRowElement = activeElement.closest("[data-row-id]");
+		if (!currentRowElement) return;
+
+		const allRows = container.querySelectorAll(
+			"[data-row-id]:not([data-disabled='true'])",
+		);
+
+		const currentRowIndex = Array.from(allRows).findIndex(
+			(row) => row === currentRowElement,
+		);
+		if (currentRowIndex === -1) return;
+
+		// Use a reasonable page size (can be made configurable)
+		const pageSize = 10;
+		const targetRowIndex = Math.min(
+			allRows.length - 1,
+			currentRowIndex + pageSize,
+		);
+
+		const targetRow = allRows[targetRowIndex];
+		const id = targetRow.getAttribute("data-row-id");
+		if (id) {
+			focusRow(id);
+		}
 	};
 
 	return (event: React.KeyboardEvent<HTMLDivElement>) => {
