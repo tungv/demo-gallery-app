@@ -116,334 +116,6 @@ export function useFocusFirstRow() {
 	};
 }
 
-function useHandleTab() {
-	const endRef = useEndRef();
-
-	return async (event: React.KeyboardEvent<HTMLDivElement>) => {
-		if (event.key !== "Tab") {
-			return;
-		}
-
-		if (event.shiftKey) {
-			return;
-		}
-
-		event.preventDefault();
-		const allTabbableElements = await getTabbableElementsAsync(document.body);
-		const sentinelEnd = endRef?.current;
-
-		if (!sentinelEnd) {
-			console.error("sentinel end is not defined");
-			// this can't happen
-			return;
-		}
-
-		const sentinelEndIndex = allTabbableElements.indexOf(sentinelEnd);
-		const lookupIndex = sentinelEndIndex + 1;
-
-		if (sentinelEndIndex === -1) {
-			console.error("sentinel end is not in the list of tabbable elements");
-			// this can't happen
-			return;
-		}
-
-		// find the first tabbable element after the sentinel end
-		const firstTabbableElementAfterSentinelEnd =
-			allTabbableElements[lookupIndex];
-
-		// if the grid is the last tabbable element, focus the first tabbable element
-		if (!firstTabbableElementAfterSentinelEnd) {
-			allTabbableElements[0]?.focus();
-			return;
-		}
-
-		// if the next tabbable element is a start sentinel, we need to focus on its last focused row or first row
-		if (
-			firstTabbableElementAfterSentinelEnd.hasAttribute(
-				"data-focus-scope-start",
-			)
-		) {
-			const container =
-				firstTabbableElementAfterSentinelEnd.closest("[role='grid']");
-			if (container && safelyFocusElement(container)) {
-				return;
-			}
-		}
-
-		firstTabbableElementAfterSentinelEnd?.focus();
-	};
-}
-
-function useHandleShiftTab() {
-	const startRef = useStartRef();
-
-	return async (event: React.KeyboardEvent<HTMLDivElement>) => {
-		if (event.key !== "Tab") {
-			return;
-		}
-
-		if (!event.shiftKey) {
-			return;
-		}
-
-		event.preventDefault();
-		const allTabbableElements = await getTabbableElementsAsync(document.body);
-		const sentinelStart = startRef?.current;
-
-		if (!sentinelStart) {
-			console.error("sentinel start is not defined");
-			return;
-		}
-
-		const sentinelStartIndex = allTabbableElements.indexOf(sentinelStart);
-		const lookupIndex = sentinelStartIndex - 1;
-
-		if (sentinelStartIndex === -1) {
-			console.error("sentinel start is not in the list of tabbable elements");
-			// this can't happen
-			return;
-		}
-
-		// find the first tabbable element before the sentinel start
-		const lastTabbableElementBeforeSentinelStart =
-			allTabbableElements[lookupIndex];
-
-		// if the grid is the first tabbable element, focus the last tabbable element
-		if (!lastTabbableElementBeforeSentinelStart) {
-			allTabbableElements[allTabbableElements.length - 1]?.focus();
-			return;
-		}
-
-		// if the last tabbable element is an end sentinel, we need to focus on its container
-		if (
-			lastTabbableElementBeforeSentinelStart.hasAttribute(
-				"data-focus-scope-end",
-			)
-		) {
-			const container =
-				lastTabbableElementBeforeSentinelStart.closest("[role='grid']");
-
-			if (container && safelyFocusElement(container)) {
-				return;
-			}
-		}
-
-		lastTabbableElementBeforeSentinelStart?.focus();
-	};
-}
-
-function useHandleUpArrow() {
-	const { cycleRowFocus } = useGridListState();
-	const containerRef = useContainerRef();
-	const focusRow = useFocusRow();
-
-	return (event: React.KeyboardEvent<HTMLDivElement>) => {
-		if (event.key !== "ArrowUp") {
-			return;
-		}
-
-		event.preventDefault();
-
-		const activeElement = document.activeElement;
-		if (!activeElement) return;
-
-		const currentRowElement = activeElement.closest("[data-row-id]");
-		if (!currentRowElement) return;
-
-		const container = containerRef?.current;
-		if (!container) return;
-
-		// find previous row using selector (exclude disabled rows)
-		const allRows = container.querySelectorAll(
-			"[data-row-id]:not([data-disabled='true'])",
-		);
-
-		const currentRowIndex = Array.from(allRows).findIndex(
-			(row) => row === currentRowElement,
-		);
-		if (currentRowIndex === -1) return;
-
-		const targetRowIndex = currentRowIndex - 1;
-
-		// If we're at the first row and cycling is enabled, go to the last row
-		if (targetRowIndex < 0) {
-			if (cycleRowFocus && allRows.length > 0) {
-				const lastRow = allRows[allRows.length - 1];
-				const id = lastRow.getAttribute("data-row-id");
-				if (id) {
-					focusRow(id);
-				}
-			}
-			return;
-		}
-
-		const targetRow = allRows[targetRowIndex];
-		const id = targetRow.getAttribute("data-row-id");
-		if (!id) return;
-
-		focusRow(id);
-	};
-}
-
-function useHandleDownArrow() {
-	const { cycleRowFocus } = useGridListState();
-	const focusRow = useFocusRow();
-	const containerRef = useContainerRef();
-
-	return (event: React.KeyboardEvent<HTMLDivElement>) => {
-		if (event.key !== "ArrowDown") {
-			return;
-		}
-
-		event.preventDefault();
-
-		const activeElement = document.activeElement;
-		if (!activeElement) return;
-
-		const currentRowElement = activeElement.closest("[data-row-id]");
-		if (!currentRowElement) return;
-
-		const container = containerRef?.current;
-		if (!container) return;
-
-		const allRows = container.querySelectorAll(
-			"[data-row-id]:not([data-disabled='true'])",
-		);
-		const currentRowIndex = Array.from(allRows).findIndex(
-			(row) => row === currentRowElement,
-		);
-		if (currentRowIndex === -1) return;
-
-		const targetRowIndex = currentRowIndex + 1;
-
-		// If we're at the last row and cycling is enabled, go to the first row
-		if (targetRowIndex >= allRows.length) {
-			if (cycleRowFocus && allRows.length > 0) {
-				const firstRow = allRows[0];
-				const id = firstRow.getAttribute("data-row-id");
-				if (id) {
-					focusRow(id);
-				}
-			}
-			return;
-		}
-
-		const targetRow = allRows[targetRowIndex];
-		const id = targetRow.getAttribute("data-row-id");
-		if (!id) return;
-
-		focusRow(id);
-	};
-}
-
-function useHandleLeftArrow() {
-	return (event: React.KeyboardEvent<HTMLDivElement>) => {
-		if (event.key !== "ArrowLeft") {
-			return;
-		}
-
-		event.preventDefault();
-
-		const activeElement = document.activeElement;
-		if (!activeElement) return;
-
-		const currentRowElement = activeElement.closest("[data-row-id]");
-		if (!currentRowElement) return;
-
-		const allTabbableElements = getTabbableElements(currentRowElement);
-		if (allTabbableElements.length === 0) return;
-
-		// Check if currently focused element is the row itself
-		const isRowFocused = activeElement === currentRowElement;
-
-		if (isRowFocused) {
-			// If row is focused, go to the last tabbable element
-			const lastElement = allTabbableElements[allTabbableElements.length - 1];
-			if (lastElement) {
-				lastElement.focus();
-			}
-			return;
-		}
-
-		const currentTabbableIndex = allTabbableElements.indexOf(
-			activeElement as HTMLElement,
-		);
-		if (currentTabbableIndex === -1) {
-			// focus the first tabbable element
-			allTabbableElements[0]?.focus();
-			return;
-		}
-
-		const targetTabbableIndex = currentTabbableIndex - 1;
-		if (targetTabbableIndex < 0) {
-			// Cycle back to the row element
-			if (currentRowElement instanceof HTMLElement) {
-				currentRowElement.focus();
-			}
-			return;
-		}
-
-		const targetTabbableElement = allTabbableElements[targetTabbableIndex];
-		if (!targetTabbableElement) return;
-
-		targetTabbableElement.focus();
-	};
-}
-
-function useHandleRightArrow() {
-	return (event: React.KeyboardEvent<HTMLDivElement>) => {
-		if (event.key !== "ArrowRight") {
-			return;
-		}
-
-		event.preventDefault();
-
-		const activeElement = document.activeElement;
-		if (!activeElement) return;
-
-		const currentRowElement = activeElement.closest("[data-row-id]");
-		if (!currentRowElement) return;
-
-		const allTabbableElements = getTabbableElements(currentRowElement);
-		if (allTabbableElements.length === 0) return;
-
-		// Check if currently focused element is the row itself
-		const isRowFocused = activeElement === currentRowElement;
-
-		if (isRowFocused) {
-			// If row is focused, go to the first tabbable element
-			const firstElement = allTabbableElements[0];
-			if (firstElement) {
-				firstElement.focus();
-			}
-			return;
-		}
-
-		const currentTabbableIndex = allTabbableElements.indexOf(
-			activeElement as HTMLElement,
-		);
-		if (currentTabbableIndex === -1) {
-			// focus the last tabbable element
-			allTabbableElements[allTabbableElements.length - 1]?.focus();
-			return;
-		}
-
-		const targetTabbableIndex = currentTabbableIndex + 1;
-		if (targetTabbableIndex >= allTabbableElements.length) {
-			// Cycle back to the row element
-			if (currentRowElement instanceof HTMLElement) {
-				currentRowElement.focus();
-			}
-			return;
-		}
-
-		const targetTabbableElement = allTabbableElements[targetTabbableIndex];
-		if (!targetTabbableElement) return;
-
-		targetTabbableElement.focus();
-	};
-}
-
 export function useHandleSpacebar(
 	rowRef: React.RefObject<HTMLDivElement | null>,
 ) {
@@ -548,12 +220,351 @@ function useStartRef() {
 }
 
 export function useGridListKeyboardHandlers() {
-	const handleTab = useHandleTab();
-	const handleShiftTab = useHandleShiftTab();
-	const handleUpArrow = useHandleUpArrow();
-	const handleDownArrow = useHandleDownArrow();
-	const handleLeftArrow = useHandleLeftArrow();
-	const handleRightArrow = useHandleRightArrow();
+	// Prepare all state and data once
+	const { cycleRowFocus } = useGridListState();
+	const containerRef = useContainerRef();
+	const startRef = useStartRef();
+	const endRef = useEndRef();
+	const focusRow = useFocusRow();
+
+	// Tab navigation handlers
+	const handleTab = async (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "Tab") {
+			return;
+		}
+
+		if (event.shiftKey) {
+			return;
+		}
+
+		event.preventDefault();
+		const allTabbableElements = await getTabbableElementsAsync(document.body);
+		const sentinelEnd = endRef?.current;
+
+		if (!sentinelEnd) {
+			console.error("sentinel end is not defined");
+			// this can't happen
+			return;
+		}
+
+		const sentinelEndIndex = allTabbableElements.indexOf(sentinelEnd);
+		const lookupIndex = sentinelEndIndex + 1;
+
+		if (sentinelEndIndex === -1) {
+			console.error("sentinel end is not in the list of tabbable elements");
+			// this can't happen
+			return;
+		}
+
+		// find the first tabbable element after the sentinel end
+		const firstTabbableElementAfterSentinelEnd =
+			allTabbableElements[lookupIndex];
+
+		// if the grid is the last tabbable element, focus the first tabbable element
+		if (!firstTabbableElementAfterSentinelEnd) {
+			allTabbableElements[0]?.focus();
+			return;
+		}
+
+		// if the next tabbable element is a start sentinel, we need to focus on its last focused row or first row
+		if (
+			firstTabbableElementAfterSentinelEnd.hasAttribute(
+				"data-focus-scope-start",
+			)
+		) {
+			const container =
+				firstTabbableElementAfterSentinelEnd.closest("[role='grid']");
+			if (container && safelyFocusElement(container)) {
+				return;
+			}
+		}
+
+		firstTabbableElementAfterSentinelEnd?.focus();
+	};
+
+	const handleShiftTab = async (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "Tab") {
+			return;
+		}
+
+		if (!event.shiftKey) {
+			return;
+		}
+
+		event.preventDefault();
+		const allTabbableElements = await getTabbableElementsAsync(document.body);
+		const sentinelStart = startRef?.current;
+
+		if (!sentinelStart) {
+			console.error("sentinel start is not defined");
+			return;
+		}
+
+		const sentinelStartIndex = allTabbableElements.indexOf(sentinelStart);
+		const lookupIndex = sentinelStartIndex - 1;
+
+		if (sentinelStartIndex === -1) {
+			console.error("sentinel start is not in the list of tabbable elements");
+			// this can't happen
+			return;
+		}
+
+		// find the first tabbable element before the sentinel start
+		const lastTabbableElementBeforeSentinelStart =
+			allTabbableElements[lookupIndex];
+
+		// if the grid is the first tabbable element, focus the last tabbable element
+		if (!lastTabbableElementBeforeSentinelStart) {
+			allTabbableElements[allTabbableElements.length - 1]?.focus();
+			return;
+		}
+
+		// if the last tabbable element is an end sentinel, we need to focus on its container
+		if (
+			lastTabbableElementBeforeSentinelStart.hasAttribute(
+				"data-focus-scope-end",
+			)
+		) {
+			const container =
+				lastTabbableElementBeforeSentinelStart.closest("[role='grid']");
+
+			if (container && safelyFocusElement(container)) {
+				return;
+			}
+		}
+
+		lastTabbableElementBeforeSentinelStart?.focus();
+	};
+
+	// Arrow navigation handlers
+	const handleUpArrow = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "ArrowUp") {
+			return;
+		}
+
+		event.preventDefault();
+
+		const activeElement = document.activeElement;
+		if (!activeElement) return;
+
+		const currentRowElement = activeElement.closest("[data-row-id]");
+		if (!currentRowElement) return;
+
+		const container = containerRef?.current;
+		if (!container) return;
+
+		// find previous row using selector (exclude disabled rows)
+		const allRows = container.querySelectorAll(
+			"[data-row-id]:not([data-disabled='true'])",
+		);
+
+		const currentRowIndex = Array.from(allRows).findIndex(
+			(row) => row === currentRowElement,
+		);
+		if (currentRowIndex === -1) return;
+
+		const targetRowIndex = currentRowIndex - 1;
+
+		// If we're at the first row and cycling is enabled, go to the last row
+		if (targetRowIndex < 0) {
+			if (cycleRowFocus && allRows.length > 0) {
+				const lastRow = allRows[allRows.length - 1];
+				const id = lastRow.getAttribute("data-row-id");
+				if (id) {
+					focusRow(id);
+				}
+			}
+			return;
+		}
+
+		const targetRow = allRows[targetRowIndex];
+		const id = targetRow.getAttribute("data-row-id");
+		if (!id) return;
+
+		focusRow(id);
+	};
+
+	const handleDownArrow = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "ArrowDown") {
+			return;
+		}
+
+		event.preventDefault();
+
+		const activeElement = document.activeElement;
+		if (!activeElement) return;
+
+		const currentRowElement = activeElement.closest("[data-row-id]");
+		if (!currentRowElement) return;
+
+		const container = containerRef?.current;
+		if (!container) return;
+
+		const allRows = container.querySelectorAll(
+			"[data-row-id]:not([data-disabled='true'])",
+		);
+		const currentRowIndex = Array.from(allRows).findIndex(
+			(row) => row === currentRowElement,
+		);
+		if (currentRowIndex === -1) return;
+
+		const targetRowIndex = currentRowIndex + 1;
+
+		// If we're at the last row and cycling is enabled, go to the first row
+		if (targetRowIndex >= allRows.length) {
+			if (cycleRowFocus && allRows.length > 0) {
+				const firstRow = allRows[0];
+				const id = firstRow.getAttribute("data-row-id");
+				if (id) {
+					focusRow(id);
+				}
+			}
+			return;
+		}
+
+		const targetRow = allRows[targetRowIndex];
+		const id = targetRow.getAttribute("data-row-id");
+		if (!id) return;
+
+		focusRow(id);
+	};
+
+	const handleLeftArrow = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "ArrowLeft") {
+			return;
+		}
+
+		event.preventDefault();
+
+		const activeElement = document.activeElement;
+		if (!activeElement) return;
+
+		const currentRowElement = activeElement.closest("[data-row-id]");
+		if (!currentRowElement) return;
+
+		const allTabbableElements = getTabbableElements(currentRowElement);
+		if (allTabbableElements.length === 0) return;
+
+		// Check if currently focused element is the row itself
+		const isRowFocused = activeElement === currentRowElement;
+
+		if (isRowFocused) {
+			// If row is focused, go to the last tabbable element
+			const lastElement = allTabbableElements[allTabbableElements.length - 1];
+			if (lastElement) {
+				lastElement.focus();
+			}
+			return;
+		}
+
+		const currentTabbableIndex = allTabbableElements.indexOf(
+			activeElement as HTMLElement,
+		);
+		if (currentTabbableIndex === -1) {
+			// focus the first tabbable element
+			allTabbableElements[0]?.focus();
+			return;
+		}
+
+		const targetTabbableIndex = currentTabbableIndex - 1;
+		if (targetTabbableIndex < 0) {
+			// Cycle back to the row element
+			if (currentRowElement instanceof HTMLElement) {
+				currentRowElement.focus();
+			}
+			return;
+		}
+
+		const targetTabbableElement = allTabbableElements[targetTabbableIndex];
+		if (!targetTabbableElement) return;
+
+		targetTabbableElement.focus();
+	};
+
+	const handleRightArrow = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "ArrowRight") {
+			return;
+		}
+
+		event.preventDefault();
+
+		const activeElement = document.activeElement;
+		if (!activeElement) return;
+
+		const currentRowElement = activeElement.closest("[data-row-id]");
+		if (!currentRowElement) return;
+
+		const allTabbableElements = getTabbableElements(currentRowElement);
+		if (allTabbableElements.length === 0) return;
+
+		// Check if currently focused element is the row itself
+		const isRowFocused = activeElement === currentRowElement;
+
+		if (isRowFocused) {
+			// If row is focused, go to the first tabbable element
+			const firstElement = allTabbableElements[0];
+			if (firstElement) {
+				firstElement.focus();
+			}
+			return;
+		}
+
+		const currentTabbableIndex = allTabbableElements.indexOf(
+			activeElement as HTMLElement,
+		);
+		if (currentTabbableIndex === -1) {
+			// focus the last tabbable element
+			allTabbableElements[allTabbableElements.length - 1]?.focus();
+			return;
+		}
+
+		const targetTabbableIndex = currentTabbableIndex + 1;
+		if (targetTabbableIndex >= allTabbableElements.length) {
+			// Cycle back to the row element
+			if (currentRowElement instanceof HTMLElement) {
+				currentRowElement.focus();
+			}
+			return;
+		}
+
+		const targetTabbableElement = allTabbableElements[targetTabbableIndex];
+		if (!targetTabbableElement) return;
+
+		targetTabbableElement.focus();
+	};
+
+	// Placeholder handlers for future keys
+	const handleHome = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "Home") {
+			return;
+		}
+		// TODO: Implement Home key navigation
+		// event.preventDefault();
+	};
+
+	const handleEnd = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "End") {
+			return;
+		}
+		// TODO: Implement End key navigation
+		// event.preventDefault();
+	};
+
+	const handlePageUp = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "PageUp") {
+			return;
+		}
+		// TODO: Implement PageUp key navigation
+		// event.preventDefault();
+	};
+
+	const handlePageDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "PageDown") {
+			return;
+		}
+		// TODO: Implement PageDown key navigation
+		// event.preventDefault();
+	};
 
 	return (event: React.KeyboardEvent<HTMLDivElement>) => {
 		// Handle Tab navigation
@@ -579,6 +590,18 @@ export function useGridListKeyboardHandlers() {
 				break;
 			case "ArrowRight":
 				handleRightArrow(event);
+				break;
+			case "Home":
+				handleHome(event);
+				break;
+			case "End":
+				handleEnd(event);
+				break;
+			case "PageUp":
+				handlePageUp(event);
+				break;
+			case "PageDown":
+				handlePageDown(event);
 				break;
 		}
 	};
