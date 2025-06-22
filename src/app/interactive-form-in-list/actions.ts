@@ -122,7 +122,7 @@ export async function deletePeopleByIds(ids: string[]) {
  */
 export async function incrementVoteCount(formData: FormData) {
 	try {
-		const id = formData.get("people-list.focused") as string;
+		const id = formData.get("voting-for") as string;
 		if (!id) {
 			return {
 				errors: { $: ["Person ID is required"] },
