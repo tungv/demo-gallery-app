@@ -31,7 +31,6 @@ import { ReserveLayout } from "@/components/ui/reserve-layout";
 import { getPeople } from "./query";
 import AddPersonDialog from "./AddPersonDialog";
 import {
-  FormBoundary,
   InteractiveForm,
   LoadingMessage,
   SubmitMessage,
@@ -62,7 +61,7 @@ export default async function InteractiveFormInList() {
           <GridListContainer
             selectionMode="multiple"
             name="people-list"
-            className="bg-white rounded-lg grid grid-cols-1 h-min gap-8 p-4"
+            className="@container bg-white rounded-lg grid grid-cols-1 h-min gap-8 p-4 min-w-2xl"
             cycleRowFocus
           >
             <header className="grid grid-cols-[1fr_auto]">
@@ -112,9 +111,17 @@ export default async function InteractiveFormInList() {
   );
 }
 
-function PeopleHeaderCell({ children }: { children: React.ReactNode }) {
+function PeopleHeaderCell({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <GridListColumnHeader className="px-1 py-px text-sm text-muted-foreground text-center">
+    <GridListColumnHeader
+      className={`px-1 py-px text-sm text-muted-foreground text-center ${className}`}
+    >
       {children}
     </GridListColumnHeader>
   );
@@ -183,13 +190,27 @@ function PeopleHeader() {
           />
         </PeopleHeaderCell>
         <PeopleHeaderCell>Name</PeopleHeaderCell>
-        <PeopleHeaderCell>Email</PeopleHeaderCell>
-        <PeopleHeaderCell>Phone</PeopleHeaderCell>
-        <PeopleHeaderCell>Address</PeopleHeaderCell>
-        <PeopleHeaderCell>City</PeopleHeaderCell>
-        <PeopleHeaderCell>State</PeopleHeaderCell>
-        <PeopleHeaderCell>Zip</PeopleHeaderCell>
-        <PeopleHeaderCell>Votes</PeopleHeaderCell>
+        <PeopleHeaderCell className="@3xl:table-cell hidden">
+          Email
+        </PeopleHeaderCell>
+        <PeopleHeaderCell className="@4xl:table-cell hidden">
+          Phone
+        </PeopleHeaderCell>
+        <PeopleHeaderCell className="@5xl:table-cell hidden">
+          Zip
+        </PeopleHeaderCell>
+        <PeopleHeaderCell className="@6xl:table-cell hidden">
+          Address
+        </PeopleHeaderCell>
+        <PeopleHeaderCell className="@7xl:table-cell hidden">
+          City
+        </PeopleHeaderCell>
+        <PeopleHeaderCell className="@7xl:table-cell hidden">
+          State
+        </PeopleHeaderCell>
+        <PeopleHeaderCell className="@2xl:table-cell hidden">
+          Votes
+        </PeopleHeaderCell>
         <PeopleHeaderCell>Actions</PeopleHeaderCell>
       </GridListRow>
     </GridHeader>
@@ -200,13 +221,13 @@ async function PeopleList() {
   const people = await getPeople();
 
   return (
-    <GridListContent className="grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm">
+    <GridListContent className="@container grid-cols-[auto_1fr_auto] @2xl:grid-cols-[auto_1fr_auto_auto] @3xl:grid-cols-[auto_1fr_auto_auto_auto] @4xl:grid-cols-[auto_1fr_auto_auto_auto_auto] @5xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto] @6xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto] @7xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm min-w-2xl">
       <PeopleHeader />
       <GridBody className="divide-y border-y">
         {people.map((person) => (
           <GridListRow
             key={person.id}
-            className="items-center gap-4 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 hover:shadow-sm"
+            className="items-center gap-x-4 gap-y-1 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 py-1 hover:shadow-sm"
             rowId={person.id}
             rowData={person}
           >
@@ -216,25 +237,39 @@ async function PeopleList() {
                 deselectLabel={`Deselect ${person.name}`}
               />
             </GridListCell>
-            <GridListRowHeader className="font-medium text-left p-1">
+            <GridListRowHeader className="font-medium text-left px-1">
               {person.name}
             </GridListRowHeader>
-            <GridListCell className="p-1">
+            <GridListCell
+              className="
+              col-start-2 row-start-2 px-1 pb-1
+              @3xl:col-start-3 @3xl:row-start-1 @3xl:px-1
+              
+              text-xs text-muted-foreground
+              @3xl:text-base @3xl:text-foreground
+              "
+            >
               <span className="select-all">{person.email}</span>
             </GridListCell>
-            <GridListCell className="p-1 tabular-nums">
+            <GridListCell className="@4xl:flex hidden px-1 tabular-nums">
               <span className="select-all">{person.phone}</span>
             </GridListCell>
-            <GridListCell className="p-1">{person.address}</GridListCell>
-            <GridListCell className="p-1">{person.city}</GridListCell>
-            <GridListCell className="p-1">{person.state}</GridListCell>
-            <GridListCell className="p-1 tabular-nums">
+            <GridListCell className="@5xl:flex hidden px-1 tabular-nums">
               <span className="select-all">{person.zip}</span>
             </GridListCell>
-            <GridListCell className="p-1 text-center tabular-nums">
+            <GridListCell className="@6xl:flex hidden px-1">
+              {person.address}
+            </GridListCell>
+            <GridListCell className="@7xl:flex hidden px-1">
+              {person.city}
+            </GridListCell>
+            <GridListCell className="@7xl:flex hidden px-1">
+              {person.state}
+            </GridListCell>
+            <GridListCell className="@2xl:flex hidden px-1 text-center tabular-nums row-span-2 @3xl:row-span-1">
               {person.voteCount}
             </GridListCell>
-            <GridListCell className="p-1">
+            <GridListCell className="px-1 row-span-2 @3xl:row-span-1">
               <ActionsCell />
             </GridListCell>
           </GridListRow>
@@ -262,7 +297,7 @@ async function PeopleList() {
 
 function FallbackGridContent({ size }: { size: number }) {
   return (
-    <GridListContent className="grid-cols-[auto_auto_1fr_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm">
+    <GridListContent className="@container grid-cols-[auto_1fr_auto] @2xl:grid-cols-[auto_1fr_auto_auto] @3xl:grid-cols-[auto_1fr_auto_auto_auto] @4xl:grid-cols-[auto_1fr_auto_auto_auto_auto] @5xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto] @6xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto] @7xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto_auto_auto] h-fit border shadow-md rounded-sm py-1">
       <PeopleHeader />
       <GridBody className="divide-y border-y">
         {Array.from({ length: size }).map((_, index) => (
@@ -270,15 +305,53 @@ function FallbackGridContent({ size }: { size: number }) {
             inert
             // biome-ignore lint/suspicious/noArrayIndexKey: there is no data
             key={index}
-            className="items-center gap-4 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 hover:shadow-sm"
+            className="items-center gap-x-4 gap-y-1 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 hover:shadow-sm"
           >
             <GridListCell className="p-1">
               <CheckBox selectLabel="Select" deselectLabel="Deselect" />
             </GridListCell>
-            <GridListCell className="p-1 col-span-8">
-              <Skeleton />
+            <GridListRowHeader className="font-medium text-left px-1">
+              {/* name */}
+              <Skeleton length={10} />
+            </GridListRowHeader>
+            <GridListCell
+              className="
+              col-start-2 row-start-2 px-1 pb-1
+              @3xl:col-start-4 @3xl:row-start-1 @3xl:px-1
+              
+              text-xs text-muted-foreground 
+              @3xl:text-base @3xl:text-foreground
+              "
+            >
+              {/* email */}
+              <Skeleton length={20} />
             </GridListCell>
-            <GridListCell className="p-1">
+            <GridListCell className="@4xl:table-cell hidden px-1 tabular-nums">
+              {/* phone */}
+              <Skeleton length={10} />
+            </GridListCell>
+            <GridListCell className="@5xl:table-cell hidden px-1 tabular-nums">
+              {/* zip */}
+              <Skeleton length={5} />
+            </GridListCell>
+            <GridListCell className="@6xl:table-cell hidden px-1">
+              {/* address */}
+              <Skeleton length={10} />
+            </GridListCell>
+            <GridListCell className="@7xl:table-cell hidden px-1">
+              {/* city */}
+              <Skeleton length={10} />
+            </GridListCell>
+            <GridListCell className="@7xl:table-cell hidden px-1">
+              {/* state */}
+              <Skeleton length={2} />
+            </GridListCell>
+            <GridListCell className="@2xl:table-cell hidden px-1 text-center tabular-nums">
+              {/* votes */}
+              <Skeleton length={2} />
+            </GridListCell>
+            <GridListCell className="px-1 row-span-2 @3xl:row-span-1">
+              {/* actions */}
               <ActionsCell />
             </GridListCell>
           </GridListRow>
@@ -288,10 +361,15 @@ function FallbackGridContent({ size }: { size: number }) {
   );
 }
 
-function Skeleton() {
+function Skeleton({ length = 10 }: { length?: number }) {
   return (
-    <div className="animate-pulse">
-      <div className="h-4 bg-muted rounded w-3/4" />
+    <div className="animate-pulse bg-muted rounded-sm w-min">
+      <span className="select-all text-transparent truncate">
+        {Array.from({ length }).map((_, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          <span key={index}>W</span>
+        ))}
+      </span>
     </div>
   );
 }
