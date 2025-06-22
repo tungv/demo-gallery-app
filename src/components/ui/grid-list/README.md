@@ -94,10 +94,11 @@ The root container that manages state and provides context for all grid componen
 
 The main grid container that renders the visual grid structure.
 
-| Prop        | Type     | Default     | Description             |
-| ----------- | -------- | ----------- | ----------------------- |
-| `className` | `string` | `undefined` | CSS classes for styling |
-| `id`        | `string` | `undefined` | HTML id attribute       |
+| Prop                           | Type      | Default     | Description                                                            |
+| ------------------------------ | --------- | ----------- | ---------------------------------------------------------------------- |
+| `gridClassName`                | `string`  | `undefined` | CSS classes for the grid layout                                        |
+| `scrollableContainerClassName` | `string`  | `undefined` | CSS classes for the wrapper, especially important for scrollable grids |
+| `scrollable`                   | `boolean` | `false`     | Whether the grid is scrollable                                         |
 
 ### GridHeader
 
@@ -259,7 +260,7 @@ export default function BasicGrid() {
       >
         <GridListTitle>Users</GridListTitle>
         <GridListCaption>Select users to perform bulk actions</GridListCaption>
-        <GridListContent className="border rounded-lg">
+        <GridListContent gridClassName="border rounded-lg">
           <GridHeader>
             <GridListRow>
               <GridListColumnHeader>

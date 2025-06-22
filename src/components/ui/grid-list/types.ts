@@ -132,7 +132,10 @@ export type ValueOnChangeMode =
 
 export type GridListContentProps = {
 	children: React.ReactNode;
-} & React.HTMLAttributes<HTMLDivElement>;
+	gridClassName?: string;
+	scrollableContainerClassName?: string;
+	scrollable?: boolean;
+} & Omit<React.HTMLAttributes<HTMLDivElement>, "className">;
 
 export type GridListRootProps = {
 	children: React.ReactNode;

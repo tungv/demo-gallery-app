@@ -153,7 +153,7 @@ export function GridListContainer({
   }, [value]);
 
   const containerInner = (
-    <div className={className} {...divProps}>
+    <div className={cn("relative", className)} {...divProps}>
       {children}
       <HiddenSelectionInput onInvalid={onInvalid} />
     </div>
@@ -189,8 +189,10 @@ export function GridListContainer({
 
 export function GridListContent({
   children,
-  className,
+  gridClassName,
+  scrollableContainerClassName,
   id,
+  scrollable = false,
   ...divProps
 }: GridListContentProps) {
   /*
@@ -209,11 +211,19 @@ export function GridListContent({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const listInner = (
-    <GridListContentInner className={className} id={actualId} {...divProps}>
-      <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
-      {children}
-      <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
-    </GridListContentInner>
+    <div
+      className={cn("max-w-full overflow-x-auto", scrollableContainerClassName)}
+    >
+      <GridListContentInner
+        className={cn(gridClassName)}
+        id={actualId}
+        {...divProps}
+      >
+        <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
+        {children}
+        <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
+      </GridListContentInner>
+    </div>
   );
 
   return (
