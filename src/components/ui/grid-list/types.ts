@@ -73,7 +73,7 @@ export type GridState = {
 	cycleRowFocus: boolean;
 	name?: string;
 	required?: boolean;
-	gridId?: string;
+	_default?: boolean;
 };
 
 export type GridAction =

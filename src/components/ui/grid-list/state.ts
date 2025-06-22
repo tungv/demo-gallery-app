@@ -28,6 +28,7 @@ const defaultGridState: GridState = {
 	cycleRowFocus: false,
 	name: undefined,
 	required: false,
+	_default: true,
 };
 
 const defaultGridLabelingState: GridLabelingState = {
@@ -320,12 +321,10 @@ export function useFocusedRowData<T>(): T | undefined {
 }
 
 export const GridContentContext = createContext<{
-	gridId: string;
 	startRef?: React.RefObject<HTMLSpanElement | null>;
 	endRef?: React.RefObject<HTMLSpanElement | null>;
 	containerRef?: React.RefObject<HTMLDivElement | null>;
 	_default?: true;
 }>({
 	_default: true,
-	gridId: "",
 });
