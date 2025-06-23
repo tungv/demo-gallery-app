@@ -228,7 +228,7 @@ export function useGridListKeyboardHandlers() {
 	const focusRow = useFocusRow();
 
 	// Tab navigation handlers
-	const handleTab = async (event: React.KeyboardEvent<HTMLDivElement>) => {
+	const handleTab = (event: React.KeyboardEvent<HTMLDivElement>) => {
 		if (event.key !== "Tab") {
 			return;
 		}
@@ -238,8 +238,10 @@ export function useGridListKeyboardHandlers() {
 		}
 
 		event.preventDefault();
-		const allTabbableElements = await getTabbableElementsAsync(document.body);
+		const allTabbableElements = getTabbableElements(document.body);
 		const sentinelEnd = endRef?.current;
+
+		console.log("sentinel end", sentinelEnd, allTabbableElements);
 
 		if (!sentinelEnd) {
 			console.error("sentinel end is not defined");
@@ -282,7 +284,7 @@ export function useGridListKeyboardHandlers() {
 		firstTabbableElementAfterSentinelEnd?.focus();
 	};
 
-	const handleShiftTab = async (event: React.KeyboardEvent<HTMLDivElement>) => {
+	const handleShiftTab = (event: React.KeyboardEvent<HTMLDivElement>) => {
 		if (event.key !== "Tab") {
 			return;
 		}
@@ -292,7 +294,7 @@ export function useGridListKeyboardHandlers() {
 		}
 
 		event.preventDefault();
-		const allTabbableElements = await getTabbableElementsAsync(document.body);
+		const allTabbableElements = getTabbableElements(document.body);
 		const sentinelStart = startRef?.current;
 
 		if (!sentinelStart) {

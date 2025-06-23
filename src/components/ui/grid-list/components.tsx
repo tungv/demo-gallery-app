@@ -12,6 +12,7 @@ import {
   useState,
   useRef,
   use,
+  forwardRef,
 } from "react";
 import type { FormEventHandler, HTMLAttributes } from "react";
 import useEffectEvent from "../use-effect-event";
@@ -190,8 +191,8 @@ export function GridListContent({
   scrollable = false,
   ...divProps
 }: GridListContentProps) {
-  const startRef = useRef<HTMLSpanElement>(null);
-  const endRef = useRef<HTMLSpanElement>(null);
+  const startRef = useRef<HTMLButtonElement>(null);
+  const endRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -203,34 +204,70 @@ export function GridListContent({
         )}
       >
         <GridListContentInner {...divProps} className={cn(gridClassName)}>
-          <span data-focus-scope-start hidden tabIndex={-1} ref={startRef} />
+          <FocusSentinel ref={startRef} />
           {children}
-          <span data-focus-scope-end hidden tabIndex={-1} ref={endRef} />
+          <FocusSentinel ref={endRef} />
         </GridListContentInner>
       </div>
     </GridContentContext.Provider>
   );
 }
 
+function FocusSentinel({
+  ref,
+}: {
+  ref: React.RefObject<HTMLButtonElement | null>;
+}) {
+  const { lastFocusedRowId } = useGridListState();
+  const focusRow = useFocusRow();
+  const focusFirstRow = useFocusFirstRow();
+
+  return (
+    <button
+      className="test"
+      ref={ref}
+      data-focus-scope-sentinel
+      type="button"
+      style={{
+        position: "absolute",
+        left: "-9999px",
+        width: "1px",
+        height: "1px",
+        overflow: "hidden",
+        border: "none",
+        background: "transparent",
+        padding: 0,
+        margin: 0,
+      }}
+      onFocus={(event: React.FocusEvent) => {
+        console.log("Focus sentinel activated via tab navigation");
+
+        // Prevent the sentinel from staying focused
+        event.preventDefault();
+
+        // Redirect focus to the appropriate row
+        if (lastFocusedRowId && focusRow(lastFocusedRowId)) {
+          console.log(
+            "Redirected focus to previously focused row:",
+            lastFocusedRowId,
+          );
+        } else {
+          console.log("Redirected focus to first row");
+          focusFirstRow();
+        }
+      }}
+    />
+  );
+}
+
 function GridListContentInner({
   children,
   className,
-
   ...divProps
-}: {
-  children: React.ReactNode;
-
-  startRef?: React.RefObject<HTMLSpanElement | null>;
-  endRef?: React.RefObject<HTMLSpanElement | null>;
-  containerRef?: React.RefObject<HTMLDivElement | null>;
-} & React.HTMLAttributes<HTMLDivElement>) {
+}: React.HTMLAttributes<HTMLDivElement>) {
   const { isFocusWithinContainer } = useGridListState();
   const dispatch = useGridListDispatch();
   const { lastFocusedRowId } = useGridListState();
-
-  const focusRow = useFocusRow();
-  // Helper function to focus the first row
-  const focusFirstRow = useFocusFirstRow();
 
   const containerRef = useContext(GridContentContext).containerRef;
 
@@ -288,28 +325,16 @@ function GridListContentInner({
     onKeyDown: handleKeyDown,
 
     onFocusCapture: (event) => {
-      const origin = event.relatedTarget as Element;
+      const target = event.target as Element;
 
-      const isEnteringGrid =
-        !origin || !containerRef?.current?.contains(origin);
-
-      if (isEnteringGrid) {
-        // console.log("entering grid");
-        event.stopPropagation();
-
-        // find the row to focus
-        // 1. if the lastFocusedRowId is not null, focus it
-        // 2. if the first row is not focused, focus it
-        if (lastFocusedRowId) {
-          // console.log("redirect focus to", lastFocusedRowId);
-
-          if (focusRow(lastFocusedRowId)) {
-            return;
-          }
-        }
-        // console.log("redirect focus to first row");
-        focusFirstRow();
+      // If a sentinel is being focused, let it handle the redirection
+      if (target.hasAttribute("data-focus-scope-sentinel")) {
+        return;
       }
+
+      // For direct interactions (clicks, etc.) on actual grid elements,
+      // just track the focus but don't redirect
+      // console.log("Direct focus on grid element:", target);
     },
     onBlurCapture: (event) => {
       const destination = event.relatedTarget as Element;
@@ -741,7 +766,7 @@ function RowInner({
       const isEnteringRow = !origin || !rowRef.current?.contains(origin);
 
       if (isEnteringRow) {
-        console.log("entering row %s", rowId);
+        // console.log("entering row %s", rowId);
         // set lastFocusedRowId to the rowId
         dispatch({ type: "setLastFocusedRow", rowId: rowId });
       }
@@ -753,7 +778,7 @@ function RowInner({
         !destination || !rowRef.current?.contains(destination);
 
       if (isLeavingRow) {
-        console.log("leaving row %s", rowId);
+        // console.log("leaving row %s", rowId);
       }
     },
   };

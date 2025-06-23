@@ -221,33 +221,6 @@ export function getTabbableElements(
 	return sortedElements;
 }
 
-// Async version that won't block rendering
-export function getTabbableElementsAsync(
-	container: Element,
-): Promise<HTMLElement[]> {
-	return new Promise((resolve) => {
-		// Use requestIdleCallback if available, otherwise setTimeout
-		const scheduleWork = (callback: () => void) => {
-			if ("requestIdleCallback" in window) {
-				requestIdleCallback(callback, { timeout: 100 });
-			} else {
-				setTimeout(callback, 0);
-			}
-		};
-
-		scheduleWork(() => {
-			try {
-				const elements = getTabbableElements(container);
-				resolve(elements);
-			} catch (error) {
-				console.warn("Error finding tabbable elements:", error);
-				// Fallback to lightweight version
-				resolve(getTabbableElementsLight(container));
-			}
-		});
-	});
-}
-
 export function safelyFocusElement(element: Element): boolean {
 	if (element instanceof HTMLElement && element.focus) {
 		element.focus();
