@@ -15,6 +15,7 @@ import {
   GridListContent,
   GridListContainer,
   CurrentRowIdFormField,
+  GridListDebugger,
 } from "@/components/ui/grid-list";
 
 import {
@@ -25,6 +26,7 @@ import {
   Edit3,
   ThumbsUp,
   Plus,
+  EllipsisVertical,
 } from "lucide-react";
 import NonEmptySelection from "./non-empty-selection";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,12 @@ import DeleteMultiplePeopleDialog from "./DeleteMultiplePeopleDialog";
 import { Suspense } from "react";
 import { countAllPeople } from "./data-store";
 import UpdateHighlight from "./UpdateHighlight";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -157,12 +165,6 @@ function CheckBox({
 function ActionsCell() {
   return (
     <div className="flex items-center bg-white/90 rounded-md focus-within:shadow-sm">
-      <PeopleListDialogTrigger dialog="edit-person" asChild>
-        <Button type="button" variant="ghost" title="Edit person">
-          <Edit3 className="size-4 text-muted-foreground hover:text-foreground" />
-        </Button>
-      </PeopleListDialogTrigger>
-
       <InteractiveForm action={incrementVoteCount}>
         <CurrentRowIdFormField name="voting-for" />
         <SubmitButton asChild>
@@ -172,11 +174,29 @@ function ActionsCell() {
         </SubmitButton>
       </InteractiveForm>
 
-      <PeopleListDialogTrigger dialog="delete-person" asChild>
-        <Button type="button" variant="ghost" title="Delete person">
-          <Trash2 className="size-4 text-destructive hover:text-destructive" />
-        </Button>
-      </PeopleListDialogTrigger>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button type="button" variant="ghost" title="More Actions">
+            <EllipsisVertical className="size-4 text-muted-foreground hover:text-foreground" />
+            <span className="sr-only">More Actions</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild className="w-full">
+            <PeopleListDialogTrigger dialog="edit-person">
+              <Edit3 className="size-4 text-muted-foreground hover:text-foreground" />
+              Edit
+            </PeopleListDialogTrigger>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild className="w-full">
+            <PeopleListDialogTrigger dialog="delete-person">
+              <Trash2 className="size-4 text-destructive hover:text-destructive" />
+              Delete
+            </PeopleListDialogTrigger>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -299,6 +319,9 @@ async function PeopleList() {
           </GridListRow>
         ))}
       </GridBody>
+      <GridFooter>
+        <GridListDebugger />
+      </GridFooter>
 
       <NonEmptySelection minSize={2}>
         <GridFooter>

@@ -104,8 +104,10 @@ export function PeopleListDialogTrigger({
     ...btnProps,
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
       registerClick(e);
-      dispatch({ type: "open", payload: { dialog } });
       onClick?.(e);
+      process.nextTick(() => {
+        dispatch({ type: "open", payload: { dialog } });
+      });
     },
     type: "button" as const,
   };
