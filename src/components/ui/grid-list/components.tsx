@@ -616,7 +616,7 @@ export function GridListCaption({
   );
 }
 
-export const GridListRow = memo(function GridListRow({
+export const GridListRow = function GridListRow({
   children,
   className,
   asChild,
@@ -693,11 +693,6 @@ export const GridListRow = memo(function GridListRow({
     <RowContext value={rowContextValue}>{rowElem}</RowContext>
   );
 
-  // Only provide SelectionIndicatorContext for rows inside GridListBody
-  if (selectionMode === "none" || !isInBody) {
-    return contextWrappedElem;
-  }
-
   const selectionCtxValue = useMemo(() => {
     return {
       selected: isRowSelected,
@@ -713,12 +708,17 @@ export const GridListRow = memo(function GridListRow({
     };
   }, [selectionDispatch, actualRowId, isRowSelected, disabled, readOnly]);
 
+  // Only provide SelectionIndicatorContext for rows inside GridListBody
+  if (selectionMode === "none" || !isInBody) {
+    return contextWrappedElem;
+  }
+
   return (
     <SelectionIndicatorContext value={selectionCtxValue}>
       {contextWrappedElem}
     </SelectionIndicatorContext>
   );
-});
+};
 
 function RowInner({
   children,
