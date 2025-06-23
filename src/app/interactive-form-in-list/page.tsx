@@ -15,7 +15,6 @@ import {
   GridListContent,
   GridListContainer,
   CurrentRowIdFormField,
-  GridListDebugger,
 } from "@/components/ui/grid-list";
 
 import {
@@ -319,9 +318,6 @@ async function PeopleList() {
           </GridListRow>
         ))}
       </GridBody>
-      <GridFooter>
-        <GridListDebugger />
-      </GridFooter>
 
       <NonEmptySelection minSize={2}>
         <GridFooter>
