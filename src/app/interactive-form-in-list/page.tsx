@@ -331,7 +331,8 @@ function FallbackGridContent({ size }: { size: number }) {
     @6xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto]
     @7xl:grid-cols-[auto_1fr_auto_auto_auto_auto_auto_auto_auto_auto]
     h-fit"
-      scrollableContainerClassName="border shadow-md rounded-sm"
+      scrollableContainerClassName="border shadow-md rounded-sm p-1"
+      scrollable
     >
       <PeopleHeader />
       <GridBody className="divide-y border-y">
@@ -342,7 +343,7 @@ function FallbackGridContent({ size }: { size: number }) {
             key={index}
             className="items-center gap-x-4 gap-y-1 focus-visible:outline-2 outline-primary rounded-sm focus-within:bg-secondary hover:bg-accent group px-2 py-1 hover:shadow-sm"
           >
-            <GridListCell className="p-1">
+            <GridListCell className="p-1 sticky left-0 bg-background">
               <CheckBox selectLabel="Select" deselectLabel="Deselect" />
             </GridListCell>
             <GridListRowHeader className="font-medium text-left px-1">
@@ -352,38 +353,48 @@ function FallbackGridContent({ size }: { size: number }) {
             <GridListCell
               className="
               col-start-2 row-start-2 px-1 pb-1
-              @3xl:col-start-4 @3xl:row-start-1 @3xl:px-1
+              @3xl:col-start-3 @3xl:row-start-1 @3xl:px-1
               
               text-xs text-muted-foreground 
               @3xl:text-base @3xl:text-foreground
               "
             >
               {/* email */}
-              <Skeleton length={20} />
+              <span className="select-all">
+                <Skeleton length={15} />
+              </span>
             </GridListCell>
-            <GridListCell className="@4xl:table-cell hidden px-1 tabular-nums">
+            <GridListCell className="@4xl:flex hidden px-1 tabular-nums">
               {/* phone */}
-              <Skeleton length={10} />
+              <span className="select-all">
+                <Skeleton length={10} />
+              </span>
             </GridListCell>
-            <GridListCell className="@5xl:table-cell hidden px-1 tabular-nums">
+            <GridListCell className="@5xl:flex hidden px-1 tabular-nums">
               {/* zip */}
-              <Skeleton length={5} />
+              <span className="select-all">
+                <Skeleton length={5} />
+              </span>
             </GridListCell>
-            <GridListCell className="@6xl:table-cell hidden px-1">
+            <GridListCell className="@6xl:flex hidden px-1">
               {/* address */}
               <Skeleton length={10} />
             </GridListCell>
-            <GridListCell className="@7xl:table-cell hidden px-1">
+            <GridListCell className="@7xl:flex hidden px-1">
               {/* city */}
               <Skeleton length={10} />
             </GridListCell>
-            <GridListCell className="@7xl:table-cell hidden px-1">
+            <GridListCell className="@7xl:flex hidden px-1">
               {/* state */}
               <Skeleton length={2} />
             </GridListCell>
-            <GridListCell className="@2xl:table-cell hidden px-1 text-center tabular-nums">
+            <GridListCell className="@2xl:flex hidden px-1 flex-col items-center tabular-nums row-span-2 @3xl:row-span-1 font-medium">
               {/* votes */}
-              <Skeleton length={2} />
+              <ReserveLayout>
+                <div className="p-1 rounded-full size-8 text-center">
+                  <Skeleton length={2} />
+                </div>
+              </ReserveLayout>
             </GridListCell>
             <GridListCell className="px-1 row-span-2 @3xl:row-span-1">
               {/* actions */}
@@ -402,7 +413,7 @@ function Skeleton({ length = 10 }: { length?: number }) {
       <span className="select-all text-transparent truncate">
         {Array.from({ length }).map((_, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-          <span key={index}>W</span>
+          <span key={index}>m</span>
         ))}
       </span>
     </div>
