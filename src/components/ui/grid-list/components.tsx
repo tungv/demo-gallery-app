@@ -12,7 +12,6 @@ import {
   useState,
   useRef,
   use,
-  forwardRef,
 } from "react";
 import type { FormEventHandler, HTMLAttributes } from "react";
 import useEffectEvent from "../use-effect-event";
@@ -58,7 +57,6 @@ import {
   useHandleSpacebar,
   useGridListTabIndexManager,
   useGridListKeyboardHandlers,
-  useRowData,
 } from "./hooks";
 
 export function GridListContainer({
@@ -240,21 +238,15 @@ function FocusSentinel({
         margin: 0,
       }}
       onFocus={(event: React.FocusEvent) => {
-        console.log("Focus sentinel activated via tab navigation");
-
         // Prevent the sentinel from staying focused
         event.preventDefault();
 
         // Redirect focus to the appropriate row
         if (lastFocusedRowId && focusRow(lastFocusedRowId)) {
-          console.log(
-            "Redirected focus to previously focused row:",
-            lastFocusedRowId,
-          );
-        } else {
-          console.log("Redirected focus to first row");
-          focusFirstRow();
+          return;
         }
+
+        focusFirstRow();
       }}
     />
   );

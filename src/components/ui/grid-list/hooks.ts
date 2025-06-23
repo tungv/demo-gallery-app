@@ -181,8 +181,8 @@ export function useGridListTabIndexManager(children: React.ReactNode) {
 
 		return () => {
 			// set all rows to tabindex=-1
-			const allRows = container.querySelectorAll("[data-row-id]");
-			for (const row of allRows) {
+			const resettingRows = container.querySelectorAll("[data-row-id]");
+			for (const row of resettingRows) {
 				const rowId = row.getAttribute("data-row-id");
 				if (!rowId) continue;
 
@@ -192,7 +192,7 @@ export function useGridListTabIndexManager(children: React.ReactNode) {
 				row.setAttribute("tabindex", "-1");
 			}
 		};
-	}, [children, rows]);
+	}, [children, rows, containerRef]);
 }
 
 export function useRowData<T>(): T | undefined {
@@ -236,8 +236,6 @@ export function useGridListKeyboardHandlers() {
 		event.preventDefault();
 		const allTabbableElements = getTabbableElements(document.body);
 		const sentinelEnd = endRef?.current;
-
-		console.log("sentinel end", sentinelEnd, allTabbableElements);
 
 		if (!sentinelEnd) {
 			console.error("sentinel end is not defined");
