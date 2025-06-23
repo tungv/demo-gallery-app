@@ -49,6 +49,7 @@ import EditIndividualPersonDialog from "./EditIndividualPersonDialog";
 import DeleteMultiplePeopleDialog from "./DeleteMultiplePeopleDialog";
 import { Suspense } from "react";
 import { countAllPeople } from "./data-store";
+import UpdateHighlight from "./UpdateHighlight";
 
 export const dynamic = "force-dynamic";
 
@@ -280,8 +281,17 @@ async function PeopleList() {
             <GridListCell className="@7xl:flex hidden px-1">
               {person.state}
             </GridListCell>
-            <GridListCell className="@2xl:flex hidden px-1 text-center tabular-nums row-span-2 @3xl:row-span-1">
-              {person.voteCount}
+            <GridListCell className="@2xl:flex hidden px-1 flex-col items-center tabular-nums row-span-2 @3xl:row-span-1 font-medium">
+              <ReserveLayout>
+                <UpdateHighlight
+                  value={person.voteCount}
+                  className="p-1 rounded-full size-8 text-center motion-safe:transition-transform"
+                  highlightClassName="bg-sky-800 text-white motion-safe:rotate-5 motion-safe:scale-150"
+                  effectDurationMs={1000}
+                >
+                  {person.voteCount}
+                </UpdateHighlight>
+              </ReserveLayout>
             </GridListCell>
             <GridListCell className="px-1 row-span-2 @3xl:row-span-1">
               <ActionsCell />
