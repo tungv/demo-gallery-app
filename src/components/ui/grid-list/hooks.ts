@@ -1,11 +1,7 @@
 "use client";
 
 import { useContext, useEffect, useLayoutEffect } from "react";
-import {
-	getTabbableElements,
-	getTabbableElementsAsync,
-	safelyFocusElement,
-} from "./utils";
+import { getTabbableElements, safelyFocusElement } from "./utils";
 import {
 	useGridDataDispatch,
 	useGridListState,
