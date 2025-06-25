@@ -387,7 +387,9 @@ export function ActionButton<FieldNames extends string = string>({
         router.refresh();
       }
 
-      dispatch({ type: "set_form_result", result });
+      startTransition(() => {
+        dispatch({ type: "set_form_result", result });
+      });
     });
   }
 
