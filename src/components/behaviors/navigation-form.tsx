@@ -64,7 +64,7 @@ export function NavigationButton({
   children,
   ...otherProps
 }: {
-  formAction: string;
+  formAction?: string;
   searchParams: URLSearchParams;
   children: React.ReactNode;
   asChild?: boolean;
@@ -76,23 +76,27 @@ export function NavigationButton({
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
 
-    if (!formRef?.current) {
-      // no form ref
+    const form = formRef?.current;
+
+    if (!form) {
+      // no form
+      console.warn("no form");
       return;
     }
 
     // get the form data
-    const formData = new FormData(formRef?.current);
+    const formData = new FormData(form);
     const searchParams = buildSearchParams(formData);
 
     const base = formAction ?? baseAction;
     if (!base) {
       // no base action
+      console.warn("no base action");
       return;
     }
 
-    const newHref = new URL(base);
-    newHref.search = searchParams.toString();
+    const newHref = buildHref(base, searchParams);
+
     startTransition(() => {
       router.push(newHref.toString());
     });
@@ -107,7 +111,7 @@ export function NavigationButton({
     return <Slot {...buttonProps}>{children}</Slot>;
   }
 
-  return <button {...buttonProps} />;
+  return <button {...buttonProps}>{children}</button>;
 }
 
 export function NavigationSubmitMessage({
