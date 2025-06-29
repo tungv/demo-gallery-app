@@ -65,7 +65,7 @@ export function NavigationButton({
   ...otherProps
 }: {
   formAction?: string;
-  searchParams: URLSearchParams;
+  searchParams?: URLSearchParams;
   children: React.ReactNode;
   asChild?: boolean;
 } & Omit<ComponentProps<"button">, "formAction" | "onClick">) {
