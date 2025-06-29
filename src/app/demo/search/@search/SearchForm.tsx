@@ -5,7 +5,10 @@ import {
   NavigationSubmitMessage,
 } from "@/components/behaviors/navigation-form";
 import { Input } from "@/components/ui/input";
-import { AutoSubmitField, AutoSubmitForm } from "../auto-submit";
+import {
+  AutoSubmitField,
+  AutoSubmitForm,
+} from "@/components/behaviors/auto-submit";
 import { Button } from "@/components/ui/button";
 import { ReserveLayout } from "@/components/ui/reserve-layout";
 import RecommendedSearches from "./results/RecommendedSearches";

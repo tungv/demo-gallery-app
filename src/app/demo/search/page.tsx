@@ -14,7 +14,10 @@ import {
   NavigationSubmitMessage,
 } from "@/components/behaviors/navigation-form";
 import { ReserveLayout } from "@/components/ui/reserve-layout";
-import { AutoSubmitField, AutoSubmitForm } from "./auto-submit";
+import {
+  AutoSubmitField,
+  AutoSubmitForm,
+} from "../../../components/behaviors/auto-submit";
 import { InteractiveForm } from "@/components/behaviors/interactive-form";
 
 export default async function SearchPage({
