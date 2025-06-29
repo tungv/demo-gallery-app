@@ -14,6 +14,8 @@ import {
   NavigationSubmitMessage,
 } from "@/components/behaviors/navigation-form";
 import { ReserveLayout } from "@/components/ui/reserve-layout";
+import { AutoSubmitField, AutoSubmitForm } from "./auto-submit";
+import { InteractiveForm } from "@/components/behaviors/interactive-form";
 
 export default async function SearchPage({
   searchParams,
@@ -68,30 +70,6 @@ export default async function SearchPage({
                     </p>
                   </div>
 
-                  <NavigationForm
-                    action="/demo/search/results"
-                    className="grid gap-3"
-                  >
-                    <div className="grid grid-cols-[1fr_auto] gap-2">
-                      <Input
-                        name="q"
-                        type="search"
-                        placeholder="Type something to search..."
-                        autoFocus
-                        defaultValue={q}
-                      />
-                      <Button type="submit" size="sm">
-                        <ReserveLayout>
-                          <NavigationSubmitMessage>
-                            Search
-                          </NavigationSubmitMessage>
-                          <NavigationLoadingMessage>
-                            Searching…
-                          </NavigationLoadingMessage>
-                        </ReserveLayout>
-                      </Button>
-                    </div>
-                  </NavigationForm>
                   <SearchResultsPortalSlot />
                 </div>
               </PopoverContent>

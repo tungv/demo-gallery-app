@@ -1,10 +1,5 @@
-import { NavigationForm } from "@/components/behaviors/navigation-form";
-import RecommendedSearches from "./results/RecommendedSearches";
+import SearchForm from "./SearchForm";
 
 export default function DefaultSearch() {
-  return (
-    <NavigationForm action="/demo/search/results">
-      <RecommendedSearches />
-    </NavigationForm>
-  );
+  return <SearchForm query="" />;
 }
