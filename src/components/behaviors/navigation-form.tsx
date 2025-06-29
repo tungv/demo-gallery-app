@@ -85,8 +85,7 @@ export function NavigationButton({
     }
 
     // get the form data
-    const formData = new FormData(form);
-    const searchParams = buildSearchParams(formData);
+    const obj = new URLSearchParams(searchParams);
 
     const base = formAction ?? baseAction;
     if (!base) {
@@ -95,7 +94,7 @@ export function NavigationButton({
       return;
     }
 
-    const newHref = buildHref(base, searchParams);
+    const newHref = buildHref(base, obj);
 
     startTransition(() => {
       router.push(newHref.toString());
