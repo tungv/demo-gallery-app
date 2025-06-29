@@ -13,6 +13,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { createReducerContext } from "@/utils/reducer-context";
 import { cn } from "@/lib/utils";
 import { Hidden, Visible } from "../ui/reserve-layout";
+import { composeRefs } from "@/utils/compose-refs";
 
 interface TypedFormData<FieldNames extends string = string> extends FormData {
   get(name: FieldNames): string | null;
@@ -151,6 +152,7 @@ export function InteractiveForm<const FieldNames extends string>({
 function InteractiveFormImpl<FieldNames extends string>({
   children,
   action,
+  ref,
   ...props
 }: Omit<InteractiveFormProps<FieldNames>, "fields">) {
   const [isPending, startTransition] = useTransition();
@@ -158,6 +160,7 @@ function InteractiveFormImpl<FieldNames extends string>({
   const state = useFormState();
   const router = useRouter();
   const formRef = state.formRef;
+  const finalRef = composeRefs(formRef, ref);
 
   if ("nextElement" in state && state.nextElement) {
     return state.nextElement;
@@ -167,7 +170,7 @@ function InteractiveFormImpl<FieldNames extends string>({
       <form
         {...props}
         inert={isPending}
-        ref={formRef}
+        ref={finalRef}
         key={state.counter}
         onSubmit={async (e) => {
           e.preventDefault();
