@@ -1,4 +1,7 @@
-import Link from "next/link";
+import {
+  NavigationButton,
+  NavigationForm,
+} from "@/components/behaviors/navigation-form";
 
 interface SearchResultsProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -10,11 +13,11 @@ export default async function SearchResultsPage({
   const params = await searchParams;
   const query = params.q as string | undefined;
 
-  if (!query) {
-    return <RecommendedSearches />;
-  }
-
-  return <SearchResults keyword={query} />;
+  return (
+    <NavigationForm action="/demo/search">
+      {query ? <SearchResults keyword={query} /> : <RecommendedSearches />}
+    </NavigationForm>
+  );
 }
 
 function RecommendedSearches() {
@@ -29,9 +32,12 @@ function RecommendedSearches() {
 
       <div className="grid grid-cols-1 gap-3">
         {RECOMMENDED_SEARCHES.map((search) => (
-          <Link href={`/demo/search?q=${search}`} key={search}>
+          <NavigationButton
+            searchParams={new URLSearchParams({ q: search })}
+            key={search}
+          >
             {search}
-          </Link>
+          </NavigationButton>
         ))}
       </div>
     </div>
@@ -63,6 +69,10 @@ function SearchResults({ keyword }: { keyword: string }) {
       <h2 className="text-xl font-semibold">
         Search Results for &quot;{keyword}&quot;
       </h2>
+
+      <NavigationButton searchParams={new URLSearchParams({})}>
+        Clear Search
+      </NavigationButton>
 
       <div className="grid grid-cols-1 gap-3">
         {results.map((result) => (
