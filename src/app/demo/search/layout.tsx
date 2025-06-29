@@ -1,4 +1,8 @@
 import type { ReactNode } from "react";
+import {
+  SearchResultsPortalProvider,
+  SearchResultsPortalContent,
+} from "./search-result-portal";
 
 export default function SearchLayout({
   children,
@@ -8,9 +12,9 @@ export default function SearchLayout({
   search: ReactNode;
 }) {
   return (
-    <>
+    <SearchResultsPortalProvider>
       {children}
-      {search}
-    </>
+      <SearchResultsPortalContent>{search}</SearchResultsPortalContent>
+    </SearchResultsPortalProvider>
   );
 }
