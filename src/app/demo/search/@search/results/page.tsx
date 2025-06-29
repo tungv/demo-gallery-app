@@ -3,6 +3,17 @@ import {
   NavigationForm,
 } from "@/components/behaviors/navigation-form";
 import RecommendedSearches from "./RecommendedSearches";
+import {
+  GridBody,
+  GridListCell,
+  GridListContainer,
+  GridListContent,
+  GridListRow,
+  GridListRowHeader,
+  GridListTitle,
+} from "@/components/ui/grid-list";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 interface SearchResultsProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -26,42 +37,53 @@ function SearchResults({ keyword }: { keyword: string }) {
   const results = [
     {
       id: 1,
-      title: `Result for "${keyword}" - Item 1`,
+      title: `Result 1 for "${keyword}"`,
       description: "Sample description for the first search result.",
     },
     {
       id: 2,
-      title: `Result for "${keyword}" - Item 2`,
+      title: `Result 2 for "${keyword}"`,
       description: "Sample description for the second search result.",
     },
     {
       id: 3,
-      title: `Result for "${keyword}" - Item 3`,
+      title: `Result 3 for "${keyword}"`,
       description: "Sample description for the third search result.",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 bg-white rounded-lg p-6 border">
-      <h2 className="text-xl font-semibold">
-        Search Results for &quot;{keyword}&quot;
-      </h2>
+    <GridListContainer className="@container grid grid-cols-1 gap-4 bg-white rounded-lg p-2 border">
+      <header className="grid grid-cols-[1fr_auto] gap-2">
+        <GridListTitle className="text-lg font-semibold tracking-tight">
+          Search Results for &quot;{keyword}&quot;
+        </GridListTitle>
 
-      <NavigationButton formAction="/demo/search">
-        Clear Search
-      </NavigationButton>
+        <NavigationButton formAction="/demo/search" asChild>
+          <Button variant="ghost" size="sm" className="text-foreground/60">
+            <X className="size-4" />
+            Clear Search
+          </Button>
+        </NavigationButton>
+      </header>
 
-      <div className="grid grid-cols-1 gap-3">
-        {results.map((result) => (
-          <div
-            key={result.id}
-            className="p-4 border rounded-md hover:bg-gray-50"
-          >
-            <h3 className="font-medium text-gray-900">{result.title}</h3>
-            <p className="text-sm text-gray-600 mt-1">{result.description}</p>
-          </div>
-        ))}
-      </div>
-    </div>
+      <GridListContent gridClassName="grid grid-cols-1 @2xl:grid-cols-[1fr_auto] gap-4">
+        <GridBody className="gap-y-2 p-1">
+          {results.map((result) => (
+            <GridListRow
+              key={result.id}
+              className="border rounded-md p-2 @2xl:p-4 items-center focus-visible:outline-2 outline-primary"
+            >
+              <GridListRowHeader className="whitespace-nowrap">
+                {result.title}
+              </GridListRowHeader>
+              <GridListCell className="text-foreground/80">
+                {result.description}
+              </GridListCell>
+            </GridListRow>
+          ))}
+        </GridBody>
+      </GridListContent>
+    </GridListContainer>
   );
 }

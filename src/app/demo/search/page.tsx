@@ -39,7 +39,7 @@ export default async function SearchPage({
         <search className="bg-white rounded-lg p-6 border shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Search</h2>
-            <Popover>
+            <Popover modal>
               <PopoverTrigger asChild>
                 <button
                   type="button"
@@ -59,7 +59,6 @@ export default async function SearchPage({
                 side="bottom"
                 sideOffset={-40}
                 alignOffset={0}
-                forceMount
               >
                 <div className="grid gap-4">
                   <div className="space-y-2">
