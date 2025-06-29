@@ -69,7 +69,10 @@ export default async function SearchPage({
                     </p>
                   </div>
 
-                  <NavigationForm action="/demo/search" className="grid gap-3">
+                  <NavigationForm
+                    action="/demo/search/results"
+                    className="grid gap-3"
+                  >
                     <div className="grid grid-cols-[1fr_auto] gap-2">
                       <Input
                         name="q"

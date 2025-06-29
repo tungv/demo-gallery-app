@@ -7,6 +7,7 @@ const DASHBOARD_STATS = [
 ];
 
 export default function Dashboard() {
+  console.log("Dashboard page");
   return (
     <section className="bg-white rounded-lg p-6 border shadow-sm">
       <h2 className="text-xl font-semibold text-gray-900 mb-6">
