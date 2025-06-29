@@ -6,6 +6,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { createContext, startTransition, useContext, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { Hidden, Visible } from "../ui/reserve-layout";
+import { composeRefs } from "@/utils/compose-refs";
 
 const FormRefContext =
   createContext<React.RefObject<HTMLFormElement | null> | null>(null);
@@ -15,6 +16,7 @@ export function NavigationForm({
   action,
   asChild,
   children,
+  ref,
   ...otherProps
 }: Omit<ComponentProps<"form">, "action"> & {
   action: string;
@@ -34,7 +36,7 @@ export function NavigationForm({
 
   const formProps = {
     ...otherProps,
-    ref: formRef,
+    ref: composeRefs(formRef, ref),
     action: handleSubmit,
   };
 
