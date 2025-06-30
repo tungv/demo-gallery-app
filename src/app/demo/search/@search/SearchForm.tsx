@@ -22,6 +22,7 @@ import {
   GridListTitle,
 } from "@/components/ui/grid-list";
 import { Loader2, Search, X } from "lucide-react";
+import { Suspense } from "react";
 
 export default function SearchForm({ query }: { query: string }) {
   return (
@@ -38,7 +39,7 @@ export default function SearchForm({ query }: { query: string }) {
               type="search"
               placeholder="Type something to search…"
               autoFocus
-              className="group-data-loading:motion-safe:animate-pulse"
+              className="group-data-loading:motion-safe:animate-pulse group-data-loading:bg-gradient-to-r group-data-loading:from-pink-500/10 group-data-loading:to-purple-500/20"
               defaultValue={query}
             />
           </AutoSubmitField>
@@ -56,13 +57,24 @@ export default function SearchForm({ query }: { query: string }) {
           </Button>
         </div>
 
-        {query ? <SearchResults keyword={query} /> : <RecommendedSearches />}
+        {query ? (
+          <Suspense fallback={<SearchResultsSkeleton keyword={query} />}>
+            <SearchResults keyword={query} />
+          </Suspense>
+        ) : (
+          <RecommendedSearches />
+        )}
       </NavigationForm>
     </AutoSubmitForm>
   );
 }
 
-function SearchResults({ keyword }: { keyword: string }) {
+async function SearchResults({ keyword }: { keyword: string }) {
+  // simulate a delay
+  await new Promise((resolve) =>
+    setTimeout(resolve, Math.random() * 1000 + 1000),
+  );
+
   // Simulate search results
   const results = [
     {
@@ -115,5 +127,58 @@ function SearchResults({ keyword }: { keyword: string }) {
         </GridBody>
       </GridListContent>
     </GridListContainer>
+  );
+}
+
+function SearchResultsSkeleton({ keyword }: { keyword: string }) {
+  return (
+    <GridListContainer className="@container grid grid-cols-1 gap-4 bg-white rounded-lg p-2 border">
+      <header className="grid grid-cols-[1fr_auto] gap-2">
+        <GridListTitle className="text-lg font-semibold tracking-tight">
+          Searching for &quot;{keyword}&quot;…
+        </GridListTitle>
+
+        <NavigationButton formAction="/demo/search" asChild>
+          <Button variant="ghost" size="sm" className="text-foreground/60">
+            <X className="size-4" />
+            Clear Search
+          </Button>
+        </NavigationButton>
+      </header>
+
+      <GridListContent gridClassName="grid grid-cols-1 @2xl:grid-cols-[1fr_auto] gap-4">
+        <GridBody className="gap-y-2 p-1">
+          <ResultSkeleton />
+          <ResultSkeleton />
+          <ResultSkeleton />
+        </GridBody>
+      </GridListContent>
+    </GridListContainer>
+  );
+}
+
+function ResultSkeleton() {
+  return (
+    <GridListRow className="border rounded-md p-2 @2xl:p-4 items-center focus-visible:outline-2 outline-primary">
+      <GridListRowHeader className="whitespace-nowrap">
+        <Skeleton length={12} />
+      </GridListRowHeader>
+      <GridListCell className="text-foreground/80">
+        <Skeleton length={20} />
+      </GridListCell>
+    </GridListRow>
+  );
+}
+
+function Skeleton({ length = 10 }: { length?: number }) {
+  return (
+    <div className="animate-pulse bg-muted rounded-sm w-min">
+      <span className="select-all text-transparent truncate">
+        {Array.from({ length }).map((_, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          <span key={index}>m</span>
+        ))}
+      </span>
+    </div>
   );
 }
