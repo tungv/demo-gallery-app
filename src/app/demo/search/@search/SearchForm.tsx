@@ -21,26 +21,37 @@ import {
   GridListRowHeader,
   GridListTitle,
 } from "@/components/ui/grid-list";
-import { X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 
 export default function SearchForm({ query }: { query: string }) {
   return (
     <AutoSubmitForm asChild>
-      <NavigationForm action="/demo/search/results" className="grid gap-3">
+      <NavigationForm
+        action="/demo/search/results"
+        className="grid gap-3"
+        preventReset
+      >
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <AutoSubmitField triggerPropName="onChange" debounceMs={300}>
             <Input
               name="q"
               type="search"
-              placeholder="Type something to search..."
+              placeholder="Type something to search…"
               autoFocus
+              className="group-data-loading:motion-safe:animate-pulse"
               defaultValue={query}
             />
           </AutoSubmitField>
-          <Button type="submit" size="sm">
+          <Button type="submit" size="sm" variant="ghost" className="h-full">
             <ReserveLayout>
-              <NavigationSubmitMessage>Search</NavigationSubmitMessage>
-              <NavigationLoadingMessage>Searching…</NavigationLoadingMessage>
+              <NavigationSubmitMessage>
+                <Search className="size-4" />
+                <span className="sr-only">Search</span>
+              </NavigationSubmitMessage>
+              <NavigationLoadingMessage>
+                <Loader2 className="size-4 motion-safe:animate-spin reduce-motion:pulse" />
+                <span className="sr-only">Searching…</span>
+              </NavigationLoadingMessage>
             </ReserveLayout>
           </Button>
         </div>
