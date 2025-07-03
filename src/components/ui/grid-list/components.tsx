@@ -221,11 +221,13 @@ function FocusSentinel({
   const focusFirstRow = useFocusFirstRow();
 
   return (
+    // biome-ignore lint/a11y/noAriaHiddenOnFocusable: this sentinel is for trapping focus within the grid, it needs to be hidden and focusable at the same time
     <button
       className="test"
       ref={ref}
       data-focus-scope-sentinel
       type="button"
+      aria-hidden="true"
       style={{
         position: "absolute",
         left: "-9999px",
