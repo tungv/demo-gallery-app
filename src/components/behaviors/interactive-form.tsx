@@ -8,6 +8,7 @@ import {
   useContext,
   useRef,
   useTransition,
+  useLayoutEffect,
 } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { createReducerContext } from "@/utils/reducer-context";
@@ -47,6 +48,7 @@ type LocalState<FieldNames extends string = string> = {
   hasOuterBoundary: boolean;
   outerKey: number;
   formRef?: React.RefObject<HTMLFormElement | null>;
+  restoreFocusRef?: React.RefObject<HTMLElement | null>;
 };
 
 const NO_RESULT = Symbol("NO_RESULT");
@@ -57,6 +59,8 @@ const initialState: LocalState<string> = {
   counter: 0,
   hasOuterBoundary: false,
   outerKey: 0,
+  formRef: undefined,
+  restoreFocusRef: undefined,
 };
 
 type FormAction<FieldNames extends string = string> =
@@ -83,10 +87,7 @@ const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
         ...state,
         errors: {},
         ...action.result,
-        counter: state.counter + 1,
-
-        // reset outer when form result is successful
-        outerKey: state.outerKey + 1,
+        // keep counter and outerKey unchanged so DOM nodes persist
       };
     case "clear_field_error": {
       if (!state.errors?.[action.fieldName]) {
@@ -101,7 +102,12 @@ const [FormStateProvider, useFormState, useFormDispatch] = createReducerContext<
     case "reset_form":
       return {
         ...initialState,
+        // Preserve persistent values
         counter: state.counter + 1,
+        hasOuterBoundary: state.hasOuterBoundary,
+        outerKey: state.outerKey,
+        formRef: state.formRef,
+        restoreFocusRef: state.restoreFocusRef,
       };
     default:
       return state;
@@ -131,10 +137,14 @@ export function InteractiveForm<const FieldNames extends string>({
   const context = useFormState();
 
   const tempRef = useRef<HTMLFormElement>(null);
+  const tempRestoreFocusRef = useRef<HTMLElement>(null);
 
   if (!context.hasOuterBoundary) {
     return (
-      <FormStateProvider formRef={tempRef}>
+      <FormStateProvider
+        formRef={tempRef}
+        restoreFocusRef={tempRestoreFocusRef}
+      >
         <InteractiveFormImpl action={action} {...props}>
           {children}
         </InteractiveFormImpl>
@@ -161,10 +171,19 @@ function InteractiveFormImpl<FieldNames extends string>({
   const router = useRouter();
   const formRef = state.formRef;
   const finalRef = composeRefs(formRef, ref);
+  const restoreFocusRef = state.restoreFocusRef;
+
+  useLayoutEffect(() => {
+    if (!isPending && restoreFocusRef?.current) {
+      console.log("restoring focus to", restoreFocusRef.current);
+      restoreFocusRef.current.focus?.();
+    }
+  }, [isPending, restoreFocusRef]);
 
   if ("nextElement" in state && state.nextElement) {
     return state.nextElement;
   }
+
   return (
     <PendingContext.Provider value={isPending}>
       <form
@@ -176,9 +195,10 @@ function InteractiveFormImpl<FieldNames extends string>({
           e.preventDefault();
 
           if (action) {
-            const formData = new FormData(
-              e.currentTarget,
-            ) as TypedFormData<FieldNames>;
+            const form = e.currentTarget;
+            const activeEl = document.activeElement as HTMLElement | null;
+
+            const formData = new FormData(form) as TypedFormData<FieldNames>;
             startTransition(async () => {
               const result = await action(formData);
 
@@ -191,8 +211,19 @@ function InteractiveFormImpl<FieldNames extends string>({
                 router.refresh();
               }
 
+              console.log("activeEl", activeEl);
+
+              // Schedule state update (and focus restore) as a separate, low-urgency transition.
               startTransition(() => {
                 dispatch({ type: "set_form_result", result });
+
+                if (restoreFocusRef) {
+                  if (activeEl?.isConnected) {
+                    restoreFocusRef.current = activeEl;
+                  } else {
+                    restoreFocusRef.current = null;
+                  }
+                }
               });
             });
           }
@@ -343,8 +374,13 @@ export function LoadingMessage({ children }: ComponentProps<"span">) {
 export function FormBoundary({ children }: { children: ReactNode }) {
   // create formRef but don't mount it
   const formRef = useRef<HTMLFormElement>(null);
+  const restoreFocusRef = useRef<HTMLElement>(null);
   return (
-    <FormStateProvider hasOuterBoundary formRef={formRef}>
+    <FormStateProvider
+      hasOuterBoundary
+      formRef={formRef}
+      restoreFocusRef={restoreFocusRef}
+    >
       <FormBoundaryImpl>{children}</FormBoundaryImpl>
     </FormStateProvider>
   );
@@ -370,6 +406,7 @@ export function ActionButton<FieldNames extends string = string>({
   const router = useRouter();
   const dispatch = useFormDispatch();
   const formRef = useFormState().formRef;
+  const { restoreFocusRef } = useFormState();
 
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
@@ -377,6 +414,9 @@ export function ActionButton<FieldNames extends string = string>({
     if (!form) {
       return;
     }
+
+    const activeEl = (document.activeElement as HTMLElement) || e.currentTarget;
+
     const formData = new FormData(form) as TypedFormData<FieldNames>;
     startTransition(async () => {
       const result = await formAction(formData);
@@ -390,8 +430,20 @@ export function ActionButton<FieldNames extends string = string>({
         router.refresh();
       }
 
+      // Reset values but keep DOM nodes intact
+      form.reset();
+
+      // Dispatch result and restore focus in a new transition for smoother UI.
       startTransition(() => {
         dispatch({ type: "set_form_result", result });
+
+        if (restoreFocusRef) {
+          if (activeEl?.isConnected) {
+            restoreFocusRef.current = activeEl;
+          } else {
+            restoreFocusRef.current = null;
+          }
+        }
       });
     });
   }
