@@ -36,16 +36,7 @@ function isElementInert(element: HTMLElement): boolean {
 // Helper function to check if an element is a sentinel (focus management element)
 function isElementSentinel(element: HTMLElement): boolean {
 	// Common sentinel attributes used for focus management
-	const sentinelAttributes = [
-		"data-focus-scope-start",
-		"data-focus-scope-end",
-		"data-focus-guard",
-		"data-focus-sentinel",
-		"data-focus-trap",
-		"data-focus-lock",
-		"data-radix-focus-guard",
-		"data-react-aria-focus-guard",
-	];
+	const sentinelAttributes = ["data-focus-scope-sentinel"];
 
 	return sentinelAttributes.some((attr) => element.hasAttribute(attr));
 }
