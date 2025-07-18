@@ -1,0 +1,6 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      run: bunx @biomejs/biome check --write --staged {staged_files}
+      glob: "*.{js,ts,jsx,tsx,json,jsonc}"

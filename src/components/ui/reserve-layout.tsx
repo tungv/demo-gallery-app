@@ -1,83 +1,19 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { createContext, useContext } from "react";
-import type { ComponentProps } from "react";
-const ReserveLayoutContext = createContext(false);
+import type { ReactNode } from "react";
 
-/**
- * Utility component for avoiding layout shifts when swapping different contents
- *
- * ## Anatomy
- *
- * ```jsx
- * <ReserveLayout>
- *   <Hidden>
- *     <span>Content</span>
- *   </Hidden>
- *   <Visible>
- *     <span>Content</span>
- *   </Visible>
- * </ReserveLayout>
- * ```
- *
- */
+interface ReserveLayoutProps {
+  children: ReactNode;
+}
 
-export function ReserveLayout({
-  children,
-  className,
-  placeItems = "center",
-  ...divProps
-}: ComponentProps<"div"> & {
-  placeItems?: "start" | "center" | "end" | "stretch" | "baseline";
-}) {
+export function Hidden({ children }: ReserveLayoutProps) {
   return (
-    <ReserveLayoutContext.Provider value={true}>
-      <div
-        {...divProps}
-        className={cn(className, "pile", {
-          "place-items-baseline": placeItems === "baseline",
-          "place-items-start": placeItems === "start",
-          "place-items-center": placeItems === "center",
-          "place-items-end": placeItems === "end",
-          "place-items-stretch": placeItems === "stretch",
-        })}
-      >
-        {children}
-      </div>
-    </ReserveLayoutContext.Provider>
+    <div aria-hidden="true" className="invisible">
+      {children}
+    </div>
   );
 }
 
-export function Hidden({
-  children,
-  className,
-  ...spanProps
-}: ComponentProps<"span">) {
-  const isReserveLayout = useContext(ReserveLayoutContext);
-  return isReserveLayout ? (
-    <span
-      {...spanProps}
-      className={cn(className, "invisible")}
-      aria-hidden
-      tabIndex={-1}
-    >
-      {children}
-    </span>
-  ) : null;
-}
-
-export function Visible({
-  children,
-  className,
-  ...spanProps
-}: ComponentProps<"span">) {
-  const isReserveLayout = useContext(ReserveLayoutContext);
-  return isReserveLayout ? (
-    <span {...spanProps} className={cn(className, "visible")}>
-      {children}
-    </span>
-  ) : (
-    children
-  );
+export function Visible({ children }: ReserveLayoutProps) {
+  return <>{children}</>;
 }

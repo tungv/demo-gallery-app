@@ -1,61 +1,57 @@
 "use client";
-import {
-  type Dispatch,
-  type PropsWithChildren,
-  type Reducer,
+
+import React, {
   createContext,
-  memo,
+  type ReactNode,
   useContext,
   useMemo,
   useReducer,
 } from "react";
 
-export function createReducerContext<Action, State>(
-  reducer: Reducer<State, Action>,
-  initialState: State,
-  displayName = "ReducerContext",
+export function createReducerContext<State, Action>(
+  reducer: (state: State, action: Action) => State,
+  defaultValue: State,
 ) {
-  const stateCtx = createContext<State>(initialState);
-  const dispatchCtx = createContext<Dispatch<Action>>(() => {});
+  const StateContext = createContext<State | undefined>(undefined);
+  const DispatchContext = createContext<
+    React.Dispatch<Action> | undefined
+  >(undefined);
 
   function Provider({
     children,
-    middleware,
-    ...values
-  }: PropsWithChildren<Partial<State>> & {
-    middleware?: (
-      dispatch: Dispatch<Action>,
-      getNextState: (action: Action) => State,
-    ) => Dispatch<Action>;
-  }) {
-    const [state, dispatch] = useReducer(
-      reducer,
-      initialState,
-      (defaultState) => ({ ...defaultState, ...values }),
-    );
+    ...initialState
+  }: { children: ReactNode } & Partial<State>) {
+    const initialStateWithDefaults = {
+      ...defaultValue,
+      ...initialState,
+    } as State;
 
-    const wrapped = useMemo(() => {
-      return middleware
-        ? middleware(dispatch, (action) => reducer(state, action))
-        : dispatch;
-    }, [middleware, state, reducer]);
+    const [state, dispatch] = useReducer(reducer, initialStateWithDefaults);
 
     return (
-      <stateCtx.Provider value={state}>
-        <dispatchCtx.Provider value={wrapped}>{children}</dispatchCtx.Provider>
-      </stateCtx.Provider>
+      <StateContext.Provider value={state}>
+        <DispatchContext.Provider value={dispatch}>
+          {children}
+        </DispatchContext.Provider>
+      </StateContext.Provider>
     );
+  }
+
+  function useState() {
+    const context = useContext(StateContext);
+    if (context === undefined) {
+      throw new Error("useState must be used within a Provider");
+    }
+    return context;
   }
 
   function useDispatch() {
-    return useContext(dispatchCtx);
+    const context = useContext(DispatchContext);
+    if (context === undefined) {
+      throw new Error("useDispatch must be used within a Provider");
+    }
+    return context;
   }
 
-  function useStateContext() {
-    return useContext(stateCtx);
-  }
-
-  Provider.displayName = displayName;
-
-  return [memo(Provider), useStateContext, useDispatch] as const;
+  return [Provider, useState, useDispatch] as const;
 }

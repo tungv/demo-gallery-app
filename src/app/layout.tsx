@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gallery App",
-  description: "Personal Gallery App",
+  title: "Forget Me Note - Shopping List",
+  description: "A collaborative shopping list app where multiple users can contribute",
 };
 
 export default function RootLayout({
