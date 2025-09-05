@@ -10,7 +10,6 @@ type MaskedValueProps = {
 
 export interface MaskedValue<T = string> {
   format(formatter: (value: T, src: string) => string): string;
-  props(): MaskedValueProps;
   valid: boolean;
   value?: T;
 }
@@ -19,10 +18,6 @@ export function valid<T>(value: T, src: string): MaskedValue<T> {
   return {
     format: (formatter) => formatter(value, src),
     valid: true,
-    props: () =>
-      ({
-        "data-masked-value": src,
-      }) as const,
     value,
   };
 }
@@ -31,10 +26,6 @@ export function invalid<T>(src: string): MaskedValue<T> {
   const masked: MaskedValue<T> = {
     format: () => src,
     valid: false,
-    props: () =>
-      ({
-        "data-masked-value": src,
-      }) as const,
   };
 
   return masked;
@@ -113,13 +104,11 @@ export function MaskedInput<T>({
 
     if (!parsed.valid) {
       currentTarget.setCustomValidity("badFormat");
-      currentTarget.reportValidity();
 
       // When invalid, keep caret where the browser placed it after the input
       caretPlanRef.current = { mode: "absolute", value: cursorPosition };
     } else {
       currentTarget.setCustomValidity("");
-      currentTarget.reportValidity();
 
       // Default plan: keep same number of digits to the left
       caretPlanRef.current = {
@@ -127,6 +116,7 @@ export function MaskedInput<T>({
         value: countDigitsLeft(raw, cursorPosition),
       };
     }
+    currentTarget.reportValidity();
 
     setMasked(parsed);
     onChange?.(e);
@@ -143,7 +133,7 @@ export function MaskedInput<T>({
     onChange: handleChange,
     onInvalid: handleInvalid,
     value: nextValue,
-    ...masked.props(),
+    "data-masked-value": nextValue,
   };
 
   // After updates, restore caret per the plan:
