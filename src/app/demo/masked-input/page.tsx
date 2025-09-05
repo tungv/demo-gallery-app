@@ -29,14 +29,12 @@ export default function MaskedInputPage() {
   className="w-full bg-accent p-1 border-b"
 />`}</pre>
 
-        <InputControl asChild>
-          <MaskedInput
-            parse={parse}
-            format={format}
+        <MaskedInput parse={parse} format={format} asChild>
+          <InputControl
             placeholder="Choose a number"
             className="w-full bg-accent p-1 border-b"
           />
-        </InputControl>
+        </MaskedInput>
 
         <ErrorMessages />
       </FormField>
@@ -53,11 +51,11 @@ export default function MaskedInputPage() {
   <Input placeholder="Choose a number" />
 </MaskedInput>`}</pre>
 
-        <InputControl asChild>
-          <MaskedInput asChild parse={parse} format={format}>
+        <MaskedInput asChild parse={parse} format={format}>
+          <InputControl asChild>
             <Input placeholder="Choose a number" />
-          </MaskedInput>
-        </InputControl>
+          </InputControl>
+        </MaskedInput>
 
         <ErrorMessages />
       </FormField>
@@ -72,11 +70,11 @@ export default function MaskedInputPage() {
   <Input placeholder="Choose a number" required />
 </MaskedInput>`}</pre>
 
-        <InputControl asChild>
-          <MaskedInput asChild parse={parse} format={format}>
+        <MaskedInput asChild parse={parse} format={format}>
+          <InputControl asChild>
             <Input placeholder="Choose a number" required />
-          </MaskedInput>
-        </InputControl>
+          </InputControl>
+        </MaskedInput>
 
         <ErrorMessages />
       </FormField>
