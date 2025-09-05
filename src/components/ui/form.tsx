@@ -12,10 +12,19 @@ import { useFormStatus } from "react-dom";
 interface FormContext {
   fields: Record<
     string,
-    { validity: Partial<ValidityState>; userInteracted: boolean }
+    {
+      validity: Partial<ValidityState> & {
+        customErrorValidationMessage?: string;
+      };
+      userInteracted: boolean;
+    }
   >;
   resetCounter: number;
 }
+
+type ValidityStateWithCustomErrorValidationMessage = Partial<ValidityState> & {
+  customErrorValidationMessage?: string;
+};
 
 const defaultContext: FormContext = {
   fields: {},
@@ -26,13 +35,17 @@ type FormContextAction =
   | {
       type: "set_field_validity";
       fieldName: string;
-      validity: Partial<ValidityState>;
+      validity: ValidityStateWithCustomErrorValidationMessage;
+      validationMessage: string;
     }
   | { type: "reset_field_validity"; fieldName: string }
   | { type: "reset_all_validity" }
   | { type: "set_all_fields_interacted" };
 
-function validityStateToPlainObject(validity: Partial<ValidityState>) {
+function validityStateToPlainObject(
+  validity: Partial<ValidityState>,
+  validationMessage: string,
+): ValidityStateWithCustomErrorValidationMessage {
   const props = [
     "valid",
     "valueMissing",
@@ -43,15 +56,23 @@ function validityStateToPlainObject(validity: Partial<ValidityState>) {
     "rangeOverflow",
     "rangeUnderflow",
     "stepMismatch",
-    "customError",
   ];
 
-  const obj = {} as Partial<Record<keyof ValidityState, boolean>>;
+  const obj = {} as Partial<
+    Record<keyof ValidityState, boolean> & {
+      customErrorValidationMessage?: string;
+    }
+  >;
 
   for (const prop of props) {
     if (validity[prop as keyof ValidityState] === true) {
       obj[prop as keyof ValidityState] = true;
     }
+  }
+
+  if (validity.customError) {
+    obj.customError = true;
+    obj.customErrorValidationMessage = validationMessage;
   }
 
   return obj;
@@ -67,7 +88,10 @@ const [FormContextProvider, useFormContext, useFormDispatch] =
             fields: {
               ...state.fields,
               [action.fieldName]: {
-                validity: validityStateToPlainObject(action.validity),
+                validity: validityStateToPlainObject(
+                  action.validity,
+                  action.validationMessage,
+                ),
                 userInteracted: true,
               },
             },
@@ -134,11 +158,12 @@ function useResetForm() {
 function useUpdateValidity(fieldName: string) {
   const dispatch = useFormDispatch();
 
-  return (validity: Partial<ValidityState>) => {
+  return (validity: Partial<ValidityState>, validationMessage: string) => {
     dispatch({
       type: "set_field_validity",
       fieldName,
       validity,
+      validationMessage,
     });
   };
 }
@@ -416,7 +441,7 @@ export function InputControl({
     validity: { valid: true },
     userInteracted: false,
   };
-  const isValid = field.validity.valid !== false;
+  const isValid = field.validity.valid === true;
   const hasUserInteracted = field.userInteracted;
 
   // Create data attributes that will only be added when they're true
@@ -473,7 +498,7 @@ export function InputControl({
       // update state
       const target = event.target as HTMLElement;
       if (isFormControl(target)) {
-        updateValidity(target.validity);
+        updateValidity(target.validity, target.validationMessage);
       }
     },
     onChange() {
@@ -483,9 +508,10 @@ export function InputControl({
     },
     onBlur(event) {
       const { currentTarget } = event;
+      console.log("onBlur", currentTarget);
       // after the user has interacted with the input, we update the validity state to show validation errors (if any)
       if (isFormControl(currentTarget)) {
-        updateValidity(currentTarget.validity);
+        updateValidity(currentTarget.validity, currentTarget.validationMessage);
       }
     },
   };
@@ -502,7 +528,7 @@ export function InputControl({
 }
 
 interface FormMessageProps extends ComponentProps<"span"> {
-  match: keyof ValidityState;
+  match: keyof ValidityState | string;
 }
 
 export function FormMessage({
@@ -514,7 +540,15 @@ export function FormMessage({
   const isInvalid = match !== "valid";
   const context = useFormFieldState();
   const validityState = useFormFieldValidationState(context.name);
-  const hidden = !validityState[match];
+
+  const isMatchedCustomError =
+    validityState.customError &&
+    validityState.customErrorValidationMessage === match;
+
+  const shouldShowMessage =
+    match in validityState
+      ? validityState[match as keyof ValidityState] === true
+      : /* custom error */ isMatchedCustomError === true;
 
   const id = useId();
 
@@ -522,7 +556,7 @@ export function FormMessage({
   const dispatch = useFormFieldDispatch();
 
   useEffect(() => {
-    if (hidden) {
+    if (!shouldShowMessage) {
       return;
     }
     dispatch({
@@ -536,7 +570,7 @@ export function FormMessage({
         payload: id,
       });
     };
-  }, [dispatch, id, hidden]);
+  }, [dispatch, id, shouldShowMessage]);
 
   const content = (
     <span
@@ -557,11 +591,11 @@ export function FormMessage({
     </span>
   );
 
-  if (hidden) {
-    return <Hidden>{content}</Hidden>;
+  if (shouldShowMessage) {
+    return <Visible>{content}</Visible>;
   }
 
-  return <Visible>{content}</Visible>;
+  return <Hidden>{content}</Hidden>;
 }
 
 interface FormSubmitProps extends Omit<ComponentProps<"button">, "type"> {
@@ -629,7 +663,7 @@ function isHTMLElement(element: unknown): element is HTMLElement {
 
 function isFormControl(
   element: HTMLElement,
-): element is HTMLElement & { validity: ValidityState } {
+): element is HTMLInputElement & { validity: ValidityState } {
   return "validity" in element;
 }
 
