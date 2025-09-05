@@ -8,7 +8,8 @@ import {
   FormSubmit,
   InputControl,
 } from "@/components/ui/form";
-import { ReserveLayout } from "@/components/ui/reserve-layout";
+
+import { BAD_FORMAT_ERROR } from "@/components/behaviors/masked-input";
 
 export default function MaskedInputPage() {
   return (
@@ -28,7 +29,7 @@ export default function MaskedInputPage() {
         </InputControl>
 
         <FormMessage match="valueMissing">This field is required</FormMessage>
-        <FormMessage match="badFormat">
+        <FormMessage match={BAD_FORMAT_ERROR}>
           This field is invalid (customError)
         </FormMessage>
         <FormMessage match="valid">This field is valid</FormMessage>
@@ -47,7 +48,7 @@ export default function MaskedInputPage() {
         </InputControl>
 
         <FormMessage match="valueMissing">This field is required</FormMessage>
-        <FormMessage match="badFormat">
+        <FormMessage match={BAD_FORMAT_ERROR}>
           This field is invalid (customError)
         </FormMessage>
         <FormMessage match="valid">This field is valid</FormMessage>
@@ -61,12 +62,12 @@ export default function MaskedInputPage() {
 
         <InputControl asChild>
           <MaskedInput asChild parse={parse} format={format}>
-            <Input name="n3" placeholder="Type something to search…" required />
+            <Input placeholder="Type something to search…" required />
           </MaskedInput>
         </InputControl>
 
         <FormMessage match="valueMissing">This field is required</FormMessage>
-        <FormMessage match="badFormat">
+        <FormMessage match={BAD_FORMAT_ERROR}>
           This field is invalid (customError)
         </FormMessage>
         <FormMessage match="valid">This field is valid</FormMessage>

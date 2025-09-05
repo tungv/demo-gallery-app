@@ -4,9 +4,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useComposedRefs } from "@/utils/compose-refs";
 
-type MaskedValueProps = {
-  "data-masked-value": string;
-};
+export const BAD_FORMAT_ERROR = "badFormat";
 
 export interface MaskedValue<T = string> {
   format(formatter: (value: T, src: string) => string): string;
@@ -103,7 +101,7 @@ export function MaskedInput<T>({
     const parsed = parse(raw);
 
     if (!parsed.valid) {
-      currentTarget.setCustomValidity("badFormat");
+      currentTarget.setCustomValidity(BAD_FORMAT_ERROR);
 
       // When invalid, keep caret where the browser placed it after the input
       caretPlanRef.current = { mode: "absolute", value: cursorPosition };
