@@ -4,7 +4,8 @@ import { useEffect } from "react";
 
 import { useRef } from "react";
 
-type VoidFunction = (...args: unknown[]) => void;
+// biome-ignore lint/suspicious/noExplicitAny: we don't need to care about the function arguments
+type VoidFunction = (...args: any[]) => void;
 
 export default function useEffectEvent<T extends VoidFunction>(fn: T): T {
   const ref = useRef<T>(fn);
