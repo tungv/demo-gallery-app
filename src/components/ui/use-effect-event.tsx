@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 import { useRef } from "react";
 
-type VoidFunction = (...args: any[]) => void;
+type VoidFunction = (...args: unknown[]) => void;
 
 export default function useEffectEvent<T extends VoidFunction>(fn: T): T {
   const ref = useRef<T>(fn);
