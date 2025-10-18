@@ -284,7 +284,17 @@ describe("Result - Async", () => {
 		const two = await ten.flatMapAsync((x) => asyncDivide(x, 5));
 
 		const four = two.map((x) => x * 2);
-		const get = four.getOrElse(always(0));
-		expect(get).toBe(4);
+
+		const eight = four.mapAsync(async (x) => x * 2);
+		const get = await eight.getOrElse(always(0));
+		expect(get).toBe(8);
+	});
+
+	test("mapAsync", async () => {
+		const ten = Result.Ok(10);
+		const twenty = ten.mapAsync(async (x) => x * 2);
+		const five = twenty.flatMapAsync(async (x) => asyncDivide(x, 4));
+		const value = await five.getOrElse(always(0));
+		expect(value).toBe(5);
 	});
 });
