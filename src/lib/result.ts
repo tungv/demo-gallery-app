@@ -37,13 +37,37 @@ export interface Result<OkType, ErrType> {
 }
 
 export interface ThenableResult<OkType, ErrType>
-	extends Omit<Result<OkType, ErrType>, "getOrElse">,
-		PromiseLike<Result<OkType, ErrType>> {
+	extends PromiseLike<Result<OkType, ErrType>> {
+	map<NextOk>(
+		whenOk: (ok: OkType) => NextOk,
+	): [OkType] extends [never] ? Err<ErrType> : ThenableResult<NextOk, ErrType>;
+
+	flatMap<NextResult extends Result.AnyResult>(
+		whenOk: (ok: OkType) => NextResult,
+	): [OkType] extends [never]
+		? ThenableResult<never, ErrOf<NextResult>>
+		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
+
+	mapErr<const NextErr>(
+		whenErr: (err: ErrType) => NextErr,
+	): [OkType] extends [never] ? Err<NextErr> : ThenableResult<OkType, NextErr>;
+
 	getOrElse<HandleFn extends UnaryFn<ErrType>>(
 		handle: HandleFn,
 	): [OkType] extends [never]
 		? Promise<ReturnType<HandleFn>>
 		: Promise<OkType | ReturnType<HandleFn>>;
+
+	// async
+	mapAsync<NextOk>(
+		whenOk: (ok: OkType) => Promise<NextOk>,
+	): [OkType] extends [never] ? Err<ErrType> : ThenableResult<NextOk, ErrType>;
+
+	flatMapAsync<NextResult extends Result.AnyResult>(
+		whenOk: (ok: OkType) => Promise<NextResult>,
+	): [OkType] extends [never]
+		? ThenableResult<never, ErrOf<NextResult>>
+		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: any unary function
@@ -51,8 +75,12 @@ type UnaryFn<I> = (value: I) => any;
 
 type Err<ErrType> = Result<never, ErrType>;
 type Ok<OkType> = Result<OkType, never>;
-type ErrOf<ResultType> = ResultType extends Err<infer Err> ? Err : never;
-type OkOf<ResultType> = ResultType extends Ok<infer OkType> ? OkType : never;
+type ErrOf<ResultType> = ResultType extends Result<infer OkType, infer ErrType>
+	? ErrType
+	: never;
+type OkOf<ResultType> = ResultType extends Result<infer OkType, infer ErrType>
+	? OkType
+	: never;
 
 function createThenableResult<OkType, ErrType>(
 	promise: Promise<Result<OkType, ErrType>>,
@@ -88,6 +116,7 @@ function createThenableResult<OkType, ErrType>(
 export namespace Result {
 	// biome-ignore lint/suspicious/noExplicitAny: any result
 	export type AnyResult = Result<any, any>;
+	export type Thenable<OkType, ErrType> = ThenableResult<OkType, ErrType>;
 
 	export function Ok<OkType>(value: OkType): Ok<OkType> {
 		const option: Ok<OkType> = {
@@ -136,5 +165,15 @@ export namespace Result {
 				createThenableResult(Promise.resolve(errResult)) as any,
 		} as Err<ErrType>;
 		return errResult;
+	}
+
+	export function tryCatch<RetType, ErrType = Error>(
+		fn: () => RetType,
+	): Result<RetType, ErrType> {
+		try {
+			return Result.Ok(fn());
+		} catch (error) {
+			return Result.Err(error as ErrType);
+		}
 	}
 }

@@ -234,6 +234,31 @@ describe("Result - Real-world scenarios", () => {
 
 		expect(invalid2.getOrElse(identity)).toBe("Must be .com domain");
 	});
+
+	test("data fetching and parsing", async () => {
+		type User = { id: number; name: string };
+
+		async function fetchUser(id: number) {
+			return id > 0
+				? Result.Ok(`{"id": ${id}, "name": "User ${id}"}`)
+				: Result.Err("invalid_id");
+		}
+
+		function parseUser(json: string) {
+			return Result.tryCatch<User>(() => JSON.parse(json)).mapErr(
+				always("parse_error"),
+			);
+		}
+
+		const userId = Result.Ok(10);
+
+		const json = userId.flatMapAsync(fetchUser);
+		const user = json.flatMap(parseUser);
+
+		const value = await user.getOrElse(always(null));
+
+		expect(value).toEqual({ id: 10, name: "User 10" });
+	});
 });
 
 describe("Result - Type safety", () => {
