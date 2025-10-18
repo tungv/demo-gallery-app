@@ -24,7 +24,11 @@ export interface Result<OkType, ErrType> {
 		? ReturnType<HandleFn>
 		: OkType | ReturnType<HandleFn>;
 
-	async(): Promise<Result<Awaited<OkType>, Awaited<ErrType>>>;
+	flatMapAsync<NextResult extends Result.AnyResult>(
+		whenOk: (ok: OkType) => Promise<NextResult>,
+	): [OkType] extends [never]
+		? Promise<Result<never, ErrOf<NextResult>>>
+		: Promise<Result<OkOf<NextResult>, ErrType | ErrOf<NextResult>>>;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: any unary function
@@ -53,12 +57,16 @@ export namespace Result {
 			mapErr: () => option as any,
 			// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
 			getOrElse: () => value as any,
-			async async() {
-				// at this point, what we have is a Result<Promise<NextOk>, Promise<NextErr>>
-				// we need to return a Promise<Result<NextOk, NextErr>>
 
-				const result = await value;
-				return Result.Ok(result);
+			flatMapAsync: async (whenOk) => {
+				const result = await whenOk(value);
+
+				return (
+					result
+						.map((ok) => Result.Ok(ok))
+						// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
+						.getOrElse((err) => Result.Err(err)) as any
+				);
 			},
 		};
 
@@ -71,10 +79,7 @@ export namespace Result {
 			flatMap: () => errResult,
 			mapErr: (whenErr) => Result.Err(whenErr(error)),
 			getOrElse: (handle) => handle(error),
-			async async() {
-				const result = await error;
-				return Result.Err(result);
-			},
+			flatMapAsync: () => Promise.resolve(errResult),
 		} as Err<ErrType>;
 		return errResult;
 	}

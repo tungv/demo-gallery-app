@@ -66,18 +66,6 @@ describe("Result.Ok", () => {
 		const option = Result.Ok("success");
 		expect(option.getOrElse(always("fallback"))).toBe("success");
 	});
-
-	test("async should handle Promise values", async () => {
-		const option = Result.Ok(Promise.resolve(42));
-		const result = await option.async();
-		expect(result.getOrElse(always(0))).toBe(42);
-	});
-
-	test("async should work with non-Promise values", async () => {
-		const option = Result.Ok(42);
-		const result = await option.async();
-		expect(result.getOrElse(always(0))).toBe(42);
-	});
 });
 
 describe("Result.Err", () => {
@@ -135,12 +123,6 @@ describe("Result.Err", () => {
 	test("getOrElse should return the Left value (acting as fallback)", () => {
 		const option = Result.Err("error");
 		expect(option.getOrElse(identity)).toBe("error");
-	});
-
-	test("async should handle Left values", async () => {
-		const option = Result.Err("error");
-		const result = await option.async();
-		expect(result.getOrElse(identity)).toBe("error");
 	});
 });
 
@@ -201,17 +183,6 @@ describe("Result - Real-world scenarios", () => {
 			.mapErr((err) => `HTTP ${err.code}: ${err.message}`);
 
 		expect(result.getOrElse(identity)).toBe("HTTP 404: Not Found");
-	});
-
-	test("async operations with Promises", async () => {
-		const fetchUser = (id: number) =>
-			Result.Ok(Promise.resolve({ id, name: `User ${id}` }));
-
-		const user = await fetchUser(1).async();
-		expect(user.getOrElse(always({ id: 0, name: "" }))).toEqual({
-			id: 1,
-			name: "User 1",
-		});
 	});
 
 	test("combining map and flatMap", () => {
@@ -282,5 +253,26 @@ describe("Result - Type safety", () => {
 
 		const result = option.mapErr((err) => `${err.field}: ${err.message}`);
 		expect(result.getOrElse(identity)).toBe("email: Invalid");
+	});
+});
+
+describe("Result - Async", () => {
+	test("should handle async operations", async () => {
+		const ten = Result.Ok(10);
+
+		async function asyncDivide(a: number, b: number) {
+			return b === 0 ? Result.Err("Division by zero") : Result.Ok(a / b);
+		}
+
+		async function asyncSqrt(x: number) {
+			return x < 0
+				? Result.Err("Cannot take sqrt of negative")
+				: Result.Ok(Math.sqrt(x));
+		}
+
+		const two = await ten.flatMapAsync((x) => asyncDivide(x, 5));
+		const sqrt2 = await two.flatMapAsync((x) => asyncSqrt(x));
+
+		expect(sqrt2.getOrElse(always(0))).toBe(Math.sqrt(2));
 	});
 });
