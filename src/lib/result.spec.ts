@@ -257,22 +257,34 @@ describe("Result - Type safety", () => {
 });
 
 describe("Result - Async", () => {
+	async function asyncDivide(a: number, b: number) {
+		return b === 0 ? Result.Err("Division by zero") : Result.Ok(a / b);
+	}
+
+	async function asyncSqrt(x: number) {
+		return x < 0
+			? Result.Err("Cannot take sqrt of negative")
+			: Result.Ok(Math.sqrt(x));
+	}
+
 	test("should handle async operations", async () => {
 		const ten = Result.Ok(10);
 
-		async function asyncDivide(a: number, b: number) {
-			return b === 0 ? Result.Err("Division by zero") : Result.Ok(a / b);
-		}
+		const sqrt2 = ten
+			.flatMapAsync((x) => asyncDivide(x, 5))
+			.flatMapAsync((x) => asyncSqrt(x));
 
-		async function asyncSqrt(x: number) {
-			return x < 0
-				? Result.Err("Cannot take sqrt of negative")
-				: Result.Ok(Math.sqrt(x));
-		}
+		const value = await sqrt2.getOrElse(always(0));
+		expect(value).toBe(Math.sqrt(2));
+	});
+
+	test("should allow await at any point in the chain", async () => {
+		const ten = Result.Ok(10);
 
 		const two = await ten.flatMapAsync((x) => asyncDivide(x, 5));
-		const sqrt2 = await two.flatMapAsync((x) => asyncSqrt(x));
 
-		expect(sqrt2.getOrElse(always(0))).toBe(Math.sqrt(2));
+		const four = two.map((x) => x * 2);
+		const get = four.getOrElse(always(0));
+		expect(get).toBe(4);
 	});
 });

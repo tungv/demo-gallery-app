@@ -27,8 +27,18 @@ export interface Result<OkType, ErrType> {
 	flatMapAsync<NextResult extends Result.AnyResult>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): [OkType] extends [never]
-		? Promise<Result<never, ErrOf<NextResult>>>
-		: Promise<Result<OkOf<NextResult>, ErrType | ErrOf<NextResult>>>;
+		? ThenableResult<never, ErrOf<NextResult>>
+		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
+}
+
+export interface ThenableResult<OkType, ErrType>
+	extends Omit<Result<OkType, ErrType>, "getOrElse">,
+		PromiseLike<Result<OkType, ErrType>> {
+	getOrElse<HandleFn extends UnaryFn<ErrType>>(
+		handle: HandleFn,
+	): [OkType] extends [never]
+		? Promise<ReturnType<HandleFn>>
+		: Promise<OkType | ReturnType<HandleFn>>;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: any unary function
@@ -38,6 +48,34 @@ type Err<ErrType> = Result<never, ErrType>;
 type Ok<OkType> = Result<OkType, never>;
 type ErrOf<ResultType> = ResultType extends Err<infer Err> ? Err : never;
 type OkOf<ResultType> = ResultType extends Ok<infer OkType> ? OkType : never;
+
+function createThenableResult<OkType, ErrType>(
+	promise: Promise<Result<OkType, ErrType>>,
+): ThenableResult<OkType, ErrType> {
+	const thenable = {
+		// biome-ignore lint/suspicious/noThenProperty: Required for PromiseLike interface
+		then: promise.then.bind(promise),
+		map: <NextOk>(whenOk: (ok: OkType) => NextOk) =>
+			createThenableResult(promise.then((r) => r.map(whenOk))),
+
+		flatMap: <NextResult extends Result.AnyResult>(
+			whenOk: (ok: OkType) => NextResult,
+		) => createThenableResult(promise.then((r) => r.flatMap(whenOk))),
+
+		mapErr: <NextErr>(whenErr: (err: ErrType) => NextErr) =>
+			createThenableResult(promise.then((r) => r.mapErr(whenErr))),
+
+		getOrElse: <HandleFn extends UnaryFn<ErrType>>(handle: HandleFn) =>
+			promise.then((result) => result.getOrElse(handle)),
+
+		flatMapAsync: <NextResult extends Result.AnyResult>(
+			whenOk: (ok: OkType) => Promise<NextResult>,
+		) => createThenableResult(promise.then((r) => r.flatMapAsync(whenOk))),
+	};
+
+	// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
+	return thenable as any;
+}
 
 export namespace Result {
 	// biome-ignore lint/suspicious/noExplicitAny: any result
@@ -58,15 +96,11 @@ export namespace Result {
 			// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
 			getOrElse: () => value as any,
 
-			flatMapAsync: async (whenOk) => {
-				const result = await whenOk(value);
+			flatMapAsync: (whenOk) => {
+				const promise = whenOk(value);
 
-				return (
-					result
-						.map((ok) => Result.Ok(ok))
-						// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
-						.getOrElse((err) => Result.Err(err)) as any
-				);
+				// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
+				return createThenableResult(promise) as any;
 			},
 		};
 
@@ -79,7 +113,9 @@ export namespace Result {
 			flatMap: () => errResult,
 			mapErr: (whenErr) => Result.Err(whenErr(error)),
 			getOrElse: (handle) => handle(error),
-			flatMapAsync: () => Promise.resolve(errResult),
+			flatMapAsync: () =>
+				// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
+				createThenableResult(Promise.resolve(errResult)) as any,
 		} as Err<ErrType>;
 		return errResult;
 	}
