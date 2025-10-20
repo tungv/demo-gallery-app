@@ -14,14 +14,14 @@ export interface Result<OkType, ErrType> {
 			: Result<NextOk, ErrType>;
 
 	// Sync version - returns Result
-	flatMap<NextResult extends Result.AnySync>(
+	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => NextResult,
 	): [OkType] extends [never]
 		? Result<never, ErrType>
 		: Result<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	// Async version - returns ThenableResult
-	flatMap<NextResult extends Result.AnySync>(
+	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): [OkType] extends [never]
 		? ThenableResult<never, ErrOf<NextResult>>
@@ -50,14 +50,14 @@ export interface ThenableResult<OkType, ErrType>
 		: ThenableResult<Awaited<NextOk>, ErrType>;
 
 	// Sync version - returns ThenableResult
-	flatMap<NextResult extends Result.AnySync>(
+	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => NextResult,
 	): [OkType] extends [never]
 		? ThenableResult<never, ErrOf<NextResult>>
 		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	// Async version - returns ThenableResult
-	flatMap<NextResult extends Result.AnySync>(
+	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): [OkType] extends [never]
 		? ThenableResult<never, ErrOf<NextResult>>
@@ -113,7 +113,7 @@ function createThenableResult<OkType, ErrType>(
 			return createThenableResult(thenable as TooComplexOverloading);
 		},
 
-		flatMap: <NextResult extends Result.AnySync>(
+		flatMap: <NextResult extends AnySync>(
 			whenOk: (ok: OkType) => NextResult | Promise<NextResult>,
 		) => {
 			const thenable = promise.then(async (currentResult) => {
@@ -147,11 +147,11 @@ function freeze<T>(value: T): T {
 
 // private map to store the value for internal access
 // biome-ignore lint/suspicious/noExplicitAny: any result
-type MapAnyResult = WeakMap<Result.AnySync, any>;
+type MapAnyResult = WeakMap<AnySync, any>;
 const __privateOkMap: MapAnyResult = new WeakMap();
 const __privateErrMap: MapAnyResult = new WeakMap();
 
-function __getOkValue<OkType>(result: Result.AnySync): OkType | null {
+function __getOkValue<OkType>(result: AnySync): OkType | null {
 	if (!__privateOkMap.has(result)) {
 		return null;
 	}
@@ -159,20 +159,19 @@ function __getOkValue<OkType>(result: Result.AnySync): OkType | null {
 	return __privateOkMap.get(result) as OkType;
 }
 
-function __getErrValue<ErrType>(result: Result.AnySync): ErrType | null {
+function __getErrValue<ErrType>(result: AnySync): ErrType | null {
 	if (!__privateErrMap.has(result)) {
 		return null;
 	}
 
 	return __privateErrMap.get(result) as ErrType;
 }
+// biome-ignore lint/suspicious/noExplicitAny: any result
+type AnySync = Result<any, any>;
+// biome-ignore lint/suspicious/noExplicitAny: any thenable result
+type AnyThenable = ThenableResult<any, any>;
 
 export namespace Result {
-	// biome-ignore lint/suspicious/noExplicitAny: any result
-	type AnySync = Result<any, any>;
-	// biome-ignore lint/suspicious/noExplicitAny: any thenable result
-	type AnyThenable = ThenableResult<any, any>;
-
 	export type AnyResult = AnySync | AnyThenable;
 
 	export type Thenable<OkType, ErrType> = ThenableResult<OkType, ErrType>;
