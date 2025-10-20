@@ -136,6 +136,13 @@ export namespace Result {
 	export type AnyResult = Result<any, any>;
 	export type Thenable<OkType, ErrType> = ThenableResult<OkType, ErrType>;
 
+	export type MustOk<OkType> = OkType extends Promise<infer NextOkType>
+		? ThenableResult<NextOkType, never>
+		: Ok<OkType>;
+	export type MustErr<ErrType> = ErrType extends Promise<infer NextErrType>
+		? ThenableResult<never, NextErrType>
+		: Err<ErrType>;
+
 	export function Ok<const OkType>(value: OkType): Ok<OkType> {
 		const option: Ok<OkType> = {
 			map: (whenOk: (value: OkType) => unknown | Promise<unknown>) => {
