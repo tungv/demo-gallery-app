@@ -43,7 +43,7 @@ export interface Result<OkType, ErrType> {
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): IsNever<OkType> extends true
-		? ThenableResult<never, ErrOf<NextResult>>
+		? ThenableErr<ErrOf<NextResult>>
 		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	mapErr<const NextErr>(
@@ -72,14 +72,14 @@ export interface ThenableResult<OkType, ErrType>
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => NextResult,
 	): IsNever<OkType> extends true
-		? ThenableResult<never, ErrOf<NextResult>>
+		? ThenableErr<ErrOf<NextResult>>
 		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	// Async version - returns ThenableResult
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): IsNever<OkType> extends true
-		? ThenableResult<never, ErrOf<NextResult>>
+		? ThenableErr<ErrOf<NextResult>>
 		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	mapErr<const NextErr>(
@@ -182,16 +182,20 @@ function __getErrValue<ErrType>(result: AnySync): ErrType | null {
 	return __privateErrMap.get(result) as ErrType;
 }
 
+// Type aliases for ThenableResult specializations
+export type ThenableOk<OkType> = ThenableResult<OkType, never>;
+export type ThenableErr<ErrType> = ThenableResult<never, ErrType>;
+
 export namespace Result {
 	export type AnyResult = AnySync;
 
 	export type Thenable<OkType, ErrType> = ThenableResult<OkType, ErrType>;
 
 	export type MustOk<OkType> = OkType extends Promise<infer NextOkType>
-		? ThenableResult<NextOkType, never>
+		? ThenableOk<NextOkType>
 		: Ok<OkType>;
 	export type MustErr<ErrType> = ErrType extends Promise<infer NextErrType>
-		? ThenableResult<never, NextErrType>
+		? ThenableErr<NextErrType>
 		: Err<ErrType>;
 
 	export function Ok<const OkType>(value: OkType): Result.MustOk<OkType> {
