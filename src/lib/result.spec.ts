@@ -75,6 +75,12 @@ describe("Result.Err", () => {
 		expect(fallback).toBe("fallback");
 	});
 
+	test("should create a Left option with an error promise", async () => {
+		const option = Result.Err(Promise.resolve("error" as const));
+		const fallback = await option.getOrElse((err) => err);
+		expect(fallback).toBe("error");
+	});
+
 	test("map should not transform Left values", () => {
 		const option = Result.Err("error");
 		const result = option.map((x: number) => x * 2);
@@ -550,7 +556,7 @@ describe("Result.all", () => {
 	});
 
 	test("example with async and sync", async () => {
-		const results = [Result.Ok(1), Result.Ok(Promise.resolve(2))];
+		const results = [Result.Ok(1), Result.Ok(Promise.resolve(2 as const))];
 
 		const all = Result.all(await Promise.all(results));
 		const value = all.getOrElse(always(0));
