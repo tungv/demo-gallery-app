@@ -11,7 +11,7 @@ export interface Result<OkType, ErrType> {
 	flatMap<NextResult extends Result.AnyResult>(
 		whenOk: (ok: OkType) => NextResult,
 	): [OkType] extends [never]
-		? Result<never, ErrOf<NextResult>>
+		? Result<never, ErrType>
 		: Result<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	mapErr<const NextErr>(
@@ -27,7 +27,9 @@ export interface Result<OkType, ErrType> {
 	// async
 	mapAsync<NextOk>(
 		whenOk: (ok: OkType) => Promise<NextOk>,
-	): [OkType] extends [never] ? Err<ErrType> : ThenableResult<NextOk, ErrType>;
+	): [OkType] extends [never]
+		? ThenableResult<never, ErrType>
+		: ThenableResult<NextOk, ErrType>;
 
 	flatMapAsync<NextResult extends Result.AnyResult>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
@@ -118,7 +120,7 @@ export namespace Result {
 	export type AnyResult = Result<any, any>;
 	export type Thenable<OkType, ErrType> = ThenableResult<OkType, ErrType>;
 
-	export function Ok<OkType>(value: OkType): Ok<OkType> {
+	export function Ok<const OkType>(value: OkType): Ok<OkType> {
 		const option: Ok<OkType> = {
 			map: (whenOk) => {
 				const nextOk = whenOk(value);
