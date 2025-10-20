@@ -492,6 +492,7 @@ describe("Result - Async", () => {
 describe("Result.all", () => {
 	test("should return Ok if all results are Ok", () => {
 		const results = [Result.Ok(1), Result.Ok(2), Result.Ok(3)];
+
 		const result = Result.all(results);
 		const array = result.getOrElse(always([]));
 		expect(array).toEqual([1, 2, 3]);
@@ -504,13 +505,19 @@ describe("Result.all", () => {
 			Result.Ok(3),
 			Result.Err("error_2"),
 		];
+
 		const result = Result.all(results);
 		const error = result.getOrElse((err) => err);
 
-		// we know that error is an AggregatedError
-		const aggregatedError = error as Result.AggregatedResultError<any>;
+		expect(error.message).toBe("AggregatedResultError");
+		expect(error.getErrors()).toEqual(["error_1", "error_2"]);
+	});
 
-		expect(aggregatedError.message).toBe("AggregatedResultError");
-		expect(aggregatedError.getErrors()).toEqual(["error_1", "error_2"]);
+	test("improved type safety - empty array", () => {
+		// TypeScript should infer this as Ok<[]>
+		const results: [] = [];
+		const result = Result.all(results);
+
+		expect(result.getOrElse(always(false))).toEqual([]);
 	});
 });

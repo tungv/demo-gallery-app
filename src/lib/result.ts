@@ -35,7 +35,9 @@ export interface Result<OkType, ErrType> {
 		handle: HandleFn,
 	): [OkType] extends [never]
 		? ReturnType<HandleFn>
-		: OkType | ReturnType<HandleFn>;
+		: [ErrType] extends [never]
+			? OkType
+			: OkType | ReturnType<HandleFn>;
 }
 
 export interface ThenableResult<OkType, ErrType>
@@ -69,7 +71,13 @@ export interface ThenableResult<OkType, ErrType>
 		handle: HandleFn,
 	): [OkType] extends [never]
 		? Promise<ReturnType<HandleFn>>
-		: Promise<OkType | ReturnType<HandleFn>>;
+		: [ErrType] extends [never]
+			? Promise<OkType>
+			: Promise<OkType | ReturnType<HandleFn>>;
+
+	// Type guards for better type safety
+	isOk(): this is Ok<OkType>;
+	isErr(): this is Err<ErrType>;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: any unary function
@@ -102,7 +110,7 @@ function createThenableResult<OkType, ErrType>(
 				return nextResult;
 			});
 
-			return createThenableResult(thenable as TooComplex);
+			return createThenableResult(thenable as TooComplexOverloading);
 		},
 
 		flatMap: <NextResult extends Result.AnyResult>(
@@ -114,7 +122,7 @@ function createThenableResult<OkType, ErrType>(
 				);
 				return nextResult;
 			});
-			return createThenableResult(thenable as TooComplex);
+			return createThenableResult(thenable as TooComplexOverloading);
 		},
 
 		mapErr: <NextErr>(whenErr: (err: ErrType) => NextErr) =>
@@ -129,7 +137,7 @@ function createThenableResult<OkType, ErrType>(
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
-type TooComplex = any;
+type TooComplexOverloading = any;
 
 // helper function
 const isDev = process.env.NODE_ENV === "development";
@@ -179,23 +187,23 @@ export namespace Result {
 				if (result instanceof Promise) {
 					return createThenableResult(
 						result.then((nextOk) => Result.Ok(nextOk)),
-					) as TooComplex;
+					) as TooComplexOverloading;
 				}
 
-				return Result.Ok(result) as TooComplex;
+				return Result.Ok(result) as TooComplexOverloading;
 			},
 			flatMap: (whenOk: (value: OkType) => AnyResult | Promise<AnyResult>) => {
 				const result = whenOk(value);
 				// Check if result is a Promise
 				if (result instanceof Promise) {
-					return createThenableResult(result) as TooComplex;
+					return createThenableResult(result) as TooComplexOverloading;
 				}
 
-				return result as TooComplex;
+				return result as TooComplexOverloading;
 			},
 
-			mapErr: () => option as TooComplex,
-			getOrElse: () => value as TooComplex,
+			mapErr: () => option as TooComplexOverloading,
+			getOrElse: () => value as TooComplexOverloading,
 		};
 
 		// freeze the option to prevent mutation
@@ -208,7 +216,7 @@ export namespace Result {
 	export function Err<const ErrType>(error: ErrType): Err<ErrType> {
 		const errResult: Err<ErrType> = {
 			map: () => errResult,
-			flatMap: () => errResult as TooComplex,
+			flatMap: () => errResult as TooComplexOverloading,
 			mapErr: (whenErr: UnaryFn<ErrType>) => Result.Err(whenErr(error)),
 			getOrElse: (handle: UnaryFn<ErrType>) => handle(error),
 		};
@@ -239,30 +247,36 @@ export namespace Result {
 		}
 	}
 
-	export function all<const Results extends Result.AnyResult[]>(
-		results: Results,
-	): Result<
-		OkOf<Results[number]>[],
-		AggregatedResultError<ErrOf<Results[number]>>
-	> {
+	type ListOk<T extends readonly AnyResult[]> = {
+		[K in keyof T]: OkOf<T[K]>;
+	};
+	type ListErrors<T extends readonly AnyResult[]> = {
+		[K in keyof T]: ErrOf<T[K]>;
+	};
+
+	export function all<T extends readonly AnyResult[]>(
+		results: T,
+	): [ListErrors<T>] extends [never[]]
+		? Ok<ListOk<T>>
+		: Err<AggregatedResultError<ListErrors<T>[number]>> {
 		const okValues = results.map((result) => __getOkValue(result));
 
 		// if some value is not OK, return the first error
 		if (okValues.some((value) => value === null)) {
 			const errors = results.flatMap((result) => {
-				const err = __getErrValue(result) as ErrOf<Results[number]>;
+				const err = __getErrValue(result);
 				if (err === null) {
 					return [];
 				}
 				return [err];
-			});
+			}) as ListErrors<T>[];
 
 			const aggregatedErr = Result.Err(new AggregatedResultError(errors));
 
-			return aggregatedErr;
+			return Result.Err(aggregatedErr) as TooComplexOverloading;
 		}
 
 		// everything is OK, return the values
-		return Result.Ok(okValues.map((value) => value as OkOf<Results[number]>));
+		return Result.Ok(okValues as ListOk<T>) as TooComplexOverloading;
 	}
 }
