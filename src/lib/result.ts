@@ -29,7 +29,7 @@ export interface Result<OkType, ErrType> {
 	): IsNever<OkType> extends true
 		? Err<ErrType>
 		: NextOk extends Promise<infer NextOkType>
-			? ThenableResult<NextOkType, ErrType>
+			? FutureResult<NextOkType, ErrType>
 			: Result<NextOk, ErrType>;
 
 	// Sync version - returns Result
@@ -39,12 +39,12 @@ export interface Result<OkType, ErrType> {
 		? Result<never, ErrType>
 		: Result<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
-	// Async version - returns ThenableResult
+	// Async version - returns FutureResult
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): IsNever<OkType> extends true
-		? ThenableErr<ErrOf<NextResult>>
-		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
+		? FutureErr<ErrOf<NextResult>>
+		: FutureResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	mapErr<const NextErr>(
 		whenErr: (err: ErrType) => NextErr,
@@ -59,34 +59,34 @@ export interface Result<OkType, ErrType> {
 			: OkType | ReturnType<HandleFn>;
 }
 
-export interface ThenableResult<OkType, ErrType>
+export interface FutureResult<OkType, ErrType>
 	extends PromiseLike<Result<OkType, ErrType>> {
-	// Sync version - returns ThenableResult
+	// Sync version - returns FutureResult
 	map<NextOk>(
 		whenOk: (ok: OkType) => NextOk,
 	): IsNever<OkType> extends true
 		? Err<ErrType>
-		: ThenableResult<Awaited<NextOk>, ErrType>;
+		: FutureResult<Awaited<NextOk>, ErrType>;
 
-	// Sync version - returns ThenableResult
+	// Sync version - returns FutureResult
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => NextResult,
 	): IsNever<OkType> extends true
-		? ThenableErr<ErrOf<NextResult>>
-		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
+		? FutureErr<ErrOf<NextResult>>
+		: FutureResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
-	// Async version - returns ThenableResult
+	// Async version - returns FutureResult
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): IsNever<OkType> extends true
-		? ThenableErr<ErrOf<NextResult>>
-		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
+		? FutureErr<ErrOf<NextResult>>
+		: FutureResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	mapErr<const NextErr>(
 		whenErr: (err: ErrType) => NextErr,
 	): IsNever<OkType> extends true
 		? Err<NextErr>
-		: ThenableResult<OkType, NextErr>;
+		: FutureResult<OkType, NextErr>;
 
 	getOrElse<HandleFn extends UnaryFn<ErrType>>(
 		handle: HandleFn,
@@ -110,9 +110,9 @@ type OkOf<ResultType> = ResultType extends Result<infer OkType, infer ErrType>
 	? OkType
 	: never;
 
-function createThenableResult<OkType, ErrType>(
+function createFutureResult<OkType, ErrType>(
 	promise: Promise<Result<OkType, ErrType>>,
-): ThenableResult<OkType, ErrType> {
+): FutureResult<OkType, ErrType> {
 	const thenable = {
 		// biome-ignore lint/suspicious/noThenProperty: Required for PromiseLike interface
 		then: promise.then.bind(promise),
@@ -128,7 +128,7 @@ function createThenableResult<OkType, ErrType>(
 				return nextResult;
 			});
 
-			return createThenableResult(thenable as TooComplexOverloading);
+			return createFutureResult(thenable as TooComplexOverloading);
 		},
 
 		flatMap: <NextResult extends AnySync>(
@@ -140,11 +140,11 @@ function createThenableResult<OkType, ErrType>(
 				);
 				return nextResult;
 			});
-			return createThenableResult(thenable as TooComplexOverloading);
+			return createFutureResult(thenable as TooComplexOverloading);
 		},
 
 		mapErr: <NextErr>(whenErr: (err: ErrType) => NextErr) =>
-			createThenableResult(promise.then((r) => r.mapErr(whenErr))),
+			createFutureResult(promise.then((r) => r.mapErr(whenErr))),
 
 		getOrElse: <HandleFn extends UnaryFn<ErrType>>(handle: HandleFn) =>
 			promise.then((result) => result.getOrElse(handle)),
@@ -182,29 +182,29 @@ function __getErrValue<ErrType>(result: AnySync): ErrType | null {
 	return __privateErrMap.get(result) as ErrType;
 }
 
-// Type aliases for ThenableResult specializations
-export type ThenableOk<OkType> = ThenableResult<OkType, never>;
-export type ThenableErr<ErrType> = ThenableResult<never, ErrType>;
+// Type aliases for FutureResult specializations
+export type FutureOk<OkType> = FutureResult<OkType, never>;
+export type FutureErr<ErrType> = FutureResult<never, ErrType>;
 
 export namespace Result {
 	export type AnyResult = AnySync;
 
-	export type Thenable<OkType, ErrType> = ThenableResult<OkType, ErrType>;
+	export type Future<OkType, ErrType> = FutureResult<OkType, ErrType>;
 
 	export type MustOk<OkType> = OkType extends Promise<infer NextOkType>
-		? ThenableOk<NextOkType>
+		? FutureOk<NextOkType>
 		: Ok<OkType>;
 	export type MustErr<ErrType> = ErrType extends Promise<infer NextErrType>
-		? ThenableErr<NextErrType>
+		? FutureErr<NextErrType>
 		: Err<ErrType>;
 
 	export function Ok<const OkType>(value: OkType): Result.MustOk<OkType> {
-		// If value is a promise, return a ThenableResult
+		// If value is a promise, return a FutureResult
 		if (value instanceof Promise) {
 			const thenablePromise = value.then((resolvedValue) =>
 				Result.Ok(resolvedValue),
 			);
-			return createThenableResult(thenablePromise) as TooComplexOverloading;
+			return createFutureResult(thenablePromise) as TooComplexOverloading;
 		}
 
 		const option: Ok<OkType> = {
@@ -212,7 +212,7 @@ export namespace Result {
 				const result = whenOk(value);
 				// Check if result is a Promise
 				if (result instanceof Promise) {
-					return createThenableResult(
+					return createFutureResult(
 						result.then((nextOk) => Result.Ok(nextOk)),
 					) as TooComplexOverloading;
 				}
@@ -223,7 +223,7 @@ export namespace Result {
 				const result = whenOk(value);
 				// Check if result is a Promise
 				if (result instanceof Promise) {
-					return createThenableResult(result) as TooComplexOverloading;
+					return createFutureResult(result) as TooComplexOverloading;
 				}
 
 				return result as TooComplexOverloading;
@@ -241,12 +241,12 @@ export namespace Result {
 	}
 
 	export function Err<const ErrType>(error: ErrType): Result.MustErr<ErrType> {
-		// If error is a promise, return a ThenableResult
+		// If error is a promise, return a FutureResult
 		if (error instanceof Promise) {
 			const thenablePromise = error.then((resolvedError) =>
 				Result.Err(resolvedError),
 			);
-			return createThenableResult(thenablePromise) as TooComplexOverloading;
+			return createFutureResult(thenablePromise) as TooComplexOverloading;
 		}
 
 		const errResult: Err<ErrType> = {
