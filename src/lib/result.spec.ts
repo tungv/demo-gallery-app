@@ -132,7 +132,7 @@ describe("Result - Real-world scenarios", () => {
 			str: string,
 		): Result<{ name: string }, `Parse error: ${string}`> => {
 			try {
-				return Result.Ok(JSON.parse(str));
+				return Result.Ok(JSON.parse(str)) as Result.MustOk<{ name: string }>;
 			} catch (error) {
 				return Result.Err(`Parse error: ${error}`);
 			}
@@ -519,5 +519,41 @@ describe("Result.all", () => {
 		const result = Result.all(results);
 
 		expect(result.getOrElse(always(false))).toEqual([]);
+	});
+
+	test("example with async and sync", async () => {
+		const results = [Result.Ok(1), Result.Ok(Promise.resolve(2))];
+
+		const all = Result.all(await Promise.all(results));
+		const value = all.getOrElse(always(0));
+		expect(value).toEqual([1, 2]);
+	});
+
+	describe("Result.every", () => {
+		test("should return true if all results are Ok", () => {
+			const results = [Result.Ok(1), Result.Ok(2), Result.Ok(3)];
+			const every = Result.every(results);
+			expect(every).toBe(true);
+		});
+
+		test("should return false if any result is Err", () => {
+			const results = [Result.Ok(1), Result.Err("error"), Result.Ok(3)];
+			const every = Result.every(results);
+			expect(every).toBe(false);
+		});
+	});
+
+	describe("Result.some", () => {
+		test("should return true if any result is Ok", () => {
+			const results = [Result.Ok(1), Result.Err("error"), Result.Ok(3)];
+			const some = Result.some(results);
+			expect(some).toBe(true);
+		});
+
+		test("should return false if all results are Err", () => {
+			const results = [Result.Err("error"), Result.Err("error")];
+			const some = Result.some(results);
+			expect(some).toBe(false);
+		});
 	});
 });

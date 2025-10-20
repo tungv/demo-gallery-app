@@ -14,14 +14,14 @@ export interface Result<OkType, ErrType> {
 			: Result<NextOk, ErrType>;
 
 	// Sync version - returns Result
-	flatMap<NextResult extends Result.AnyResult>(
+	flatMap<NextResult extends Result.AnySync>(
 		whenOk: (ok: OkType) => NextResult,
 	): [OkType] extends [never]
 		? Result<never, ErrType>
 		: Result<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	// Async version - returns ThenableResult
-	flatMap<NextResult extends Result.AnyResult>(
+	flatMap<NextResult extends Result.AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): [OkType] extends [never]
 		? ThenableResult<never, ErrOf<NextResult>>
@@ -50,14 +50,14 @@ export interface ThenableResult<OkType, ErrType>
 		: ThenableResult<Awaited<NextOk>, ErrType>;
 
 	// Sync version - returns ThenableResult
-	flatMap<NextResult extends Result.AnyResult>(
+	flatMap<NextResult extends Result.AnySync>(
 		whenOk: (ok: OkType) => NextResult,
 	): [OkType] extends [never]
 		? ThenableResult<never, ErrOf<NextResult>>
 		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	// Async version - returns ThenableResult
-	flatMap<NextResult extends Result.AnyResult>(
+	flatMap<NextResult extends Result.AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): [OkType] extends [never]
 		? ThenableResult<never, ErrOf<NextResult>>
@@ -113,7 +113,7 @@ function createThenableResult<OkType, ErrType>(
 			return createThenableResult(thenable as TooComplexOverloading);
 		},
 
-		flatMap: <NextResult extends Result.AnyResult>(
+		flatMap: <NextResult extends Result.AnySync>(
 			whenOk: (ok: OkType) => NextResult | Promise<NextResult>,
 		) => {
 			const thenable = promise.then(async (currentResult) => {
@@ -147,11 +147,11 @@ function freeze<T>(value: T): T {
 
 // private map to store the value for internal access
 // biome-ignore lint/suspicious/noExplicitAny: any result
-type MapAnyResult = WeakMap<Result.AnyResult, any>;
+type MapAnyResult = WeakMap<Result.AnySync, any>;
 const __privateOkMap: MapAnyResult = new WeakMap();
 const __privateErrMap: MapAnyResult = new WeakMap();
 
-function __getOkValue<OkType>(result: Result.AnyResult): OkType | null {
+function __getOkValue<OkType>(result: Result.AnySync): OkType | null {
 	if (!__privateOkMap.has(result)) {
 		return null;
 	}
@@ -159,7 +159,7 @@ function __getOkValue<OkType>(result: Result.AnyResult): OkType | null {
 	return __privateOkMap.get(result) as OkType;
 }
 
-function __getErrValue<ErrType>(result: Result.AnyResult): ErrType | null {
+function __getErrValue<ErrType>(result: Result.AnySync): ErrType | null {
 	if (!__privateErrMap.has(result)) {
 		return null;
 	}
@@ -169,7 +169,12 @@ function __getErrValue<ErrType>(result: Result.AnyResult): ErrType | null {
 
 export namespace Result {
 	// biome-ignore lint/suspicious/noExplicitAny: any result
-	export type AnyResult = Result<any, any>;
+	type AnySync = Result<any, any>;
+	// biome-ignore lint/suspicious/noExplicitAny: any thenable result
+	type AnyThenable = ThenableResult<any, any>;
+
+	export type AnyResult = AnySync | AnyThenable;
+
 	export type Thenable<OkType, ErrType> = ThenableResult<OkType, ErrType>;
 
 	export type MustOk<OkType> = OkType extends Promise<infer NextOkType>
@@ -179,7 +184,15 @@ export namespace Result {
 		? ThenableResult<never, NextErrType>
 		: Err<ErrType>;
 
-	export function Ok<const OkType>(value: OkType): Ok<OkType> {
+	export function Ok<const OkType>(value: OkType): Result.MustOk<OkType> {
+		// If value is a promise, return a ThenableResult
+		if (value instanceof Promise) {
+			const thenablePromise = value.then((resolvedValue) =>
+				Result.Ok(resolvedValue),
+			);
+			return createThenableResult(thenablePromise) as TooComplexOverloading;
+		}
+
 		const option: Ok<OkType> = {
 			map: (whenOk: (value: OkType) => unknown | Promise<unknown>) => {
 				const result = whenOk(value);
@@ -192,7 +205,7 @@ export namespace Result {
 
 				return Result.Ok(result) as TooComplexOverloading;
 			},
-			flatMap: (whenOk: (value: OkType) => AnyResult | Promise<AnyResult>) => {
+			flatMap: (whenOk: (value: OkType) => AnySync | Promise<AnySync>) => {
 				const result = whenOk(value);
 				// Check if result is a Promise
 				if (result instanceof Promise) {
@@ -210,30 +223,39 @@ export namespace Result {
 		freeze(option);
 		__privateOkMap.set(option, value);
 
-		return option;
+		return option as TooComplexOverloading;
 	}
 
-	export function Err<const ErrType>(error: ErrType): Err<ErrType> {
+	export function Err<const ErrType>(error: ErrType): Result.MustErr<ErrType> {
+		// If error is a promise, return a ThenableResult
+		if (error instanceof Promise) {
+			const thenablePromise = error.then((resolvedError) =>
+				Result.Err(resolvedError),
+			);
+			return createThenableResult(thenablePromise) as TooComplexOverloading;
+		}
+
 		const errResult: Err<ErrType> = {
 			map: () => errResult,
 			flatMap: () => errResult as TooComplexOverloading,
-			mapErr: (whenErr: UnaryFn<ErrType>) => Result.Err(whenErr(error)),
+			mapErr: (whenErr: UnaryFn<ErrType>) =>
+				Result.Err(whenErr(error)) as TooComplexOverloading,
 			getOrElse: (handle: UnaryFn<ErrType>) => handle(error),
 		};
 
 		freeze(errResult);
 		__privateErrMap.set(errResult, error);
 
-		return errResult;
+		return errResult as TooComplexOverloading;
 	}
 
 	export function tryCatch<RetType, ErrType = Error>(
 		fn: () => RetType,
 	): Result<RetType, ErrType> {
 		try {
-			return Result.Ok(fn());
+			return Result.Ok(fn()) as TooComplexOverloading;
 		} catch (error) {
-			return Result.Err(error as ErrType);
+			return Result.Err(error as ErrType) as TooComplexOverloading;
 		}
 	}
 
@@ -254,7 +276,7 @@ export namespace Result {
 		[K in keyof T]: ErrOf<T[K]>;
 	};
 
-	export function all<T extends readonly AnyResult[]>(
+	export function all<T extends readonly AnySync[]>(
 		results: T,
 	): [ListErrors<T>] extends [never[]]
 		? Ok<ListOk<T>>
@@ -273,10 +295,24 @@ export namespace Result {
 
 			const aggregatedErr = Result.Err(new AggregatedResultError(errors));
 
-			return Result.Err(aggregatedErr) as TooComplexOverloading;
+			return aggregatedErr as TooComplexOverloading;
 		}
 
 		// everything is OK, return the values
 		return Result.Ok(okValues as ListOk<T>) as TooComplexOverloading;
+	}
+
+	export function every<T extends readonly AnySync[]>(
+		results: T,
+	): [ListErrors<T>] extends [never[]] ? true : boolean {
+		const okValues = results.map((result) => __getOkValue(result));
+		return okValues.every((value) => value !== null) as TooComplexOverloading;
+	}
+
+	export function some<T extends readonly AnySync[]>(
+		results: T,
+	): [ListErrors<T>] extends [never[]] ? true : boolean {
+		const okValues = results.map((result) => __getOkValue(result));
+		return okValues.some((value) => value !== null) as TooComplexOverloading;
 	}
 }
