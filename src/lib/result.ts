@@ -11,6 +11,8 @@ type Or<A extends boolean, B extends boolean> = A extends true
 		? true
 		: false;
 
+type IsEmptyList<T> = [T] extends [never[]] ? true : false;
+
 // biome-ignore lint/suspicious/noExplicitAny: any unary function
 type UnaryFn<I> = (value: I) => any;
 
@@ -292,13 +294,16 @@ export namespace Result {
 		[K in keyof T]: IsNarrowed<T[K]>;
 	}[number];
 
+	type GetAggregatedError<ResultType extends readonly AnySync[]> =
+		AggregatedResultError<ListErrors<ResultType>[number]>;
+
 	export function all<T extends readonly AnySync[]>(
 		results: T,
 	): AllNarrowed<T> extends true
-		? [ListErrors<T>] extends [never[]]
+		? IsEmptyList<ListErrors<T>> extends true
 			? Ok<ListOk<T>>
-			: Err<AggregatedResultError<ListErrors<T>[number]>>
-		: Result<ListOk<T>, AggregatedResultError<ListErrors<T>[number]>> {
+			: Err<GetAggregatedError<T>>
+		: Result<ListOk<T>, GetAggregatedError<T>> {
 		const okValues = results.map((result) => __getOkValue(result));
 
 		// if some value is not OK, return the first error
