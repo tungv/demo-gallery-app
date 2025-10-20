@@ -294,16 +294,13 @@ export namespace Result {
 		[K in keyof T]: IsNarrowed<T[K]>;
 	}[number];
 
-	type GetAggregatedError<ResultType extends readonly AnySync[]> =
-		AggregatedResultError<ListErrors<ResultType>[number]>;
-
 	export function all<T extends readonly AnySync[]>(
 		results: T,
 	): AllNarrowed<T> extends true
 		? IsEmptyList<ListErrors<T>> extends true
 			? Ok<ListOk<T>>
-			: Err<GetAggregatedError<T>>
-		: Result<ListOk<T>, GetAggregatedError<T>> {
+			: Err<AggregatedResultError<ListErrors<T>[number]>>
+		: Result<ListOk<T>, AggregatedResultError<ListErrors<T>[number]>> {
 		const okValues = results.map((result) => __getOkValue(result));
 
 		// if some value is not OK, return the first error
