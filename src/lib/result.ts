@@ -3,11 +3,28 @@
  * @description: Result<Ok, Err> for error handling
  */
 
+// helper types
+type IsNever<T> = [T] extends [never] ? true : false;
+type Or<A extends boolean, B extends boolean> = A extends true
+	? true
+	: B extends true
+		? true
+		: false;
+
+// biome-ignore lint/suspicious/noExplicitAny: any unary function
+type UnaryFn<I> = (value: I) => any;
+
+// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
+type TooComplexOverloading = any;
+
+// biome-ignore lint/suspicious/noExplicitAny: any result
+type AnySync = Result<any, any>;
+
 export interface Result<OkType, ErrType> {
 	// Sync version - returns Result
 	map<NextOk>(
 		whenOk: (ok: OkType) => NextOk,
-	): [OkType] extends [never]
+	): IsNever<OkType> extends true
 		? Err<ErrType>
 		: NextOk extends Promise<infer NextOkType>
 			? ThenableResult<NextOkType, ErrType>
@@ -16,26 +33,26 @@ export interface Result<OkType, ErrType> {
 	// Sync version - returns Result
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => NextResult,
-	): [OkType] extends [never]
+	): IsNever<OkType> extends true
 		? Result<never, ErrType>
 		: Result<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	// Async version - returns ThenableResult
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
-	): [OkType] extends [never]
+	): IsNever<OkType> extends true
 		? ThenableResult<never, ErrOf<NextResult>>
 		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	mapErr<const NextErr>(
 		whenErr: (err: ErrType) => NextErr,
-	): [OkType] extends [never] ? Err<NextErr> : Result<OkType, NextErr>;
+	): IsNever<OkType> extends true ? Err<NextErr> : Result<OkType, NextErr>;
 
 	getOrElse<HandleFn extends UnaryFn<ErrType>>(
 		handle: HandleFn,
-	): [OkType] extends [never]
+	): IsNever<OkType> extends true
 		? ReturnType<HandleFn>
-		: [ErrType] extends [never]
+		: IsNever<ErrType> extends true
 			? OkType
 			: OkType | ReturnType<HandleFn>;
 }
@@ -45,31 +62,33 @@ export interface ThenableResult<OkType, ErrType>
 	// Sync version - returns ThenableResult
 	map<NextOk>(
 		whenOk: (ok: OkType) => NextOk,
-	): [OkType] extends [never]
+	): IsNever<OkType> extends true
 		? Err<ErrType>
 		: ThenableResult<Awaited<NextOk>, ErrType>;
 
 	// Sync version - returns ThenableResult
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => NextResult,
-	): [OkType] extends [never]
+	): IsNever<OkType> extends true
 		? ThenableResult<never, ErrOf<NextResult>>
 		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	// Async version - returns ThenableResult
 	flatMap<NextResult extends AnySync>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
-	): [OkType] extends [never]
+	): IsNever<OkType> extends true
 		? ThenableResult<never, ErrOf<NextResult>>
 		: ThenableResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
 
 	mapErr<const NextErr>(
 		whenErr: (err: ErrType) => NextErr,
-	): [OkType] extends [never] ? Err<NextErr> : ThenableResult<OkType, NextErr>;
+	): IsNever<OkType> extends true
+		? Err<NextErr>
+		: ThenableResult<OkType, NextErr>;
 
 	getOrElse<HandleFn extends UnaryFn<ErrType>>(
 		handle: HandleFn,
-	): [OkType] extends [never]
+	): IsNever<OkType> extends true
 		? Promise<ReturnType<HandleFn>>
 		: [ErrType] extends [never]
 			? Promise<OkType>
@@ -79,9 +98,6 @@ export interface ThenableResult<OkType, ErrType>
 	isOk(): this is Ok<OkType>;
 	isErr(): this is Err<ErrType>;
 }
-
-// biome-ignore lint/suspicious/noExplicitAny: any unary function
-type UnaryFn<I> = (value: I) => any;
 
 type Err<ErrType> = Result<never, ErrType>;
 type Ok<OkType> = Result<OkType, never>;
@@ -136,9 +152,6 @@ function createThenableResult<OkType, ErrType>(
 	return thenable as any;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
-type TooComplexOverloading = any;
-
 // helper function
 const isDev = process.env.NODE_ENV === "development";
 function freeze<T>(value: T): T {
@@ -166,8 +179,6 @@ function __getErrValue<ErrType>(result: AnySync): ErrType | null {
 
 	return __privateErrMap.get(result) as ErrType;
 }
-// biome-ignore lint/suspicious/noExplicitAny: any result
-type AnySync = Result<any, any>;
 
 export namespace Result {
 	export type AnyResult = AnySync;
@@ -272,13 +283,6 @@ export namespace Result {
 	type ListErrors<T extends readonly AnyResult[]> = {
 		[K in keyof T]: ErrOf<T[K]>;
 	};
-
-	type IsNever<T> = [T] extends [never] ? true : false;
-	type Or<A extends boolean, B extends boolean> = A extends true
-		? true
-		: B extends true
-			? true
-			: false;
 
 	type IsNarrowed<R> = R extends Result<infer Ok, infer Err>
 		? Or<IsNever<Ok>, IsNever<Err>>
