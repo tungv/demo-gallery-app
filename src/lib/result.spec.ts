@@ -252,7 +252,7 @@ describe("Result - Real-world scenarios", () => {
 
 		const userId = Result.Ok(10);
 
-		const json = userId.flatMapAsync(fetchUser);
+		const json = userId.flatMap(fetchUser);
 		const user = json.flatMap(parseUser);
 
 		const value = await user.getOrElse(always(null));
@@ -296,8 +296,8 @@ describe("Result - Async", () => {
 		const ten = Result.Ok(10);
 
 		const sqrt2 = ten
-			.flatMapAsync((x) => asyncDivide(x, 5))
-			.flatMapAsync((x) => asyncSqrt(x));
+			.flatMap((x) => asyncDivide(x, 5))
+			.flatMap((x) => asyncSqrt(x));
 
 		const value = await sqrt2.getOrElse(always(0));
 		expect(value).toBe(Math.sqrt(2));
@@ -306,20 +306,185 @@ describe("Result - Async", () => {
 	test("should allow await at any point in the chain", async () => {
 		const ten = Result.Ok(10);
 
-		const two = await ten.flatMapAsync((x) => asyncDivide(x, 5));
+		const two = await ten.flatMap((x) => asyncDivide(x, 5));
 
 		const four = two.map((x) => x * 2);
 
-		const eight = four.mapAsync(async (x) => x * 2);
+		const eight = four.map(async (x) => x * 2);
 		const get = await eight.getOrElse(always(0));
 		expect(get).toBe(8);
 	});
 
-	test("mapAsync", async () => {
+	test("async map", async () => {
 		const ten = Result.Ok(10);
-		const twenty = ten.mapAsync(async (x) => x * 2);
-		const five = twenty.flatMapAsync(async (x) => asyncDivide(x, 4));
+		const twenty = ten.map(async (x: number) => x * 2);
+
+		const five = twenty.flatMap((x: number) => asyncDivide(x, 4));
 		const value = await five.getOrElse(always(0));
 		expect(value).toBe(5);
+	});
+
+	test("generic flatMap with sync callback returns Result", () => {
+		const divide = (a: number, b: number) =>
+			b === 0 ? Result.Err("Division by zero") : Result.Ok(a / b);
+
+		const ten = Result.Ok(10);
+		const five = ten.flatMap((x) => divide(x, 2));
+
+		// Should be a regular Result, not a ThenableResult
+		// This should work synchronously
+		const value = five.getOrElse(always(0));
+		expect(value).toBe(5);
+	});
+
+	test("generic flatMap with async callback returns ThenableResult", async () => {
+		const ten = Result.Ok(10);
+		const five = ten.flatMap((x) => asyncDivide(x, 2));
+
+		// Should be a ThenableResult since asyncDivide returns Promise<Result>
+		// This means we can await it
+		const result = await five;
+		const value = result.getOrElse(always(0));
+		expect(value).toBe(5);
+	});
+
+	test("generic flatMap can chain sync and async operations", async () => {
+		const divide = (a: number, b: number) =>
+			b === 0 ? Result.Err("Division by zero") : Result.Ok(a / b);
+
+		const hundred = Result.Ok(100);
+
+		// Start with sync flatMap
+		const fifty = hundred.flatMap((x) => divide(x, 2));
+
+		// Chain with async flatMap
+		const five = fifty.flatMap((x) => asyncDivide(x, 10));
+
+		// Chain with another sync flatMap (after async, returns ThenableResult)
+		const one = five.flatMap((x) => divide(x, 5));
+
+		// Since we used async flatMap in the chain, we need to await
+		const result = await one;
+		const value = result.getOrElse(always(0));
+		expect(value).toBe(1);
+	});
+
+	test("generic flatMap in ThenableResult with sync callback", async () => {
+		const divide = (a: number, b: number) =>
+			b === 0 ? Result.Err("Division by zero") : Result.Ok(a / b);
+
+		const ten = Result.Ok(10);
+
+		// Start with async to get ThenableResult
+		const five = ten.flatMap((x) => asyncDivide(x, 2));
+
+		// Use sync callback on ThenableResult
+		const one = five.flatMap((x) => divide(x, 5));
+
+		const result = await one;
+		const value = result.getOrElse(always(0));
+		expect(value).toBe(1);
+	});
+
+	test("generic flatMap in ThenableResult with async callback", async () => {
+		const ten = Result.Ok(10);
+
+		// Start with async to get ThenableResult
+		const five = ten.flatMap((x) => asyncDivide(x, 2));
+
+		// Use async callback on ThenableResult
+		const sqrt5 = five.flatMap((x) => asyncSqrt(x));
+
+		const result = await sqrt5;
+		const value = result.getOrElse(always(0));
+		expect(value).toBeCloseTo(Math.sqrt(5));
+	});
+
+	test("generic map with sync callback returns Result", () => {
+		const ten = Result.Ok(10);
+		const twenty = ten.map((x) => x * 2);
+
+		// Should be a regular Result, not a ThenableResult
+		// This should work synchronously
+		const value = twenty.getOrElse(always(0));
+		expect(value).toBe(20);
+	});
+
+	test("generic map with async callback returns ThenableResult", async () => {
+		const ten = Result.Ok(10);
+		const twenty = ten.map(async (x: number) => x * 2);
+
+		// Should be a ThenableResult since callback returns Promise
+		// This means we can await it
+		const result = await twenty;
+
+		expect(result.getOrElse(always(0))).toBe(20);
+	});
+
+	test("generic map can chain sync and async operations", async () => {
+		const ten = Result.Ok(10);
+
+		// Start with sync map
+		const twenty = ten.map((x) => x * 2);
+
+		// Chain with async map
+		const forty = twenty.map(async (x: number) => x * 2);
+
+		// Chain with another sync map (after async, returns ThenableResult)
+		const eighty = forty.map((x: number) => x * 2);
+
+		// Since we used async map in the chain, we need to await
+		const result = await eighty;
+		const value = result.getOrElse(always(0));
+		expect(value).toBe(80);
+	});
+
+	test("generic map in ThenableResult with sync callback", async () => {
+		const ten = Result.Ok(10);
+
+		// Start with async to get ThenableResult
+		const twenty = ten.map(async (x: number) => x * 2);
+
+		// Use sync callback on ThenableResult
+		const forty = twenty.map((x: number) => x * 2);
+
+		const result = await forty;
+		expect(result.getOrElse(always(0))).toBe(40);
+	});
+
+	test("generic map in ThenableResult with async callback", async () => {
+		const ten = Result.Ok(10);
+
+		// Start with async to get ThenableResult
+		const twenty = ten.map(async (x: number) => x * 2);
+
+		// Use async callback on ThenableResult
+		const forty = twenty.map(async (x: number) => x * 2);
+
+		const result = await forty;
+
+		const get = result.getOrElse(always(0));
+
+		expect(get).toBe(40);
+	});
+
+	test("mixing generic map and flatMap with async", async () => {
+		const hundred = Result.Ok(100);
+
+		// Start with sync map
+		const fifty = hundred.map((x) => x / 2);
+
+		// Chain with async flatMap
+		const five = fifty.flatMap((x: number) => asyncDivide(x, 10));
+
+		// Chain with sync map (stays async)
+		const ten = five.map((x: number) => x * 2);
+
+		// Chain with async map
+		const twenty = ten.map(async (x: number) => x * 2);
+
+		const result = await twenty;
+
+		expect(result.getOrElse(always(0))).toBe(20);
 	});
 });
