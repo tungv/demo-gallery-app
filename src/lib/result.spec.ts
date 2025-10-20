@@ -521,6 +521,34 @@ describe("Result.all", () => {
 		expect(result.getOrElse(always(false))).toEqual([]);
 	});
 
+	test("mixed Ok and Err results", () => {
+		const results = [Result.Ok(1), Result.Err("error"), Result.Ok(3)] as Result<
+			number,
+			string
+		>[];
+
+		const result = Result.all(results);
+
+		// because we don't know if the result is Ok or Err, we need to cast
+		const error = result.getOrElse(
+			(err) => err,
+		) as Result.AggregatedResultError<string>;
+
+		expect(error.message).toBe("AggregatedResultError");
+		expect(error.getErrors()).toEqual(["error"]);
+	});
+
+	test("Ok only but not narrowed", () => {
+		const results = [Result.Ok(1), Result.Ok(2), Result.Ok(3)] as Result<
+			number,
+			string
+		>[];
+
+		const result = Result.all(results);
+		const array = result.getOrElse(always([]));
+		expect(array).toEqual([1, 2, 3]);
+	});
+
 	test("example with async and sync", async () => {
 		const results = [Result.Ok(1), Result.Ok(Promise.resolve(2))];
 

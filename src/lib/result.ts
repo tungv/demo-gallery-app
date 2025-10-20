@@ -168,11 +168,9 @@ function __getErrValue<ErrType>(result: AnySync): ErrType | null {
 }
 // biome-ignore lint/suspicious/noExplicitAny: any result
 type AnySync = Result<any, any>;
-// biome-ignore lint/suspicious/noExplicitAny: any thenable result
-type AnyThenable = ThenableResult<any, any>;
 
 export namespace Result {
-	export type AnyResult = AnySync | AnyThenable;
+	export type AnyResult = AnySync;
 
 	export type Thenable<OkType, ErrType> = ThenableResult<OkType, ErrType>;
 
@@ -275,11 +273,28 @@ export namespace Result {
 		[K in keyof T]: ErrOf<T[K]>;
 	};
 
+	type IsNever<T> = [T] extends [never] ? true : false;
+	type Or<A extends boolean, B extends boolean> = A extends true
+		? true
+		: B extends true
+			? true
+			: false;
+
+	type IsNarrowed<R> = R extends Result<infer Ok, infer Err>
+		? Or<IsNever<Ok>, IsNever<Err>>
+		: false;
+
+	type AllNarrowed<T extends readonly AnyResult[]> = {
+		[K in keyof T]: IsNarrowed<T[K]>;
+	}[number];
+
 	export function all<T extends readonly AnySync[]>(
 		results: T,
-	): [ListErrors<T>] extends [never[]]
-		? Ok<ListOk<T>>
-		: Err<AggregatedResultError<ListErrors<T>[number]>> {
+	): AllNarrowed<T> extends true
+		? [ListErrors<T>] extends [never[]]
+			? Ok<ListOk<T>>
+			: Err<AggregatedResultError<ListErrors<T>[number]>>
+		: Result<ListOk<T>, AggregatedResultError<ListErrors<T>[number]>> {
 		const okValues = results.map((result) => __getOkValue(result));
 
 		// if some value is not OK, return the first error
