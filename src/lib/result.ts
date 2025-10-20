@@ -131,6 +131,34 @@ function createThenableResult<OkType, ErrType>(
 // biome-ignore lint/suspicious/noExplicitAny: this is very complicated to type
 type TooComplex = any;
 
+// helper function
+const isDev = process.env.NODE_ENV === "development";
+function freeze<T>(value: T): T {
+	return isDev ? Object.freeze(value) : value;
+}
+
+// private map to store the value for internal access
+// biome-ignore lint/suspicious/noExplicitAny: any result
+type MapAnyResult = WeakMap<Result.AnyResult, any>;
+const __privateOkMap: MapAnyResult = new WeakMap();
+const __privateErrMap: MapAnyResult = new WeakMap();
+
+function __getOkValue<OkType>(result: Result.AnyResult): OkType | null {
+	if (!__privateOkMap.has(result)) {
+		return null;
+	}
+
+	return __privateOkMap.get(result) as OkType;
+}
+
+function __getErrValue<ErrType>(result: Result.AnyResult): ErrType | null {
+	if (!__privateErrMap.has(result)) {
+		return null;
+	}
+
+	return __privateErrMap.get(result) as ErrType;
+}
+
 export namespace Result {
 	// biome-ignore lint/suspicious/noExplicitAny: any result
 	export type AnyResult = Result<any, any>;
@@ -170,17 +198,25 @@ export namespace Result {
 			getOrElse: () => value as TooComplex,
 		};
 
-		return option as Ok<OkType>;
+		// freeze the option to prevent mutation
+		freeze(option);
+		__privateOkMap.set(option, value);
+
+		return option;
 	}
 
 	export function Err<const ErrType>(error: ErrType): Err<ErrType> {
-		const errResult = {
+		const errResult: Err<ErrType> = {
 			map: () => errResult,
-			flatMap: () => errResult,
+			flatMap: () => errResult as TooComplex,
 			mapErr: (whenErr: UnaryFn<ErrType>) => Result.Err(whenErr(error)),
 			getOrElse: (handle: UnaryFn<ErrType>) => handle(error),
 		};
-		return errResult as TooComplex;
+
+		freeze(errResult);
+		__privateErrMap.set(errResult, error);
+
+		return errResult;
 	}
 
 	export function tryCatch<RetType, ErrType = Error>(
@@ -191,5 +227,42 @@ export namespace Result {
 		} catch (error) {
 			return Result.Err(error as ErrType);
 		}
+	}
+
+	export class AggregatedResultError<ErrorTypes> extends Error {
+		constructor(private errors: ErrorTypes[]) {
+			super("AggregatedResultError");
+		}
+
+		public getErrors(): unknown[] {
+			return this.errors;
+		}
+	}
+
+	export function all<const Results extends Result.AnyResult[]>(
+		results: Results,
+	): Result<
+		OkOf<Results[number]>[],
+		AggregatedResultError<ErrOf<Results[number]>>
+	> {
+		const okValues = results.map((result) => __getOkValue(result));
+
+		// if some value is not OK, return the first error
+		if (okValues.some((value) => value === null)) {
+			const errors = results.flatMap((result) => {
+				const err = __getErrValue(result) as ErrOf<Results[number]>;
+				if (err === null) {
+					return [];
+				}
+				return [err];
+			});
+
+			const aggregatedErr = Result.Err(new AggregatedResultError(errors));
+
+			return aggregatedErr;
+		}
+
+		// everything is OK, return the values
+		return Result.Ok(okValues.map((value) => value as OkOf<Results[number]>));
 	}
 }

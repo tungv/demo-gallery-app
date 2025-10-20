@@ -488,3 +488,29 @@ describe("Result - Async", () => {
 		expect(result.getOrElse(always(0))).toBe(20);
 	});
 });
+
+describe("Result.all", () => {
+	test("should return Ok if all results are Ok", () => {
+		const results = [Result.Ok(1), Result.Ok(2), Result.Ok(3)];
+		const result = Result.all(results);
+		const array = result.getOrElse(always([]));
+		expect(array).toEqual([1, 2, 3]);
+	});
+
+	test("should return Err if any result is Err", () => {
+		const results = [
+			Result.Ok(1),
+			Result.Err("error_1"),
+			Result.Ok(3),
+			Result.Err("error_2"),
+		];
+		const result = Result.all(results);
+		const error = result.getOrElse((err) => err);
+
+		// we know that error is an AggregatedError
+		const aggregatedError = error as Result.AggregatedResultError<any>;
+
+		expect(aggregatedError.message).toBe("AggregatedResultError");
+		expect(aggregatedError.getErrors()).toEqual(["error_1", "error_2"]);
+	});
+});
