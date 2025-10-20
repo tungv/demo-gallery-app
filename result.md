@@ -297,4 +297,82 @@ const validateAll = (email: string) => {
 };
 ```
 
+## Static Methods
+
+The Result utility provides several static methods for working with collections of Results:
+
+### Result.all
+
+Combines multiple Results into a single Result. If all results are successful, returns `Ok` containing an array of all values. If any result fails, returns `Err` with an `AggregatedResultError` containing all the error values (successful values are ignored).
+
+```typescript
+// All results are successful
+const results = [Result.Ok(1), Result.Ok(2), Result.Ok(3)];
+const combined = Result.all(results);
+// Result.Ok([1, 2, 3])
+
+// Some results failed
+const mixedResults = [Result.Ok(1), Result.Err("error_1"), Result.Ok(3)];
+const combinedWithErrors = Result.all(mixedResults);
+// Result.Err(AggregatedResultError(["error_1"])) - only collects errors, ignores successful values
+
+// Empty array - always successful
+const empty = Result.all([]);
+// Result.Ok([])
+```
+
+### Result.every
+
+Returns `true` if all Results in the collection are successful (`Ok`), `false` otherwise.
+
+```typescript
+const results = [Result.Ok(1), Result.Ok(2), Result.Ok(3)];
+const allSuccessful = Result.every(results); // true
+
+const mixedResults = [Result.Ok(1), Result.Err("error"), Result.Ok(3)];
+const notAllSuccessful = Result.every(mixedResults); // false
+
+const allErrors = [Result.Err("error1"), Result.Err("error2")];
+const noSuccess = Result.every(allErrors); // false
+```
+
+### Result.some
+
+Returns `true` if at least one Result in the collection is successful (`Ok`), `false` if all are errors.
+
+```typescript
+const results = [Result.Err("error1"), Result.Ok(2), Result.Err("error3")];
+const hasSuccess = Result.some(results); // true
+
+const allErrors = [Result.Err("error1"), Result.Err("error2")];
+const noSuccess = Result.some(allErrors); // false
+
+const allSuccess = [Result.Ok(1), Result.Ok(2)];
+const allHaveSuccess = Result.some(allSuccess); // true
+```
+
+### Working with Async Operations
+
+These static methods work seamlessly with both synchronous and asynchronous Results:
+
+```typescript
+async function example() {
+  // Mix of sync and async results
+  const results = [
+    Result.Ok(1),
+    fetchDataAsync(), // Returns Promise<Result<number, string>>
+    Result.Ok(3),
+  ];
+
+  // Wait for all async operations to complete
+  const resolvedResults = await Promise.all(results);
+
+  // Then combine them
+  const combined = Result.all(resolvedResults);
+  const final = await combined.getOrElse((err) => []);
+
+  return final; // [1, fetchedData, 3] or error array
+}
+```
+
 This Result utility provides a robust foundation for type-safe error handling in TypeScript applications, especially useful in complex business logic where multiple failure modes need to be handled gracefully.
