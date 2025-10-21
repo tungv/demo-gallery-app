@@ -36,7 +36,7 @@ export default function EditIndividualPersonDialog() {
           const state = formData.get("state") as string;
           const zip = formData.get("zip") as string;
 
-          const success = await updatePersonByIdInStorage(id, {
+          const updateResult = await updatePersonByIdInStorage(id, {
             name,
             email,
             phone,
@@ -46,19 +46,27 @@ export default function EditIndividualPersonDialog() {
             zip,
           });
 
-          if (success) {
-            revalidatePath("/interactive-form-in-list");
-            return {
-              refresh: true,
-              result: "success",
-            };
-          }
+          return updateResult
+            .map((success) => {
+              if (success) {
+                revalidatePath("/interactive-form-in-list");
+                return {
+                  refresh: true,
+                  result: "success",
+                };
+              }
 
-          return {
-            errors: {
-              $: ["Failed to update person"],
-            },
-          };
+              // no rows updated
+              return { result: "success" };
+            })
+            .getOrElse((err) => {
+              switch (err.code) {
+                case "missing_id":
+                  return { errors: { "person-id": ["valueMissing"] } };
+                case "database_error":
+                  return { errors: { $: ["databaseError"] } };
+              }
+            });
         }}
       >
         <DialogHeader>

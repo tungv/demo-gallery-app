@@ -211,21 +211,43 @@ export interface NewPersonData {
 	zip?: string;
 }
 
+type DeletePersonError =
+	| {
+			code: "missing_id";
+	  }
+	| {
+			code: "database_error";
+			message: string;
+			cause: Error;
+	  };
+
+type AddPersonError =
+	| {
+			code: "missing_name";
+	  }
+	| {
+			code: "missing_email";
+	  }
+	| {
+			code: "database_error";
+			message: string;
+			cause: Error;
+	  };
+
 /**
  * Add a new person - business logic
  */
 export async function addPersonToStorage(
 	newPersonData: NewPersonData,
-): Promise<Person> {
-	try {
-		// Validate required fields
-		if (!newPersonData.name.trim()) {
-			throw new Error("Name is required");
-		}
-		if (!newPersonData.email.trim()) {
-			throw new Error("Email is required");
-		}
+): Promise<Result<Person, AddPersonError>> {
+	if (!newPersonData.name.trim()) {
+		return Result.Err({ code: "missing_name" });
+	}
+	if (!newPersonData.email.trim()) {
+		return Result.Err({ code: "missing_email" });
+	}
 
+	try {
 		await ensureTable();
 
 		const created_at = new Date().toISOString();
@@ -257,7 +279,7 @@ export async function addPersonToStorage(
 		`;
 
 		const row = result.rows[0];
-		return {
+		return Result.Ok({
 			id: row.id,
 			name: row.name,
 			email: row.email,
@@ -268,10 +290,14 @@ export async function addPersonToStorage(
 			zip: row.zip || "",
 			voteCount: row.vote_count || 0,
 			created_at: row.created_at,
-		};
+		});
 	} catch (error) {
 		console.error("Error adding person:", error);
-		throw new Error("Failed to add person");
+		return Result.Err({
+			code: "database_error",
+			message: "Failed to add person",
+			cause: error as Error,
+		});
 	}
 }
 
@@ -280,26 +306,23 @@ export async function addPersonToStorage(
  */
 export async function addPeopleToStorage(
 	newPeopleData: NewPersonData[],
-): Promise<Person[]> {
+): Promise<Result<Person[], AddPersonError[]>> {
 	const addedPeople: Person[] = [];
+	const errors: AddPersonError[] = [];
 
 	for (const personData of newPeopleData) {
-		const person = await addPersonToStorage(personData);
-		addedPeople.push(person);
+		const result = await addPersonToStorage(personData);
+		result
+			.map((person) => addedPeople.push(person))
+			.getOrElse((err) => errors.push(err));
 	}
 
-	return addedPeople;
-}
+	if (errors.length > 0) {
+		return Result.Err(errors);
+	}
 
-type DeletePersonError =
-	| {
-			code: "missing_id";
-	  }
-	| {
-			code: "database_error";
-			message: string;
-			cause: Error;
-	  };
+	return Result.Ok(addedPeople);
+}
 
 /**
  * Delete a single person by ID - business logic
@@ -330,18 +353,23 @@ export async function deletePersonFromStorage(
 	}
 }
 
-/**
- * Delete multiple people by their IDs - business logic
- */
-export async function deletePeopleFromStorage(ids: string[]): Promise<number> {
+type DeletePeopleError = {
+	code: "database_error";
+	message: string;
+	cause: Error;
+};
+
+export async function deletePeopleFromStorage(
+	ids: string[],
+): Promise<Result<number, DeletePeopleError>> {
 	try {
 		if (!ids.length) {
-			return 0;
+			return Result.Ok(0);
 		}
 
 		const trimmedIds = ids.map((id) => id.trim()).filter((id) => id);
 		if (!trimmedIds.length) {
-			return 0;
+			return Result.Ok(0);
 		}
 
 		await ensureTable();
@@ -358,12 +386,26 @@ export async function deletePeopleFromStorage(ids: string[]): Promise<number> {
 			deletedCount += result.rowCount ?? 0;
 		}
 
-		return deletedCount;
+		return Result.Ok(deletedCount);
 	} catch (error) {
 		console.error("Error deleting people:", error);
-		throw new Error("Failed to delete people");
+		return Result.Err({
+			code: "database_error",
+			message: "Failed to delete people",
+			cause: error as Error,
+		});
 	}
 }
+
+type UpdatePersonError =
+	| {
+			code: "missing_id";
+	  }
+	| {
+			code: "database_error";
+			message: string;
+			cause: Error;
+	  };
 
 /**
  * update a person by id
@@ -371,9 +413,9 @@ export async function deletePeopleFromStorage(ids: string[]): Promise<number> {
 export async function updatePersonByIdInStorage(
 	id: string,
 	person: Partial<Person>,
-): Promise<boolean> {
+): Promise<Result<boolean, UpdatePersonError>> {
 	if (!id.trim()) {
-		throw new Error("Person ID is required");
+		return Result.Err({ code: "missing_id" });
 	}
 
 	try {
@@ -393,21 +435,32 @@ export async function updatePersonByIdInStorage(
 			WHERE id = ${Number.parseInt(id.trim())}
 		`;
 
-		return (result.rowCount ?? 0) > 0;
+		return Result.Ok((result.rowCount ?? 0) > 0);
 	} catch (error) {
 		console.error("Error updating person:", error);
-		throw new Error("Failed to update person");
+		return Result.Err({
+			code: "database_error",
+			message: "Failed to update person",
+			cause: error as Error,
+		});
 	}
 }
 
-/**
- * Increment vote count for a person by ID - business logic
- */
+type IncrementVoteError =
+	| {
+			code: "missing_id";
+	  }
+	| {
+			code: "database_error";
+			message: string;
+			cause: Error;
+	  };
+
 export async function incrementVoteCountByIdInStorage(
 	id: string,
-): Promise<boolean> {
+): Promise<Result<boolean, IncrementVoteError>> {
 	if (!id.trim()) {
-		throw new Error("Person ID is required");
+		return Result.Err({ code: "missing_id" });
 	}
 
 	try {
@@ -419,9 +472,13 @@ export async function incrementVoteCountByIdInStorage(
 			WHERE id = ${Number.parseInt(id.trim())}
 		`;
 
-		return (result.rowCount ?? 0) > 0;
+		return Result.Ok((result.rowCount ?? 0) > 0);
 	} catch (error) {
 		console.error("Error incrementing vote count:", error);
-		throw new Error("Failed to increment vote count");
+		return Result.Err({
+			code: "database_error",
+			message: "Failed to increment vote count",
+			cause: error as Error,
+		});
 	}
 }

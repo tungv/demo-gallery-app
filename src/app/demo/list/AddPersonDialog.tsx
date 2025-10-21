@@ -26,6 +26,7 @@ import type { NewPersonData } from "./actions";
 import { addPersonToStorage } from "./data-store";
 import { AutoCloseDialog } from "./PeopleListDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { revalidatePath } from "next/cache";
 
 // Random data generator
 function generateRandomPersonData(): NewPersonData {
@@ -179,20 +180,26 @@ export default function AddPersonDialogContent() {
 
             const shouldCreateMore = formData.has("create_more");
 
-            try {
-              await addPersonToStorage(newPersonData);
-              return {
-                refresh: true,
-                result: shouldCreateMore ? undefined : "success",
-              };
-            } catch (error) {
-              console.error(error);
-              return {
-                errors: {
-                  $: ["Failed to add person"],
-                },
-              };
-            }
+            const addResult = await addPersonToStorage(newPersonData);
+
+            return addResult
+              .map(() => {
+                revalidatePath("/demo/list");
+                return {
+                  refresh: true,
+                  result: shouldCreateMore ? undefined : "success",
+                };
+              })
+              .getOrElse((err) => {
+                switch (err.code) {
+                  case "missing_name":
+                    return { errors: { new_person_name: ["valueMissing"] } };
+                  case "missing_email":
+                    return { errors: { new_person_email: ["valueMissing"] } };
+                  case "database_error":
+                    return { errors: { $: ["databaseError"] } };
+                }
+              });
           }}
         >
           <div className="grid grid-cols-2 gap-4">

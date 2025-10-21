@@ -19,6 +19,7 @@ import SelectedPeopleNameList from "./SelectedPeopleNameList";
 import { deletePeopleByIds } from "./actions";
 import { GridCurrentSelectedRowsFormField } from "@/components/ui/grid-list";
 import { AutoCloseDialog } from "./PeopleListDialog";
+import { revalidatePath } from "next/cache";
 
 export default function DeleteMultiplePeopleDialog() {
   return (
@@ -27,11 +28,21 @@ export default function DeleteMultiplePeopleDialog() {
       action={async (formData) => {
         "use server";
         const selected = formData.getAll("deleting-id-array") as string[];
-        await deletePeopleByIds(selected);
-        return {
-          refresh: true,
-          result: "success",
-        };
+        const deleteResult = await deletePeopleByIds(selected);
+
+        return deleteResult
+          .map((deletedCount) => {
+            if (deletedCount > 0) {
+              revalidatePath("/demo/list");
+              return { refresh: true, result: "success" };
+            }
+
+            // no one was deleted
+            return { result: "success" };
+          })
+          .getOrElse((err) => {
+            return { errors: { $: ["databaseError"] } };
+          });
       }}
     >
       <DialogHeader>
