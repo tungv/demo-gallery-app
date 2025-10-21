@@ -360,7 +360,7 @@ async function example() {
   // Mix of sync and async results
   const results = [
     Result.Ok(1),
-    fetchDataAsync(), // Returns Promise<Result<number, string>>
+    fetchDataAsync(), // Returns FutureResult<number, string> or Promise<Result<number, string>>
     Result.Ok(3),
   ];
 
