@@ -38,7 +38,7 @@ import {
   SubmitMessage,
   SubmitButton,
 } from "@/components/behaviors/interactive-form";
-import { incrementVoteCount } from "./actions";
+import { incrementVoteCount, incrementVoteCountById } from "./actions";
 import {
   PeopleListDialog,
   PeopleListDialogContent,
@@ -57,6 +57,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Result } from "@/lib/result";
 
 export const dynamic = "force-dynamic";
 
@@ -164,7 +165,31 @@ function CheckBox({
 function ActionsCell() {
   return (
     <div className="flex items-center bg-white/90 rounded-md focus-within:shadow-sm">
-      <InteractiveForm action={incrementVoteCount}>
+      <InteractiveForm
+        action={async (formData) => {
+          "use server";
+
+          const id = formData.get("voting-for") as string;
+          if (!id) {
+            return { errors: { "voting-for": ["valueMissing"] } };
+          }
+
+          const result = await incrementVoteCountById(id);
+
+          return result
+            .map(() => {
+              return { refresh: true, result: "success" };
+            })
+            .getOrElse((err) => {
+              switch (err.code) {
+                case "missing_id":
+                  return { errors: { "voting-for": ["valueMissing"] } };
+                case "database_error":
+                  return { errors: { $: ["databaseError"] } };
+              }
+            });
+        }}
+      >
         <CurrentRowIdFormField name="voting-for" />
         <SubmitButton asChild>
           <Button variant="ghost" title="Vote for person">
