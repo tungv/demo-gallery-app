@@ -1,3 +1,4 @@
+import { Result } from "@/lib/result";
 import { sql } from "@vercel/postgres";
 
 export interface Person {
@@ -290,15 +291,27 @@ export async function addPeopleToStorage(
 	return addedPeople;
 }
 
+type DeletePersonError =
+	| {
+			code: "missing_id";
+	  }
+	| {
+			code: "database_error";
+			message: string;
+			cause: Error;
+	  };
+
 /**
  * Delete a single person by ID - business logic
  */
-export async function deletePersonFromStorage(id: string): Promise<boolean> {
-	try {
-		if (!id.trim()) {
-			throw new Error("Person ID is required");
-		}
+export async function deletePersonFromStorage(
+	id: string,
+): Promise<Result<boolean, DeletePersonError>> {
+	if (!id.trim()) {
+		return Result.Err({ code: "missing_id" });
+	}
 
+	try {
 		await ensureTable();
 
 		const result = await sql`
@@ -306,10 +319,14 @@ export async function deletePersonFromStorage(id: string): Promise<boolean> {
 			WHERE id = ${Number.parseInt(id.trim())}
 		`;
 
-		return (result.rowCount ?? 0) > 0;
+		return Result.Ok((result.rowCount ?? 0) > 0);
 	} catch (error) {
 		console.error("Error deleting person:", error);
-		throw new Error("Failed to delete person");
+		return Result.Err({
+			code: "database_error",
+			message: "Failed to delete person",
+			cause: error as Error,
+		});
 	}
 }
 

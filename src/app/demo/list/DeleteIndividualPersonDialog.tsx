@@ -27,9 +27,26 @@ export default function DeleteIndividualPersonDialog() {
       action={async (formData) => {
         "use server";
         const selected = formData.get("deleting-id") as string;
-        await deletePersonById(selected);
-        revalidatePath("/interactive-form-in-list");
-        return { refresh: true, result: "success" };
+        const deleteResult = await deletePersonById(selected);
+
+        return deleteResult
+          .map((ok) => {
+            if (ok) {
+              revalidatePath("/interactive-form-in-list");
+              return { refresh: true, result: "success" };
+            }
+
+            // no one is deleted, no need to refresh
+            return { result: "success" };
+          })
+          .getOrElse((err) => {
+            switch (err.code) {
+              case "missing_id":
+                return { errors: { "deleting-id": ["valueMissing"] } };
+              case "database_error":
+                return { errors: { $: ["databaseError"] } };
+            }
+          });
       }}
     >
       <DialogHeader>

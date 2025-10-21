@@ -53,13 +53,8 @@ export async function deletePerson(formData: FormData) {
 /**
  * Delete a single person by ID (for programmatic use)
  */
-export async function deletePersonById(id: string) {
-	try {
-		return await deletePersonFromStorage(id);
-	} catch (error) {
-		console.error("Error in deletePersonById action:", error);
-		throw error;
-	}
+export function deletePersonById(id: string) {
+	return deletePersonFromStorage(id);
 }
 
 /**
