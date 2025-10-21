@@ -22,6 +22,9 @@ type TooComplexOverloading = any;
 // biome-ignore lint/suspicious/noExplicitAny: any result
 type AnySync = Result<any, any>;
 
+// biome-ignore lint/suspicious/noExplicitAny: any result
+export type AnyFuture = FutureResult<any, any>;
+
 export interface Result<OkType, ErrType> {
 	// Sync version - returns Result
 	map<NextOk>(
@@ -69,18 +72,18 @@ export interface FutureResult<OkType, ErrType>
 		: FutureResult<Awaited<NextOk>, ErrType>;
 
 	// Sync version - returns FutureResult
-	flatMap<NextResult extends AnySync>(
+	flatMap<NextResult extends AnySync | AnyFuture>(
 		whenOk: (ok: OkType) => NextResult,
 	): IsNever<OkType> extends true
 		? FutureErr<ErrOf<NextResult>>
-		: FutureResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
+		: FutureResult<GenericOkOf<NextResult>, ErrType | GenericErrOf<NextResult>>;
 
 	// Async version - returns FutureResult
-	flatMap<NextResult extends AnySync>(
+	flatMap<NextResult extends AnySync | AnyFuture>(
 		whenOk: (ok: OkType) => Promise<NextResult>,
 	): IsNever<OkType> extends true
 		? FutureErr<ErrOf<NextResult>>
-		: FutureResult<OkOf<NextResult>, ErrType | ErrOf<NextResult>>;
+		: FutureResult<GenericOkOf<NextResult>, ErrType | GenericErrOf<NextResult>>;
 
 	mapErr<const NextErr>(
 		whenErr: (err: ErrType) => NextErr,
@@ -109,6 +112,27 @@ type ErrOf<ResultType> = ResultType extends Result<infer OkType, infer ErrType>
 type OkOf<ResultType> = ResultType extends Result<infer OkType, infer ErrType>
 	? OkType
 	: never;
+
+type FutureOkOf<ResultType> = ResultType extends FutureResult<
+	infer OkType,
+	infer ErrType
+>
+	? OkType
+	: never;
+
+type FutureErrOf<ResultType> = ResultType extends FutureResult<
+	infer OkType,
+	infer ErrType
+>
+	? ErrType
+	: never;
+
+type GenericOkOf<ResultType> = ResultType extends AnySync
+	? OkOf<ResultType>
+	: FutureOkOf<ResultType>;
+type GenericErrOf<ResultType> = ResultType extends AnySync
+	? ErrOf<ResultType>
+	: FutureErrOf<ResultType>;
 
 function createFutureResult<OkType, ErrType>(
 	promise: Promise<Result<OkType, ErrType>>,
@@ -263,14 +287,37 @@ export namespace Result {
 		return errResult as TooComplexOverloading;
 	}
 
-	export function tryCatch<RetType, ErrType = Error>(
+	export function fromCallback<RetType, ErrType = Error>(
 		fn: () => RetType,
-	): Result<RetType, ErrType> {
+	): RetType extends Promise<infer AsyncRetType>
+		? FutureResult<AsyncRetType, ErrType>
+		: Result<RetType, ErrType> {
 		try {
-			return Result.Ok(fn()) as TooComplexOverloading;
+			const result = fn();
+
+			// Handle async functions that return promises
+			if (result instanceof Promise) {
+				const futureResult = result
+					.then((value) => Result.Ok(value))
+					.catch((error) => Result.Err(error as ErrType));
+
+				return createFutureResult(futureResult) as TooComplexOverloading;
+			}
+
+			return Result.Ok(result) as TooComplexOverloading;
 		} catch (error) {
 			return Result.Err(error as ErrType) as TooComplexOverloading;
 		}
+	}
+
+	export function fromPromise<OkType, ErrType = Error>(
+		promise: Promise<OkType>,
+	): FutureResult<OkType, ErrType> {
+		const futureResult = promise
+			.then((value) => Result.Ok(value) as Ok<OkType>)
+			.catch((error) => Result.Err(error) as Err<ErrType>);
+
+		return createFutureResult(futureResult);
 	}
 
 	export class AggregatedResultError<ErrorTypes> extends Error {

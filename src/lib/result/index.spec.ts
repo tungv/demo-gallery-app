@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Result } from "./result";
+import { Result } from "./index";
 
 function always<const T>(value: T) {
 	return () => value;
@@ -251,7 +251,7 @@ describe("Result - Real-world scenarios", () => {
 		}
 
 		function parseUser(json: string) {
-			return Result.tryCatch<User>(() => JSON.parse(json)).mapErr(
+			return Result.fromCallback<User>(() => JSON.parse(json)).mapErr(
 				always("parse_error"),
 			);
 		}
@@ -589,5 +589,214 @@ describe("Result.all", () => {
 			const some = Result.some(results);
 			expect(some).toBe(false);
 		});
+	});
+});
+
+describe("Result.fromCallback", () => {
+	test("should handle successful synchronous callbacks", () => {
+		const result = Result.fromCallback(() => 42);
+		expect(result.getOrElse(always(0))).toBe(42);
+	});
+
+	test("should handle errors in synchronous callbacks", () => {
+		const result = Result.fromCallback<number, string>(() => {
+			throw new Error("Something went wrong");
+		});
+
+		const error = result.getOrElse((err) => err);
+		expect(error).toBeInstanceOf(Error);
+	});
+
+	test("should handle successful async callbacks", async () => {
+		const result = Result.fromCallback(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			return 42;
+		});
+
+		const value = await result.getOrElse(always(0));
+		expect(value).toBe(42);
+	});
+
+	test("should handle errors in async callbacks", async () => {
+		const result = Result.fromCallback(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			throw new Error("Async error");
+		});
+
+		const error = await result.getOrElse((err) => err);
+		expect(error).toBeInstanceOf(Error);
+	});
+
+	test("should work with JSON parsing", () => {
+		const result = Result.fromCallback<{ name: string }>(() =>
+			JSON.parse('{"name": "John"}'),
+		);
+
+		const value = result.getOrElse(always({ name: "" }));
+		expect(value).toEqual({ name: "John" });
+	});
+
+	test("should catch JSON parsing errors", () => {
+		const result = Result.fromCallback<{ name: string }>(() =>
+			JSON.parse("{invalid json}"),
+		);
+
+		const error = result.getOrElse((err) => err);
+		expect(error).toBeInstanceOf(Error);
+	});
+
+	test("should work with async API calls", async () => {
+		const fetchUser = async (id: number) => {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			return { id, name: `User ${id}` };
+		};
+
+		const result = Result.fromCallback(() => fetchUser(123));
+		const value = await result.getOrElse(always(null));
+
+		expect(value).toEqual({ id: 123, name: "User 123" });
+	});
+
+	test("should handle custom error types", () => {
+		type CustomError = { code: number; message: string };
+
+		const result = Result.fromCallback<number, CustomError>(() => {
+			throw { code: 404, message: "Not Found" };
+		});
+
+		const error = result.getOrElse((err) => err);
+		expect(error).toEqual({ code: 404, message: "Not Found" });
+	});
+
+	test("should allow chaining with map", async () => {
+		const result = Result.fromCallback(async () => 10);
+
+		const doubled = result.map((x) => x * 2);
+		const value = await doubled.getOrElse(always(0));
+
+		expect(value).toBe(20);
+	});
+
+	test("should allow chaining with flatMap", async () => {
+		const divide = (a: number, b: number) =>
+			b === 0 ? Result.Err("Division by zero") : Result.Ok(a / b);
+
+		const result = Result.fromCallback(async () => 20);
+		const divided = result.flatMap((x) => divide(x, 4));
+
+		const value = await divided.getOrElse(always(0));
+		expect(value).toBe(5);
+	});
+});
+
+describe("Result.fromPromise", () => {
+	test("should handle resolved promises", async () => {
+		const promise = Promise.resolve(42);
+		const result = Result.fromPromise(promise);
+
+		const value = await result.getOrElse(always(0));
+		expect(value).toBe(42);
+	});
+
+	test("should handle rejected promises", async () => {
+		const promise = Promise.reject(new Error("Promise rejected"));
+		const result = Result.fromPromise<number>(promise);
+
+		const error = await result.getOrElse((err) => err);
+		expect(error).toBeInstanceOf(Error);
+	});
+
+	test("should work with fetch-like APIs", async () => {
+		const mockFetch = (url: string) => {
+			if (url.includes("success")) {
+				return Promise.resolve({ data: "Success" });
+			}
+			return Promise.reject(new Error("Network error"));
+		};
+
+		// Success case
+		const successResult = Result.fromPromise(
+			mockFetch("https://api.com/success"),
+		);
+		const successValue = await successResult.getOrElse(always({ data: "" }));
+		expect(successValue).toEqual({ data: "Success" });
+
+		// Error case
+		const errorResult = Result.fromPromise(mockFetch("https://api.com/fail"));
+		const errorValue = await errorResult.getOrElse((err) => err);
+		expect(errorValue).toBeInstanceOf(Error);
+	});
+
+	test("should handle async operations with delays", async () => {
+		const delayedPromise = new Promise<string>((resolve) => {
+			setTimeout(() => resolve("Delayed value"), 10);
+		});
+
+		const result = Result.fromPromise(delayedPromise);
+		const value = await result.getOrElse(always(""));
+
+		expect(value).toBe("Delayed value");
+	});
+
+	test("should allow chaining with map", async () => {
+		const promise = Promise.resolve(10);
+		const result = Result.fromPromise(promise);
+
+		const doubled = result.map((x) => x * 2);
+		const value = await doubled.getOrElse(always(0));
+
+		expect(value).toBe(20);
+	});
+
+	test("should allow chaining with flatMap", async () => {
+		const divide = (a: number, b: number) =>
+			b === 0 ? Result.Err("Division by zero") : Result.Ok(a / b);
+
+		const promise = Promise.resolve(20);
+		const result = Result.fromPromise(promise);
+		const divided = result.flatMap((x) => divide(x, 4));
+
+		const value = await divided.getOrElse(always(0));
+		expect(value).toBe(5);
+	});
+
+	test("should handle custom error types", async () => {
+		type ApiError = { status: number; message: string };
+
+		const promise = Promise.reject({ status: 500, message: "Server Error" });
+		const result = Result.fromPromise<unknown, ApiError>(promise);
+
+		const error = await result.getOrElse((err) => err);
+		expect(error).toEqual({ status: 500, message: "Server Error" });
+	});
+
+	test("should handle multiple promises with async/await", async () => {
+		const promise1 = Promise.resolve(10 as const);
+		const promise2 = Promise.resolve(20 as const);
+
+		const result1 = Result.fromPromise(promise1);
+		const result2 = Result.fromPromise(promise2);
+
+		const sum = result1.flatMap((x) => result2.map((y) => x + y));
+
+		const value = await sum.getOrElse(always(0));
+		expect(value).toBe(30);
+	});
+
+	test("should work with native promises (e.g., setTimeout)", async () => {
+		const timeoutPromise = new Promise<number>((resolve, reject) => {
+			setTimeout(() => {
+				if (Math.random() > -1) {
+					resolve(100);
+				} else {
+					reject(new Error("Timeout"));
+				}
+			}, 10);
+		});
+
+		const result = Result.fromPromise(timeoutPromise);
+		const value = await result.getOrElse(always(0));
+
+		expect(value).toBe(100);
 	});
 });
