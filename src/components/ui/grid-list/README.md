@@ -5,9 +5,13 @@ A comprehensive grid list component with selection support, keyboard navigation,
 ## Features
 
 - Supports single and multiple selection modes
-- Keyboard navigation with arrow keys and spacebar
-- Focus management and tab order
+- Shift-click range selection in rendered row order
+- Composite rows that select the data rows they represent
+- Keyboard navigation across rows and their interactive controls
+- Disclosure-friendly row event composition
+- One managed tab stop without hidden focus sentinels
 - Read-only and disabled row states
+- Semantic grid, row-group, row, header, and cell roles
 - Sortable column headers
 - Form integration with hidden inputs
 - WAI-ARIA compliant grid pattern
@@ -129,14 +133,15 @@ Container for grid footer content and actions.
 
 A row in the grid that can be selected and focused.
 
-| Prop        | Type      | Default     | Description                   |
-| ----------- | --------- | ----------- | ----------------------------- |
-| `rowId`     | `string`  | `undefined` | Unique identifier for the row |
-| `asChild`   | `boolean` | `false`     | Render as child component     |
-| `readOnly`  | `boolean` | `false`     | Whether the row is read-only  |
-| `disabled`  | `boolean` | `false`     | Whether the row is disabled   |
-| `rowData`   | `unknown` | `undefined` | Associated data for the row   |
-| `className` | `string`  | `undefined` | CSS classes for styling       |
+| Prop           | Type                | Default     | Description                                                |
+| -------------- | ------------------- | ----------- | ---------------------------------------------------------- |
+| `rowId`        | `string`            | `undefined` | Unique identifier for the row                              |
+| `asChild`      | `boolean`           | `false`     | Render as child component                                  |
+| `readOnly`     | `boolean`           | `false`     | Whether the row is read-only                               |
+| `disabled`     | `boolean`           | `false`     | Whether the row is disabled                                |
+| `rowData`      | `unknown`           | `undefined` | Associated data for the row                                |
+| `selectionIds` | `readonly string[]` | `undefined` | Data-row IDs represented by a composite or collapsed row   |
+| `className`    | `string`            | `undefined` | CSS classes for styling                                    |
 
 ### GridListColumnHeader
 
@@ -193,11 +198,12 @@ An accessible caption/description for the grid.
 
 The root component for selection indicators (checkboxes).
 
-| Prop            | Type     | Default      | Description                          |
-| --------------- | -------- | ------------ | ------------------------------------ |
-| `selectLabel`   | `string` | `"Select"`   | Accessible label for select action   |
-| `deselectLabel` | `string` | `"Deselect"` | Accessible label for deselect action |
-| `className`     | `string` | `undefined`  | CSS classes for styling              |
+| Prop              | Type                         | Default      | Description                                  |
+| ----------------- | ---------------------------- | ------------ | -------------------------------------------- |
+| `selectLabel`     | `string`                     | `"Select"`   | Accessible label for select action           |
+| `deselectLabel`   | `string`                     | `"Deselect"` | Accessible label for deselect action         |
+| `onCheckedChange` | `(checked: boolean) => void` | `undefined`  | Runs after the row selection state is changed |
+| `className`       | `string`                     | `undefined`  | CSS classes for styling                      |
 
 ### GridListItemSelectedIndicator
 
@@ -480,14 +486,17 @@ Adheres to the [WAI-ARIA Grid Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/
 
 ### Keyboard Interactions
 
-| Key             | Description                          |
-| --------------- | ------------------------------------ |
-| `Tab`           | Moves focus into and out of the grid |
-| `Arrow Keys`    | Navigate between grid cells          |
-| `Space`         | Toggle row selection                 |
-| `Shift + Space` | Extend selection (multiple mode)     |
-| `Ctrl/Cmd + A`  | Select all rows (multiple mode)      |
-| `Escape`        | Clear selection                      |
+| Input             | Description                                               |
+| ----------------- | --------------------------------------------------------- |
+| `Tab` / `Shift+Tab` | Moves focus into and out of the grid                    |
+| `Up` / `Down`     | Moves between visible, enabled rows                        |
+| `Left` / `Right`  | Moves between the row and its interactive controls         |
+| `Home` / `End`    | Moves to the first or last row                             |
+| `PageUp` / `PageDown` | Moves ten rows                                        |
+| `Space`           | Toggles selection when the row itself is focused            |
+| `Shift+click`     | Extends checkbox selection from the previous selection anchor |
+| `Ctrl/Cmd+A`      | Selects all eligible rows in multiple mode                  |
+| `Escape`          | Clears editable selections                                  |
 
 ### Screen Reader Support
 
@@ -497,6 +506,46 @@ Adheres to the [WAI-ARIA Grid Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/
 - Focus changes are announced appropriately
 
 ## Advanced Usage
+
+### Disclosure and composite rows
+
+A disclosure summary can stay a single visual row while representing several data
+rows. Pass their IDs through `selectionIds`; selecting the summary or Shift-clicking
+across it includes every represented ID. Mark the summary `readOnly` when it should
+not submit its own synthetic row ID.
+
+```tsx
+const ids = ["detail-a", "detail-b"];
+
+<GridListRow
+  rowId="stack-summary"
+  selectionIds={ids}
+  readOnly
+  onKeyDown={(event) => {
+    if (event.key === "Enter" && event.target === event.currentTarget) {
+      event.preventDefault();
+      setOpen((value) => !value);
+    }
+  }}
+>
+  <GridListCell>
+    <GridListItemIndicatorRoot
+      onCheckedChange={(checked) => checked && setOpen(true)}
+    />
+  </GridListCell>
+  <GridListRowHeader>Two-row stack</GridListRowHeader>
+  <GridListCell>
+    <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+      Toggle details
+    </button>
+  </GridListCell>
+</GridListRow>
+```
+
+Grid-level keyboard handling respects `event.preventDefault()`, so a row can own
+Enter or another key without the parent grid handling it a second time. Collapsed
+rows that remain mounted are excluded from roving focus and range selection follows
+the rendered DOM order rather than effect-registration order.
 
 ### Custom Selection Indicators
 

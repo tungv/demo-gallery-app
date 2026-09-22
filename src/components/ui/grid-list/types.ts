@@ -7,6 +7,8 @@ export type GridDataState = {
 		readOnly?: boolean;
 		disabled?: boolean;
 		data?: unknown;
+		/** Data row IDs represented by a composite row during range selection. */
+		selectionIds?: readonly string[];
 	}>;
 };
 
@@ -17,6 +19,7 @@ export type GridDataAction =
 			readOnly?: boolean;
 			disabled?: boolean;
 			data?: unknown;
+			selectionIds?: readonly string[];
 	  }
 	| {
 			type: "removeRow";
@@ -28,6 +31,7 @@ export type GridDataAction =
 			readOnly?: boolean;
 			disabled?: boolean;
 			data?: unknown;
+			selectionIds?: readonly string[];
 	  };
 
 // Selection State Types - for managing selection
@@ -69,6 +73,8 @@ export type SelectionAction =
 // Grid State Types - for managing focus and navigation (selection removed)
 export type GridState = {
 	lastFocusedRowId: string | null;
+	/** Checkbox range anchor; kept separate so pointer selection does not move focus. */
+	lastSelectionAnchorId: string | null;
 	isFocusWithinContainer: boolean;
 	cycleRowFocus: boolean;
 	name?: string;
@@ -84,6 +90,10 @@ export type GridAction =
 	| {
 			type: "setFocusWithinContainer";
 			isFocusWithinContainer: boolean;
+	  }
+	| {
+			type: "setLastSelectionAnchor";
+			rowId: string | null;
 	  };
 
 // Grid Labeling State Types - for managing ARIA labels and descriptions
@@ -165,6 +175,8 @@ export type GridListRowProps = {
 	readOnly?: boolean;
 	disabled?: boolean;
 	rowData?: unknown;
+	/** Data row IDs represented by a composite row such as a collapsed stack. */
+	selectionIds?: readonly string[];
 } & React.HTMLAttributes<HTMLDivElement>;
 
 // FIXME: HIGH PRIORITY - Add cell component types for proper WAI-ARIA grid structure

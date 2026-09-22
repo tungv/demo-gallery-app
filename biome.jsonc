@@ -13,6 +13,18 @@
 		"enabled": true,
 		"indentStyle": "tab"
 	},
+	"overrides": [
+		{
+			"include": [
+				"package.json",
+				"src/components/ui/grid-list/components.tsx",
+				"src/components/ui/grid-list/index.tsx"
+			],
+			"formatter": {
+				"indentStyle": "space"
+			}
+		}
+	],
 	"organizeImports": {
 		"enabled": true
 	},
