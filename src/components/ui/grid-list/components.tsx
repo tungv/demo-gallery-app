@@ -3,61 +3,60 @@
 import { cn } from "@/lib/utils";
 import { Slot } from "@radix-ui/react-slot";
 import {
+  memo,
+  use,
+  useCallback,
   useContext,
   useEffect,
   useId,
-  useCallback,
-  memo,
   useMemo,
-  useState,
   useRef,
-  use,
+  useState,
 } from "react";
-import type { FormEventHandler, HTMLAttributes } from "react";
-import useEffectEvent from "../use-effect-event";
+import type { FormEventHandler, HTMLAttributes, MouseEvent } from "react";
 import { Checkbox } from "../checkbox";
+import {
+  useGridListKeyboardHandlers,
+  useGridListTabIndexManager,
+  useHandleSpacebar,
+  useRegisterRow,
+} from "./hooks";
+import {
+  ControlledValueContext,
+  GridAccessibilityContext,
+  GridContentContext,
+  GridDataProvider,
+  GridLabelingProvider,
+  GridListBodyContext,
+  GridListStateProvider,
+  RowContext,
+  SelectionIndicatorContext,
+  SelectionStateProvider,
+  selectionIdsInRange,
+  selectionReducer,
+  useGridDataState,
+  useGridLabelingDispatch,
+  useGridLabelingState,
+  useGridListDispatch,
+  useGridListState,
+  useSelectedRows,
+  useSelectionDispatch,
+  useSelectionState,
+} from "./state";
 import type {
   GridListContentProps,
   SelectionAction,
   SelectionState,
 } from "./types";
 import type {
-  GridListRootProps,
-  GridListRowProps,
-  GridListColumnHeaderProps,
-  GridListRowHeaderProps,
-  GridListTitleProps,
   GridListCaptionProps,
   GridListCellProps,
+  GridListColumnHeaderProps,
+  GridListRootProps,
+  GridListRowHeaderProps,
+  GridListRowProps,
+  GridListTitleProps,
 } from "./types";
-import {
-  GridDataProvider,
-  SelectionStateProvider,
-  GridListStateProvider,
-  GridLabelingProvider,
-  ControlledValueContext,
-  RowContext,
-  GridListBodyContext,
-  SelectionIndicatorContext,
-  useSelectionState,
-  useSelectedRows,
-  useGridDataState,
-  useSelectionDispatch,
-  useGridListState,
-  useGridListDispatch,
-  useGridLabelingState,
-  useGridLabelingDispatch,
-  selectionReducer,
-  GridContentContext,
-} from "./state";
-import {
-  useRegisterRow,
-  useFocusRow,
-  useFocusFirstRow,
-  useHandleSpacebar,
-  useGridListTabIndexManager,
-  useGridListKeyboardHandlers,
-} from "./hooks";
 
 export function GridListContainer({
   children,
@@ -73,17 +72,33 @@ export function GridListContainer({
   ...divProps
 }: GridListRootProps) {
   const isControlled = typeof value !== "undefined";
+  const label = divProps["aria-label"];
+  const labelledBy = divProps["aria-labelledby"];
+  const describedBy = divProps["aria-describedby"];
+  const readOnly = divProps["aria-readonly"];
+  const accessibility = useMemo(
+    () => ({
+      "aria-label": label,
+      "aria-labelledby": labelledBy,
+      "aria-describedby": describedBy,
+      "aria-readonly": readOnly,
+    }),
+    [label, labelledBy, describedBy, readOnly],
+  );
 
-  const onValueChangeEvent = useEffectEvent((rows: Set<string>) => {
-    if (typeof onValueChange === "function") {
+  const onValueChangeEvent = useCallback(
+    (rows: Set<string>) => {
+      if (typeof onValueChange !== "function") return;
       const selectedArray = Array.from(rows);
-      const valueToEmit =
-        selectionMode === "multiple" ? selectedArray : selectedArray[0] || "";
 
-      // biome-ignore lint/suspicious/noExplicitAny: we know if this is a string or string[] already
-      onValueChange(valueToEmit as any);
-    }
-  });
+      if (selectionMode === "multiple") {
+        (onValueChange as (value: string[]) => void)(selectedArray);
+      } else {
+        (onValueChange as (value: string) => void)(selectedArray[0] ?? "");
+      }
+    },
+    [onValueChange, selectionMode],
+  );
 
   // Create initial selectedRows set based on initialValue (only used once, not reactive)
   const [initialSelectedRows] = useState(() => {
@@ -121,7 +136,9 @@ export function GridListContainer({
           const state = selectionReducer(
             {
               selectionMode,
-              selectedRows: new Set(value),
+              selectedRows: new Set(
+                Array.isArray(value) ? value : value ? [value] : [],
+              ),
             },
             action,
           );
@@ -174,7 +191,11 @@ export function GridListContainer({
           name={name}
           required={required}
         >
-          <GridLabelingProvider>{optionalControlled}</GridLabelingProvider>
+          <GridLabelingProvider>
+            <GridAccessibilityContext value={accessibility}>
+              {optionalControlled}
+            </GridAccessibilityContext>
+          </GridLabelingProvider>
         </GridListStateProvider>
       </SelectionStateProvider>
     </GridDataProvider>
@@ -189,68 +210,23 @@ export function GridListContent({
   scrollable = false,
   ...divProps
 }: GridListContentProps) {
-  const startRef = useRef<HTMLButtonElement>(null);
-  const endRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentContext = useMemo(() => ({ containerRef }), []);
 
   return (
-    <GridContentContext.Provider value={{ startRef, endRef, containerRef }}>
+    <GridContentContext.Provider value={contentContext}>
       <div
         className={cn(
           "max-w-full overflow-x-auto",
+          scrollable && "max-h-96 overflow-y-auto",
           scrollableContainerClassName,
         )}
       >
         <GridListContentInner {...divProps} className={cn(gridClassName)}>
-          <FocusSentinel ref={startRef} />
           {children}
-          <FocusSentinel ref={endRef} />
         </GridListContentInner>
       </div>
     </GridContentContext.Provider>
-  );
-}
-
-function FocusSentinel({
-  ref,
-}: {
-  ref: React.RefObject<HTMLButtonElement | null>;
-}) {
-  const { lastFocusedRowId } = useGridListState();
-  const focusRow = useFocusRow();
-  const focusFirstRow = useFocusFirstRow();
-
-  return (
-    // biome-ignore lint/a11y/noAriaHiddenOnFocusable: this sentinel is for trapping focus within the grid, it needs to be hidden and focusable at the same time
-    <button
-      className="test"
-      ref={ref}
-      data-focus-scope-sentinel
-      type="button"
-      aria-hidden="true"
-      style={{
-        position: "absolute",
-        left: "-9999px",
-        width: "1px",
-        height: "1px",
-        overflow: "hidden",
-        border: "none",
-        background: "transparent",
-        padding: 0,
-        margin: 0,
-      }}
-      onFocus={(event: React.FocusEvent) => {
-        // Prevent the sentinel from staying focused
-        event.preventDefault();
-
-        // Redirect focus to the appropriate row
-        if (lastFocusedRowId && focusRow(lastFocusedRowId)) {
-          return;
-        }
-
-        focusFirstRow();
-      }}
-    />
   );
 }
 
@@ -263,14 +239,14 @@ function GridListContentInner({
   const dispatch = useGridListDispatch();
   const { lastFocusedRowId } = useGridListState();
 
-  const containerRef = useContext(GridContentContext).containerRef;
+  const { containerRef } = useContext(GridContentContext);
 
   // Effect to validate the currently focused row still exists
   useEffect(() => {
     if (!lastFocusedRowId || !containerRef?.current) return;
 
     const rowElement = containerRef.current.querySelector(
-      `[data-row-id="${lastFocusedRowId}"]`,
+      `[data-row-id="${CSS.escape(lastFocusedRowId)}"]`,
     );
     if (!rowElement) {
       // If the focused row no longer exists, clear the focus
@@ -284,6 +260,8 @@ function GridListContentInner({
   const handleKeyDown = useGridListKeyboardHandlers();
 
   const { labelIds, captionIds } = useGridLabelingState();
+  const accessibility = useContext(GridAccessibilityContext);
+  const { selectionMode } = useSelectionState();
 
   // Combine manual ARIA props with registered label/caption IDs
   const combinedLabelledBy =
@@ -291,6 +269,7 @@ function GridListContentInner({
       ...(divProps["aria-labelledby"]
         ? divProps["aria-labelledby"].split(/\s+/)
         : []),
+      ...(accessibility["aria-labelledby"]?.split(/\s+/) ?? []),
       ...labelIds,
     ]
       .filter(Boolean)
@@ -301,6 +280,7 @@ function GridListContentInner({
       ...(divProps["aria-describedby"]
         ? divProps["aria-describedby"].split(/\s+/)
         : []),
+      ...(accessibility["aria-describedby"]?.split(/\s+/) ?? []),
       ...captionIds,
     ]
       .filter(Boolean)
@@ -312,33 +292,35 @@ function GridListContentInner({
     ...divProps,
     className: cn("grid", className),
     role: "grid",
+    "aria-label": divProps["aria-label"] ?? accessibility["aria-label"],
+    "aria-readonly":
+      divProps["aria-readonly"] ?? accessibility["aria-readonly"],
+    "aria-multiselectable":
+      selectionMode === "none" ? undefined : selectionMode === "multiple",
     tabIndex: -1,
     "data-focused": isFocusWithinContainer ? "true" : undefined,
     "aria-labelledby": combinedLabelledBy,
     "aria-describedby": combinedDescribedBy,
-    onKeyDown: handleKeyDown,
+    onKeyDown: (event) => {
+      divProps.onKeyDown?.(event);
+      if (!event.defaultPrevented) handleKeyDown(event);
+    },
 
     onFocusCapture: (event) => {
-      const target = event.target as Element;
-
-      // If a sentinel is being focused, let it handle the redirection
-      if (target.hasAttribute("data-focus-scope-sentinel")) {
-        return;
-      }
-
-      // For direct interactions (clicks, etc.) on actual grid elements,
-      // just track the focus but don't redirect
-      // console.log("Direct focus on grid element:", target);
+      dispatch({
+        type: "setFocusWithinContainer",
+        isFocusWithinContainer: true,
+      });
+      divProps.onFocusCapture?.(event);
     },
     onBlurCapture: (event) => {
-      const destination = event.relatedTarget as Element;
-
-      const isLeavingGrid =
-        !destination || !containerRef?.current?.contains(destination);
-
-      if (isLeavingGrid) {
-        // console.log("leaving grid from %s", lastFocusedRowId);
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        dispatch({
+          type: "setFocusWithinContainer",
+          isFocusWithinContainer: false,
+        });
       }
+      divProps.onBlurCapture?.(event);
     },
   };
 
@@ -643,23 +625,21 @@ export const GridListRow = function GridListRow({
   readOnly,
   disabled,
   rowData,
+  selectionIds,
   ...divProps
 }: GridListRowProps) {
   const state = useGridListState();
+  const dispatch = useGridListDispatch();
   const selectionDispatch = useSelectionDispatch();
   const { selectionMode } = useSelectionState();
   const selectedRows = useSelectedRows();
+  const { rows: dataRows } = useGridDataState();
+  const { containerRef } = useContext(GridContentContext);
   const isInBody = useContext(GridListBodyContext);
-  const isLastFocusedRow = state.lastFocusedRowId === rowId;
 
   const autoGeneratedRowId = useId();
   const actualRowId = rowId ?? autoGeneratedRowId;
-
-  // Only show as focused when the row element itself is the active element
-  const isFocused =
-    isLastFocusedRow &&
-    state.isFocusWithinContainer &&
-    document.activeElement?.getAttribute("data-row-id") === rowId;
+  const isLastFocusedRow = state.lastFocusedRowId === actualRowId;
 
   // Check if row is selected
   const isRowSelected =
@@ -677,23 +657,17 @@ export const GridListRow = function GridListRow({
     role: "row",
     tabIndex: disabled ? -1 : isLastFocusedRow ? 0 : -1,
     className: cn("grid col-span-full grid-cols-subgrid", className),
-    "aria-selected": selectionMode !== "none" ? isRowSelected : undefined,
-    // FIXME: HIGH PRIORITY - Add aria-readonly support for WAI-ARIA compliance
-    // When readOnly is true, should add "aria-readonly": true
-    // FIXME: HIGH PRIORITY - Add individual cell roles for proper grid structure
-    // Need to either:
-    // 1. Create GridListCell components with role="gridcell", "columnheader", or "rowheader"
-    // 2. Or automatically assign cell roles to direct children of rows
-    // Each cell should have appropriate role based on its purpose
+    "aria-readonly": readOnly || undefined,
+    "aria-disabled": disabled || undefined,
+    "aria-selected": selectionMode === "none" ? undefined : isRowSelected,
     "data-row-id": actualRowId,
-    "data-focused": isFocused ? "true" : undefined,
     "data-restore-focus": isLastFocusedRow ? "true" : undefined,
     "data-selected": isRowSelected ? "true" : undefined,
     "data-readonly": readOnly ? "true" : undefined,
     "data-disabled": disabled ? "true" : undefined,
   };
 
-  useRegisterRow(actualRowId, readOnly, disabled, rowData);
+  useRegisterRow(actualRowId, readOnly, disabled, rowData, selectionIds);
 
   const rowContextValue = useMemo(() => {
     return {
@@ -713,19 +687,80 @@ export const GridListRow = function GridListRow({
   );
 
   const selectionCtxValue = useMemo(() => {
-    return {
-      selected: isRowSelected,
-      onCheckedChange: () => {
-        if (disabled || readOnly) return;
+    const representedIds = selectionIds ?? [actualRowId];
+    const selectedCount = representedIds.filter((representedId) =>
+      selectedRows.has(representedId),
+    ).length;
+    const selected =
+      selectedCount === 0
+        ? false
+        : selectedCount === representedIds.length
+          ? true
+          : "indeterminate";
 
-        if (isRowSelected) {
-          selectionDispatch({ type: "deselectRow", rowId: actualRowId });
-        } else {
-          selectionDispatch({ type: "selectRow", rowId: actualRowId });
+    return {
+      selected: selected as boolean | "indeterminate",
+      onCheckedChange: (
+        checked: boolean,
+        event?: MouseEvent<HTMLButtonElement>,
+      ) => {
+        if (disabled || (readOnly && selectionIds === undefined)) return;
+
+        const anchor = state.lastSelectionAnchorId;
+        if (event?.shiftKey && selectionMode === "multiple" && anchor) {
+          const orderedRowIds = Array.from(
+            containerRef?.current?.querySelectorAll<HTMLElement>(
+              "[data-row-id]",
+            ) ?? [],
+            (row) => row.dataset.rowId ?? "",
+          ).filter(Boolean);
+          const range = selectionIdsInRange(
+            dataRows,
+            anchor,
+            actualRowId,
+            orderedRowIds,
+          );
+          if (range.length) {
+            selectionDispatch({
+              type: "setSelectedRows",
+              selectedRows: [...selectedRows, ...range],
+            });
+            return;
+          }
         }
+
+        if (selectionMode === "single") {
+          selectionDispatch({
+            type: "setSelectedRows",
+            selectedRows: checked ? representedIds.slice(0, 1) : [],
+          });
+        } else {
+          const next = new Set(selectedRows);
+          for (const representedId of representedIds) {
+            if (checked) next.add(representedId);
+            else next.delete(representedId);
+          }
+          selectionDispatch({
+            type: "setSelectedRows",
+            selectedRows: [...next],
+          });
+        }
+        dispatch({ type: "setLastSelectionAnchor", rowId: actualRowId });
       },
     };
-  }, [selectionDispatch, actualRowId, isRowSelected, disabled, readOnly]);
+  }, [
+    selectionDispatch,
+    dispatch,
+    actualRowId,
+    disabled,
+    readOnly,
+    selectionIds,
+    state.lastSelectionAnchorId,
+    selectionMode,
+    dataRows,
+    selectedRows,
+    containerRef,
+  ]);
 
   // Only provide SelectionIndicatorContext for rows inside GridListBody
   if (selectionMode === "none" || !isInBody) {
@@ -758,21 +793,10 @@ function RowInner({
       const origin = event.relatedTarget as Element;
 
       const isEnteringRow = !origin || !rowRef.current?.contains(origin);
+      divProps.onFocusCapture?.(event);
 
       if (isEnteringRow) {
-        // console.log("entering row %s", rowId);
-        // set lastFocusedRowId to the rowId
         dispatch({ type: "setLastFocusedRow", rowId: rowId });
-      }
-    },
-    onBlurCapture: (event) => {
-      const destination = event.relatedTarget as Element;
-
-      const isLeavingRow =
-        !destination || !rowRef.current?.contains(destination);
-
-      if (isLeavingRow) {
-        // console.log("leaving row %s", rowId);
       }
     },
   };
@@ -795,6 +819,8 @@ export function GridListItemIndicatorRoot({
   className,
   selectLabel = "Select",
   deselectLabel = "Deselect",
+  onCheckedChange: onChange,
+  onClick,
   ...buttonProps
 }: {
   children?: React.ReactNode;
@@ -802,13 +828,6 @@ export function GridListItemIndicatorRoot({
   deselectLabel?: string;
   onCheckedChange?: (checked: boolean) => void;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  const rowContext = useContext(RowContext);
-
-  if (!rowContext) {
-    throw new Error(
-      "GridListItemIndicatorRoot must be used within a GridListRow",
-    );
-  }
   const { selected, onCheckedChange } = useContext(SelectionIndicatorContext);
 
   const labelText =
@@ -816,9 +835,11 @@ export function GridListItemIndicatorRoot({
       ? deselectLabel
       : selectLabel;
 
-  const btnProps = {
-    ...buttonProps,
-    "aria-label": labelText,
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    const checked = selected === "indeterminate" ? false : !selected;
+    onCheckedChange(checked, event);
+    onChange?.(checked);
+    onClick?.(event);
   };
 
   const srOnly = <span className="sr-only">{labelText}</span>;
@@ -828,24 +849,27 @@ export function GridListItemIndicatorRoot({
     return (
       <Checkbox
         checked={selected}
-        onCheckedChange={onCheckedChange}
-        {...btnProps}
+        className={className}
+        onClick={handleClick}
+        aria-label={buttonProps["aria-label"] ?? labelText}
+        {...buttonProps}
       />
     );
   }
 
   return (
     <button
+      {...buttonProps}
       type="button"
+      // biome-ignore lint/a11y/useSemanticElements: a button is required to compose custom selected, unselected, and mixed-state content.
+      role="checkbox"
+      aria-checked={selected === "indeterminate" ? "mixed" : selected}
+      aria-label={buttonProps["aria-label"] ?? labelText}
       className={cn(
         "cursor-pointer border-none bg-transparent p-0 m-0",
         className,
       )}
-      onClick={(event) => {
-        onCheckedChange(selected === "indeterminate" ? false : !selected);
-        buttonProps.onClick?.(event);
-      }}
-      {...btnProps}
+      onClick={handleClick}
     >
       {children}
       {srOnly}

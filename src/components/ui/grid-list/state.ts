@@ -1,16 +1,16 @@
 "use client";
 
-import { createContext, useContext } from "react";
 import { createReducerContext } from "@/utils/reducer-context";
+import { type MouseEvent, createContext, useContext } from "react";
 import type {
-	GridDataState,
-	GridDataAction,
-	SelectionState,
-	SelectionAction,
-	GridState,
 	GridAction,
-	GridLabelingState,
+	GridDataAction,
+	GridDataState,
 	GridLabelingAction,
+	GridLabelingState,
+	GridState,
+	SelectionAction,
+	SelectionState,
 } from "./types";
 
 const defaultGridDataState: GridDataState = {
@@ -24,6 +24,7 @@ const defaultSelectionState: SelectionState = {
 
 const defaultGridState: GridState = {
 	lastFocusedRowId: null,
+	lastSelectionAnchorId: null,
 	isFocusWithinContainer: false,
 	cycleRowFocus: false,
 	name: undefined,
@@ -55,6 +56,7 @@ function gridDataReducer(
 						readOnly: action.readOnly,
 						disabled: action.disabled,
 						data: action.data,
+						selectionIds: action.selectionIds,
 					},
 				],
 			};
@@ -73,6 +75,7 @@ function gridDataReducer(
 							readOnly: action.readOnly,
 							disabled: action.disabled,
 							data: action.data,
+							selectionIds: action.selectionIds,
 						}
 					: row,
 			);
@@ -187,6 +190,29 @@ export function selectionReducer(
 	return state;
 }
 
+/** Selectable data rows between two visual rows, expanding composite rows. */
+export function selectionIdsInRange(
+	rows: GridDataState["rows"],
+	fromRowId: string,
+	toRowId: string,
+	orderedRowIds: readonly string[] = rows.map((row) => row.rowId),
+): string[] {
+	const from = orderedRowIds.indexOf(fromRowId);
+	const to = orderedRowIds.indexOf(toRowId);
+	if (from === -1 || to === -1) return [];
+
+	const start = Math.min(from, to);
+	const end = Math.max(from, to);
+	const rowsById = new Map(rows.map((row) => [row.rowId, row]));
+
+	return orderedRowIds.slice(start, end + 1).flatMap((rowId) => {
+		const row = rowsById.get(rowId);
+		if (!row || row.disabled) return [];
+		if (row.selectionIds !== undefined) return [...row.selectionIds];
+		return row.readOnly ? [] : [row.rowId];
+	});
+}
+
 function gridLabelingReducer(
 	state: GridLabelingState,
 	action: GridLabelingAction,
@@ -236,6 +262,7 @@ export const [GridListStateProvider, useGridListState, useGridListDispatch] =
 	createReducerContext((state: GridState, action: GridAction): GridState => {
 		switch (action.type) {
 			case "setLastFocusedRow":
+				if (state.lastFocusedRowId === action.rowId) return state;
 				return {
 					...state,
 					lastFocusedRowId: action.rowId,
@@ -248,6 +275,9 @@ export const [GridListStateProvider, useGridListState, useGridListDispatch] =
 					...state,
 					isFocusWithinContainer: action.isFocusWithinContainer,
 				};
+			case "setLastSelectionAnchor":
+				if (state.lastSelectionAnchorId === action.rowId) return state;
+				return { ...state, lastSelectionAnchorId: action.rowId };
 		}
 
 		return state;
@@ -266,7 +296,10 @@ export const GridListBodyContext = createContext<boolean>(false);
 
 export const SelectionIndicatorContext = createContext<{
 	selected: boolean | "indeterminate";
-	onCheckedChange: (checked: boolean) => void;
+	onCheckedChange: (
+		checked: boolean,
+		event?: MouseEvent<HTMLButtonElement>,
+	) => void;
 }>({
 	selected: false,
 	onCheckedChange: () => {},
@@ -286,7 +319,9 @@ export function useSelectedRows() {
 	const { rows } = useGridDataState();
 
 	// Create a set of valid row IDs that currently exist in the table
-	const validRowIds = new Set(rows.map((row) => row.rowId));
+	const validRowIds = new Set(
+		rows.flatMap((row) => [row.rowId, ...(row.selectionIds ?? [])]),
+	);
 
 	// Filter selected rows to only include those that still exist in the table
 	const actualSelectedRows =
@@ -321,10 +356,15 @@ export function useFocusedRowData<T>(): T | undefined {
 }
 
 export const GridContentContext = createContext<{
-	startRef?: React.RefObject<HTMLSpanElement | null>;
-	endRef?: React.RefObject<HTMLSpanElement | null>;
 	containerRef?: React.RefObject<HTMLDivElement | null>;
 	_default?: true;
 }>({
 	_default: true,
 });
+
+export const GridAccessibilityContext = createContext<
+	Pick<
+		React.AriaAttributes,
+		"aria-label" | "aria-labelledby" | "aria-describedby" | "aria-readonly"
+	>
+>({});

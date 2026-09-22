@@ -27,10 +27,11 @@ import {
 	TrashIcon,
 } from "lucide-react";
 import ActionRow from "./ActionRow";
+import StackedRowsExample from "./StackedRowsExample";
 
 export default function ListPage() {
 	return (
-		<div className="bg-muted grid grid-cols-1 gap-12 p-12 h-dvh">
+		<div className="bg-muted grid min-h-dvh grid-cols-1 gap-12 p-12">
 			<Form
 				className="contents"
 				action={async (formData) => {
@@ -247,6 +248,10 @@ export default function ListPage() {
 						</GridFooter>
 					</GridListContent>
 				</GridListContainer>
+			</div>
+
+			<div>
+				<StackedRowsExample />
 			</div>
 		</div>
 	);
